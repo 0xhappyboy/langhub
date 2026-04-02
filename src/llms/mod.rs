@@ -95,6 +95,8 @@ pub trait LLM: Send + Sync {
     fn max_context_length(&self) -> Option<usize> {
         None
     }
+
+    fn get_provider_enum(&self) -> ModelProvider;
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
