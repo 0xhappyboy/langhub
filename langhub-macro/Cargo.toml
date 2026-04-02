@@ -1,0 +1,23 @@
+[package]
+name = "langhub-macro"
+version = "0.1.0"
+edition = "2024"
+authors = ["happyboy <superhappyboy1995@gmail.com>"]
+description = "Includes all macros of the langhub framework"
+keywords = ["langhub", "macro", "llm", "ai"]
+license = "Apache-2.0"
+readme = "README.md"
+repository = "https://github.com/0xhappyboy/langhub/tree/main/langhub-macro"
+
+[lib]
+proc-macro = true
+
+[dependencies]
+syn = { version = "2.0", features = ["full"] }
+quote = "1.0"
+proc-macro2 = "1.0"
+serde_json = "1.0.149"
+serde = { version = "1.0.228", features = ["derive"] }
+bubble-db = "0.1.0"
+log = "0.4.29"
+env_logger = "0.11.8"
