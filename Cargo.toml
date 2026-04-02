@@ -1,5 +1,5 @@
 [package]
-name = "langchain-sdk"
+name = "langhub"
 version = "0.1.0"
 edition = "2024"
 authors = ["happyboy <superhappyboy1995@gmail.com>"]
@@ -7,7 +7,7 @@ description = "An LLM application development framework based on Rust."
 keywords = ["ai", "llm", "llms", "langchain"]
 license = "Apache-2.0"
 readme = "README.md"
-repository = "https://github.com/0xhappyboy/langchain-sdk"
+repository = "https://github.com/0xhappyboy/langhub"
 
 [dependencies]
 tokio = { version = "1", features = ["full"] }

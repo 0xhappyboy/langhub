@@ -4,9 +4,8 @@ use proc_macro::TokenStream;
 use quote::quote;
 use syn::parse::{Parse, ParseStream, Result as SynResult};
 use syn::parse_macro_input;
-use syn::punctuated::Punctuated;
 use syn::token::Comma;
-use syn::{AttributeArgs, Expr, ItemFn, Lit, Meta, NestedMeta, ReturnType, Type};
+use syn::{AttributeArgs, ItemFn, Lit, Meta, NestedMeta};
 
 struct ChatMacroArgs {
     msg: String,
@@ -101,15 +100,12 @@ pub fn chat(attr: TokenStream, item: TokenStream) -> TokenStream {
                 .expect("BAIDU_API_KEY environment variable not set");
             let secret_key = std::env::var("BAIDU_SECRET_KEY")
                 .expect("BAIDU_SECRET_KEY environment variable not set");
-            let llm = ::langhub::core::llm::BaiduWenxin::new(api_key, secret_key)
-                .with_model(::langhub::core::llm::WenxinModel::ERNIE4_0);
+            let llm = ::langhub::core::llm::BaiduWenxin::new(api_key, secret_key);
         },
         "alibaba" => quote! {
             let api_key = std::env::var("ALIBABA_API_KEY")
                 .expect("ALIBABA_API_KEY environment variable not set");
-            let llm = ::langhub::core::llm::AlibabaTongyi::new(api_key)
-                .qwen_max()
-                .with_temperature(0.7);
+            let llm = ::langhub::core::llm::AlibabaTongyi::new(api_key);
         },
         _ => quote! {
             let api_key = std::env::var("OPENAI_API_KEY")
