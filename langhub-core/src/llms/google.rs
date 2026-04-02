@@ -1,4 +1,4 @@
-/// DeepSeek (DeepSeek-V3, R1)
+/// Google (Gemini)
 use crate::types::*;
 
 use super::{ChatMessage, LLM, LLMOptions, LLMResult};
@@ -7,62 +7,68 @@ use std::future::Future;
 use std::pin::Pin;
 
 #[derive(Debug, Clone)]
-pub enum DeepSeekModel {
-    Chat,     // DeepSeek-V3
-    Coder,    // DeepSeek-Coder
-    Reasoner, // DeepSeek-R1
+pub enum GoogleModel {
+    Gemini15Pro,        // Gemini 1.5 Pro
+    Gemini15Flash,      // Gemini 1.5 Flash
+    Gemini15ProVision,  // Gemini 1.5 Pro Vision
+    GeminiPro,          // Gemini Pro
+    GeminiProVision,    // Gemini Pro Vision
+    GeminiUltra,        // Gemini Ultra
 }
 
-impl DeepSeekModel {
+impl GoogleModel {
     fn as_str(&self) -> &'static str {
         match self {
-            DeepSeekModel::Chat => "deepseek-chat",
-            DeepSeekModel::Coder => "deepseek-coder",
-            DeepSeekModel::Reasoner => "deepseek-reasoner",
+            GoogleModel::Gemini15Pro => "gemini-1.5-pro",
+            GoogleModel::Gemini15Flash => "gemini-1.5-flash",
+            GoogleModel::Gemini15ProVision => "gemini-1.5-pro-vision",
+            GoogleModel::GeminiPro => "gemini-pro",
+            GoogleModel::GeminiProVision => "gemini-pro-vision",
+            GoogleModel::GeminiUltra => "gemini-ultra",
         }
     }
 }
 
-impl From<DeepSeekModel> for String {
-    fn from(model: DeepSeekModel) -> Self {
+impl From<GoogleModel> for String {
+    fn from(model: GoogleModel) -> Self {
         model.as_str().to_string()
     }
 }
 
-pub struct DeepSeek {
+pub struct GoogleAI {
     api_key: String,
-    model: DeepSeekModel,
+    model: GoogleModel,
     base_url: String,
     client: reqwest::Client,
     default_options: LLMOptions,
 }
 
-impl DeepSeek {
+impl GoogleAI {
     pub fn new(api_key: String) -> Self {
         Self {
             api_key,
-            model: DeepSeekModel::Chat,
-            base_url: "https://api.deepseek.com/v1".to_string(),
+            model: GoogleModel::Gemini15Pro,
+            base_url: "https://generativelanguage.googleapis.com/v1beta".to_string(),
             client: reqwest::Client::new(),
             default_options: LLMOptions::default(),
         }
     }
 
-    pub fn with_model(mut self, model: DeepSeekModel) -> Self {
+    pub fn with_model(mut self, model: GoogleModel) -> Self {
         self.model = model;
         self
     }
 
-    pub fn chat_model(self) -> Self {
-        self.with_model(DeepSeekModel::Chat)
+    pub fn gemini15_pro(self) -> Self {
+        self.with_model(GoogleModel::Gemini15Pro)
     }
 
-    pub fn coder_model(self) -> Self {
-        self.with_model(DeepSeekModel::Coder)
+    pub fn gemini15_flash(self) -> Self {
+        self.with_model(GoogleModel::Gemini15Flash)
     }
 
-    pub fn reasoner_model(self) -> Self {
-        self.with_model(DeepSeekModel::Reasoner)
+    pub fn gemini_pro(self) -> Self {
+        self.with_model(GoogleModel::GeminiPro)
     }
 
     pub fn with_temperature(mut self, temperature: f32) -> Self {
@@ -80,6 +86,11 @@ impl DeepSeek {
         self
     }
 
+    pub fn with_top_k(mut self, top_k: u32) -> Self {
+        self.default_options.top_k = Some(top_k);
+        self
+    }
+
     pub fn with_base_url(mut self, base_url: &str) -> Self {
         self.base_url = base_url.to_string();
         self
@@ -92,58 +103,55 @@ impl DeepSeek {
     ) -> Result<String> {
         let model_name: String = self.model.clone().into();
 
-        let mut request_body = json!({
-            "model": model_name,
-            "messages": messages.iter().map(|m| json!({
-                "role": m.role,
-                "content": m.content,
-            })).collect::<Vec<_>>(),
-        });
+        let contents: Vec<serde_json::Value> = messages
+            .iter()
+            .map(|m| {
+                json!({
+                    "parts": [{"text": m.content}],
+                    "role": if m.role == "user" { "user" } else { "model" },
+                })
+            })
+            .collect();
+
+        let mut generation_config = json!({});
 
         if let Some(temp) = options.temperature.or(self.default_options.temperature) {
-            request_body["temperature"] = json!(temp);
+            generation_config["temperature"] = json!(temp);
         }
         if let Some(max_tokens) = options.max_tokens.or(self.default_options.max_tokens) {
-            request_body["max_tokens"] = json!(max_tokens);
+            generation_config["maxOutputTokens"] = json!(max_tokens);
         }
         if let Some(top_p) = options.top_p.or(self.default_options.top_p) {
-            request_body["top_p"] = json!(top_p);
+            generation_config["topP"] = json!(top_p);
         }
-        if let Some(freq_penalty) = options
-            .frequency_penalty
-            .or(self.default_options.frequency_penalty)
-        {
-            request_body["frequency_penalty"] = json!(freq_penalty);
+        if let Some(top_k) = options.top_k.or(self.default_options.top_k) {
+            generation_config["topK"] = json!(top_k);
         }
-        if let Some(pres_penalty) = options
-            .presence_penalty
-            .or(self.default_options.presence_penalty)
-        {
-            request_body["presence_penalty"] = json!(pres_penalty);
-        }
-        if let Some(stop) = options
-            .stop_sequences
-            .as_ref()
-            .or(self.default_options.stop_sequences.as_ref())
-        {
-            request_body["stop"] = json!(stop);
-        }
+
+        let request_body = json!({
+            "contents": contents,
+            "generationConfig": generation_config,
+        });
+
+        let url = format!(
+            "{}/models/{}:generateContent?key={}",
+            self.base_url, model_name, self.api_key
+        );
 
         let response = self
             .client
-            .post(format!("{}/chat/completions", self.base_url))
-            .header("Authorization", format!("Bearer {}", self.api_key))
+            .post(&url)
             .header("Content-Type", "application/json")
             .json(&request_body)
             .send()
             .await
-            .map_err(|e| LangHubError::LLMError(format!("DeepSeek request error: {}", e)))?;
+            .map_err(|e| LangHubError::LLMError(format!("Google request error: {}", e)))?;
 
         if !response.status().is_success() {
             let status = response.status();
             let error_text = response.text().await.unwrap_or_default();
             return Err(LangHubError::LLMError(format!(
-                "DeepSeek API error ({}): {}",
+                "Google API error ({}): {}",
                 status, error_text
             )));
         }
@@ -153,10 +161,10 @@ impl DeepSeek {
             .await
             .map_err(|e| LangHubError::LLMError(format!("JSON parse error: {}", e)))?;
 
-        let text = json["choices"][0]["message"]["content"]
+        let text = json["candidates"][0]["content"]["parts"][0]["text"]
             .as_str()
             .ok_or_else(|| {
-                LangHubError::ParseError("Missing 'content' field in response".to_string())
+                LangHubError::ParseError("Missing 'text' field in response".to_string())
             })?
             .to_string();
 
@@ -164,7 +172,7 @@ impl DeepSeek {
     }
 }
 
-impl LLM for DeepSeek {
+impl LLM for GoogleAI {
     fn generate(
         &self,
         prompt: &str,
@@ -214,22 +222,28 @@ impl LLM for DeepSeek {
 
     fn get_model_name(&self) -> &str {
         match self.model {
-            DeepSeekModel::Chat => "deepseek-chat",
-            DeepSeekModel::Coder => "deepseek-coder",
-            DeepSeekModel::Reasoner => "deepseek-reasoner",
+            GoogleModel::Gemini15Pro => "gemini-1.5-pro",
+            GoogleModel::Gemini15Flash => "gemini-1.5-flash",
+            GoogleModel::Gemini15ProVision => "gemini-1.5-pro-vision",
+            GoogleModel::GeminiPro => "gemini-pro",
+            GoogleModel::GeminiProVision => "gemini-pro-vision",
+            GoogleModel::GeminiUltra => "gemini-ultra",
         }
     }
 
     fn get_provider_name(&self) -> &str {
         match self.model {
-            DeepSeekModel::Chat => "DeepSeek-V3",
-            DeepSeekModel::Coder => "DeepSeek-Coder",
-            DeepSeekModel::Reasoner => "DeepSeek-R1",
+            GoogleModel::Gemini15Pro => "Google-Gemini1.5-Pro",
+            GoogleModel::Gemini15Flash => "Google-Gemini1.5-Flash",
+            GoogleModel::Gemini15ProVision => "Google-Gemini1.5-Pro-Vision",
+            GoogleModel::GeminiPro => "Google-Gemini-Pro",
+            GoogleModel::GeminiProVision => "Google-Gemini-Pro-Vision",
+            GoogleModel::GeminiUltra => "Google-Gemini-Ultra",
         }
     }
 
     fn get_provider_enum(&self) -> ModelProvider {
-        ModelProvider::DeepSeek
+        ModelProvider::Google
     }
 
     fn supports_function_calling(&self) -> bool {
@@ -241,6 +255,12 @@ impl LLM for DeepSeek {
     }
 
     fn max_context_length(&self) -> Option<usize> {
-        Some(1_000_000) // DeepSeek supports 1M context
+        match self.model {
+            GoogleModel::Gemini15Pro => Some(2_000_000),
+            GoogleModel::Gemini15Flash => Some(1_000_000),
+            GoogleModel::GeminiPro => Some(32768),
+            GoogleModel::GeminiUltra => Some(32768),
+            _ => Some(32768),
+        }
     }
 }

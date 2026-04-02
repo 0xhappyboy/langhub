@@ -3,6 +3,11 @@ mod chat_macro_tests {
     use super::*;
 
     #[test]
+    fn simple_test() {
+        println!("{:?}", ModelProvider)
+    }
+
+    #[test]
     fn test_chat_macro_with_deepseek() {
         #[chat(msg = "What is Rust programming language?", type = "deepseek")]
         fn ask_question() -> Result<String> {

@@ -1,68 +1,82 @@
-/// DeepSeek (DeepSeek-V3, R1)
+/// OpenAI (GPT-4, GPT-3.5, O1)
 use crate::types::*;
 
-use super::{ChatMessage, LLM, LLMOptions, LLMResult};
+use super::{ChatMessage, LLM, LLMOptions, LLMResult, ResponseFormat};
 use serde_json::json;
 use std::future::Future;
 use std::pin::Pin;
 
 #[derive(Debug, Clone)]
-pub enum DeepSeekModel {
-    Chat,     // DeepSeek-V3
-    Coder,    // DeepSeek-Coder
-    Reasoner, // DeepSeek-R1
+pub enum OpenAIModel {
+    Gpt4,           // GPT-4
+    Gpt4Turbo,      // GPT-4 Turbo
+    Gpt4Vision,     // GPT-4 Vision
+    Gpt432k,        // GPT-4 32K
+    Gpt35Turbo,     // GPT-3.5 Turbo
+    Gpt35Turbo16k,  // GPT-3.5 Turbo 16K
+    O1Preview,      // O1 Preview
+    O1Mini,         // O1 Mini
 }
 
-impl DeepSeekModel {
+impl OpenAIModel {
     fn as_str(&self) -> &'static str {
         match self {
-            DeepSeekModel::Chat => "deepseek-chat",
-            DeepSeekModel::Coder => "deepseek-coder",
-            DeepSeekModel::Reasoner => "deepseek-reasoner",
+            OpenAIModel::Gpt4 => "gpt-4",
+            OpenAIModel::Gpt4Turbo => "gpt-4-turbo-preview",
+            OpenAIModel::Gpt4Vision => "gpt-4-vision-preview",
+            OpenAIModel::Gpt432k => "gpt-4-32k",
+            OpenAIModel::Gpt35Turbo => "gpt-3.5-turbo",
+            OpenAIModel::Gpt35Turbo16k => "gpt-3.5-turbo-16k",
+            OpenAIModel::O1Preview => "o1-preview",
+            OpenAIModel::O1Mini => "o1-mini",
         }
     }
 }
 
-impl From<DeepSeekModel> for String {
-    fn from(model: DeepSeekModel) -> Self {
+impl From<OpenAIModel> for String {
+    fn from(model: OpenAIModel) -> Self {
         model.as_str().to_string()
     }
 }
 
-pub struct DeepSeek {
+pub struct OpenAI {
     api_key: String,
-    model: DeepSeekModel,
+    model: OpenAIModel,
     base_url: String,
     client: reqwest::Client,
     default_options: LLMOptions,
 }
 
-impl DeepSeek {
+impl OpenAI {
     pub fn new(api_key: String) -> Self {
         Self {
             api_key,
-            model: DeepSeekModel::Chat,
-            base_url: "https://api.deepseek.com/v1".to_string(),
+            model: OpenAIModel::Gpt4Turbo,
+            base_url: "https://api.openai.com/v1".to_string(),
             client: reqwest::Client::new(),
             default_options: LLMOptions::default(),
         }
     }
 
-    pub fn with_model(mut self, model: DeepSeekModel) -> Self {
+    pub fn with_model(mut self, model: OpenAIModel) -> Self {
         self.model = model;
         self
     }
 
-    pub fn chat_model(self) -> Self {
-        self.with_model(DeepSeekModel::Chat)
+    pub fn gpt4(self) -> Self {
+        self.with_model(OpenAIModel::Gpt4)
     }
 
-    pub fn coder_model(self) -> Self {
-        self.with_model(DeepSeekModel::Coder)
+    pub fn gpt4_turbo(self) -> Self {
+        self.with_model(OpenAIModel::Gpt4Turbo)
     }
 
-    pub fn reasoner_model(self) -> Self {
-        self.with_model(DeepSeekModel::Reasoner)
+    pub fn gpt35_turbo(self) -> Self {
+        self.with_model(OpenAIModel::Gpt35Turbo)
+    }
+
+    pub fn o1_preview(self) -> Self {
+        self.with_model(OpenAIModel::O1Preview)
     }
 
     pub fn with_temperature(mut self, temperature: f32) -> Self {
@@ -82,6 +96,11 @@ impl DeepSeek {
 
     pub fn with_base_url(mut self, base_url: &str) -> Self {
         self.base_url = base_url.to_string();
+        self
+    }
+
+    pub fn with_json_mode(mut self) -> Self {
+        self.default_options.response_format = Some(ResponseFormat::Json);
         self
     }
 
@@ -128,6 +147,20 @@ impl DeepSeek {
         {
             request_body["stop"] = json!(stop);
         }
+        if let Some(response_format) = &options.response_format {
+            match response_format {
+                ResponseFormat::Json => {
+                    request_body["response_format"] = json!({ "type": "json_object" });
+                }
+                ResponseFormat::JsonSchema { schema } => {
+                    request_body["response_format"] = json!({
+                        "type": "json_schema",
+                        "json_schema": schema
+                    });
+                }
+                _ => {}
+            }
+        }
 
         let response = self
             .client
@@ -137,13 +170,13 @@ impl DeepSeek {
             .json(&request_body)
             .send()
             .await
-            .map_err(|e| LangHubError::LLMError(format!("DeepSeek request error: {}", e)))?;
+            .map_err(|e| LangHubError::LLMError(format!("OpenAI request error: {}", e)))?;
 
         if !response.status().is_success() {
             let status = response.status();
             let error_text = response.text().await.unwrap_or_default();
             return Err(LangHubError::LLMError(format!(
-                "DeepSeek API error ({}): {}",
+                "OpenAI API error ({}): {}",
                 status, error_text
             )));
         }
@@ -164,7 +197,7 @@ impl DeepSeek {
     }
 }
 
-impl LLM for DeepSeek {
+impl LLM for OpenAI {
     fn generate(
         &self,
         prompt: &str,
@@ -214,22 +247,32 @@ impl LLM for DeepSeek {
 
     fn get_model_name(&self) -> &str {
         match self.model {
-            DeepSeekModel::Chat => "deepseek-chat",
-            DeepSeekModel::Coder => "deepseek-coder",
-            DeepSeekModel::Reasoner => "deepseek-reasoner",
+            OpenAIModel::Gpt4 => "gpt-4",
+            OpenAIModel::Gpt4Turbo => "gpt-4-turbo-preview",
+            OpenAIModel::Gpt4Vision => "gpt-4-vision-preview",
+            OpenAIModel::Gpt432k => "gpt-4-32k",
+            OpenAIModel::Gpt35Turbo => "gpt-3.5-turbo",
+            OpenAIModel::Gpt35Turbo16k => "gpt-3.5-turbo-16k",
+            OpenAIModel::O1Preview => "o1-preview",
+            OpenAIModel::O1Mini => "o1-mini",
         }
     }
 
     fn get_provider_name(&self) -> &str {
         match self.model {
-            DeepSeekModel::Chat => "DeepSeek-V3",
-            DeepSeekModel::Coder => "DeepSeek-Coder",
-            DeepSeekModel::Reasoner => "DeepSeek-R1",
+            OpenAIModel::Gpt4 => "OpenAI-GPT4",
+            OpenAIModel::Gpt4Turbo => "OpenAI-GPT4-Turbo",
+            OpenAIModel::Gpt4Vision => "OpenAI-GPT4-Vision",
+            OpenAIModel::Gpt432k => "OpenAI-GPT4-32K",
+            OpenAIModel::Gpt35Turbo => "OpenAI-GPT3.5-Turbo",
+            OpenAIModel::Gpt35Turbo16k => "OpenAI-GPT3.5-Turbo-16K",
+            OpenAIModel::O1Preview => "OpenAI-O1-Preview",
+            OpenAIModel::O1Mini => "OpenAI-O1-Mini",
         }
     }
 
     fn get_provider_enum(&self) -> ModelProvider {
-        ModelProvider::DeepSeek
+        ModelProvider::OpenAI
     }
 
     fn supports_function_calling(&self) -> bool {
@@ -241,6 +284,14 @@ impl LLM for DeepSeek {
     }
 
     fn max_context_length(&self) -> Option<usize> {
-        Some(1_000_000) // DeepSeek supports 1M context
+        match self.model {
+            OpenAIModel::Gpt4Turbo => Some(128000),
+            OpenAIModel::Gpt4 => Some(8192),
+            OpenAIModel::Gpt432k => Some(32768),
+            OpenAIModel::Gpt35Turbo16k => Some(16384),
+            OpenAIModel::O1Preview => Some(128000),
+            OpenAIModel::O1Mini => Some(128000),
+            _ => Some(4096),
+        }
     }
 }

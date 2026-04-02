@@ -2,7 +2,7 @@ use std::error::Error;
 use std::fmt;
 
 #[derive(Debug)]
-pub enum LangChainError {
+pub enum LangHubError {
     LLMError(String),
     PromptError(String),
     ParseError(String),
@@ -11,54 +11,54 @@ pub enum LangChainError {
     JsonError(serde_json::Error),
 }
 
-impl fmt::Display for LangChainError {
+impl fmt::Display for LangHubError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            LangChainError::LLMError(msg) => write!(f, "LLM error: {}", msg),
-            LangChainError::PromptError(msg) => write!(f, "Prompt error: {}", msg),
-            LangChainError::ParseError(msg) => write!(f, "Parse error: {}", msg),
-            LangChainError::ChainError(msg) => write!(f, "Chain error: {}", msg),
-            LangChainError::IoError(err) => write!(f, "IO error: {}", err),
-            LangChainError::JsonError(err) => write!(f, "JSON error: {}", err),
+            LangHubError::LLMError(msg) => write!(f, "LLM error: {}", msg),
+            LangHubError::PromptError(msg) => write!(f, "Prompt error: {}", msg),
+            LangHubError::ParseError(msg) => write!(f, "Parse error: {}", msg),
+            LangHubError::ChainError(msg) => write!(f, "Chain error: {}", msg),
+            LangHubError::IoError(err) => write!(f, "IO error: {}", err),
+            LangHubError::JsonError(err) => write!(f, "JSON error: {}", err),
         }
     }
 }
 
-impl Error for LangChainError {
+impl Error for LangHubError {
     fn source(&self) -> Option<&(dyn Error + 'static)> {
         match self {
-            LangChainError::IoError(err) => Some(err),
-            LangChainError::JsonError(err) => Some(err),
+            LangHubError::IoError(err) => Some(err),
+            LangHubError::JsonError(err) => Some(err),
             _ => None,
         }
     }
 }
 
-impl From<std::io::Error> for LangChainError {
+impl From<std::io::Error> for LangHubError {
     fn from(err: std::io::Error) -> Self {
-        LangChainError::IoError(err)
+        LangHubError::IoError(err)
     }
 }
 
-impl From<serde_json::Error> for LangChainError {
+impl From<serde_json::Error> for LangHubError {
     fn from(err: serde_json::Error) -> Self {
-        LangChainError::JsonError(err)
+        LangHubError::JsonError(err)
     }
 }
 
-impl From<String> for LangChainError {
+impl From<String> for LangHubError {
     fn from(msg: String) -> Self {
-        LangChainError::LLMError(msg)
+        LangHubError::LLMError(msg)
     }
 }
 
-impl From<&str> for LangChainError {
+impl From<&str> for LangHubError {
     fn from(msg: &str) -> Self {
-        LangChainError::LLMError(msg.to_string())
+        LangHubError::LLMError(msg.to_string())
     }
 }
 
-pub type Result<T> = std::result::Result<T, LangChainError>;
+pub type Result<T> = std::result::Result<T, LangHubError>;
 
 use serde::{Deserialize, Serialize};
 

@@ -2,9 +2,15 @@ use crate::types::*;
 use serde::{Deserialize, Serialize};
 use std::future::Future;
 use std::{collections::HashMap, pin::Pin};
+mod anthropic;
 mod deepseek;
+mod google;
+mod openai;
 
+pub use anthropic::{Anthropic, AnthropicModel};
 pub use deepseek::{DeepSeek, DeepSeekModel};
+pub use google::{GoogleAI, GoogleModel};
+pub use openai::{OpenAI, OpenAIModel};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct LLMResult {
@@ -49,25 +55,25 @@ impl Default for LLMOptions {
 }
 
 pub trait LLM: Send + Sync {
-    fn generate(&self, prompt: &str) -> impl Future<Output = Result<LLMResult>> + Send;
+    fn generate(&self, prompt: &str) -> Pin<Box<dyn Future<Output = Result<LLMResult>> + Send + '_>>;
 
     fn generate_with_options(
         &self,
         prompt: &str,
         options: LLMOptions,
-    ) -> impl Future<Output = Result<LLMResult>> + Send;
+    ) -> Pin<Box<dyn Future<Output = Result<LLMResult>> + Send + '_>>;
 
     fn generate_batch(
         &self,
-        prompts: Vec<&str>,
-    ) -> impl Future<Output = Result<Vec<LLMResult>>> + Send {
-        async {
+        prompts: Vec<String>,
+    ) -> Pin<Box<dyn Future<Output = Result<Vec<LLMResult>>> + Send + '_>> {
+        Box::pin(async move {
             let mut results = Vec::new();
             for prompt in prompts {
-                results.push(self.generate(prompt).await?);
+                results.push(self.generate(&prompt).await?);
             }
             Ok(results)
-        }
+        })
     }
 
     fn chat(
