@@ -14,6 +14,17 @@
 <a href="./README_zh-CN.md">简体中文</a> | <a href="./README.md">English</a>
 </p>
 
+# 安装
+
+```bash
+cargo add langhub
+```
+
+```
+[dependencies]
+langhub = "0.1.1"
+```
+
 # 基本用法
 
 ## 使用 OpenAI 生成欢迎语

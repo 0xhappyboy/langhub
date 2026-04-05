@@ -14,6 +14,17 @@ An LLM application development framework based on Rust.
 <a href="./README_zh-CN.md">简体中文</a> | <a href="./README.md">English</a>
 </p>
 
+# Install
+
+```bash
+cargo add langhub
+```
+
+```
+[dependencies]
+langhub = "0.1.1"
+```
+
 # Basic Usage
 
 ## Generate a welcome message with OpenAI
