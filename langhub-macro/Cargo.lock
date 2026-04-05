@@ -474,9 +474,9 @@ dependencies = [
 
 [[package]]
 name = "langhub-core"
-version = "0.1.1"
+version = "0.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d108d2979063cbf3fef29040164a3a1432e76ba17254925e4434e20d67a33da6"
+checksum = "1da34c7f663fd905f82b43d441f1fa7803f762b2f4acbdc0494ed1f1e3c608d6"
 dependencies = [
  "reqwest",
  "serde",
@@ -486,7 +486,7 @@ dependencies = [
 
 [[package]]
 name = "langhub-macro"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "langhub-core",
  "proc-macro2",

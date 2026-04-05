@@ -79,12 +79,108 @@ pub fn chat(attr: TokenStream, item: TokenStream) -> TokenStream {
                 .gemini15_pro()
                 .with_temperature(0.7);
         },
+        "cohere" => quote! {
+            let api_key = std::env::var("COHERE_API_KEY")
+                .expect("COHERE_API_KEY environment variable not set");
+            let llm = ::langhub::core::llm::Cohere::new(api_key)
+                .command()
+                .with_temperature(0.7);
+        },
+        "huggingface" => quote! {
+            let api_key = std::env::var("HUGGINGFACE_API_KEY")
+                .expect("HUGGINGFACE_API_KEY environment variable not set");
+            let llm = ::langhub::core::llm::HuggingFace::new(api_key)
+                .llama3_8b()
+                .with_temperature(0.7);
+        },
+        "azure" => quote! {
+            let api_key = std::env::var("AZURE_API_KEY")
+                .expect("AZURE_API_KEY environment variable not set");
+            let endpoint = std::env::var("AZURE_ENDPOINT")
+                .expect("AZURE_ENDPOINT environment variable not set");
+            let deployment = std::env::var("AZURE_DEPLOYMENT_NAME")
+                .expect("AZURE_DEPLOYMENT_NAME environment variable not set");
+            let llm = ::langhub::core::llm::AzureOpenAI::new(api_key, endpoint, deployment);
+        },
+        "mistral" => quote! {
+            let api_key = std::env::var("MISTRAL_API_KEY")
+                .expect("MISTRAL_API_KEY environment variable not set");
+            let llm = ::langhub::core::llm::Mistral::new(api_key)
+                .small()
+                .with_temperature(0.7);
+        },
+        "groq" => quote! {
+            let api_key = std::env::var("GROQ_API_KEY")
+                .expect("GROQ_API_KEY environment variable not set");
+            let llm = ::langhub::core::llm::Groq::new(api_key)
+                .mixtral()
+                .with_temperature(0.7);
+        },
+        "together" => quote! {
+            let api_key = std::env::var("TOGETHER_API_KEY")
+                .expect("TOGETHER_API_KEY environment variable not set");
+            let llm = ::langhub::core::llm::Together::new(api_key)
+                .mixtral()
+                .with_temperature(0.7);
+        },
+        "replicate" => quote! {
+            let api_key = std::env::var("REPLICATE_API_KEY")
+                .expect("REPLICATE_API_KEY environment variable not set");
+            let llm = ::langhub::core::llm::Replicate::new(api_key)
+                .mixtral()
+                .with_temperature(0.7);
+        },
+        "fireworks" => quote! {
+            let api_key = std::env::var("FIREWORKS_API_KEY")
+                .expect("FIREWORKS_API_KEY environment variable not set");
+            let llm = ::langhub::core::llm::Fireworks::new(api_key)
+                .mixtral()
+                .with_temperature(0.7);
+        },
+        "perplexity" => quote! {
+            let api_key = std::env::var("PERPLEXITY_API_KEY")
+                .expect("PERPLEXITY_API_KEY environment variable not set");
+            let llm = ::langhub::core::llm::Perplexity::new(api_key)
+                .sonar_medium()
+                .with_temperature(0.7);
+        },
+        "baidu" => quote! {
+            let api_key = std::env::var("BAIDU_API_KEY")
+                .expect("BAIDU_API_KEY environment variable not set");
+            let secret_key = std::env::var("BAIDU_SECRET_KEY")
+                .expect("BAIDU_SECRET_KEY environment variable not set");
+            let llm = ::langhub::core::llm::BaiduWenxin::new(api_key, secret_key)
+                .ernie4_0();
+        },
+        "alibaba" => quote! {
+            let api_key = std::env::var("ALIBABA_API_KEY")
+                .expect("ALIBABA_API_KEY environment variable not set");
+            let llm = ::langhub::core::llm::AlibabaTongyi::new(api_key)
+                .qwen_plus()
+                .with_temperature(0.7);
+        },
+        "tencent" => quote! {
+            let secret_id = std::env::var("TENCENT_SECRET_ID")
+                .expect("TENCENT_SECRET_ID environment variable not set");
+            let secret_key = std::env::var("TENCENT_SECRET_KEY")
+                .expect("TENCENT_SECRET_KEY environment variable not set");
+            let llm = ::langhub::core::llm::TencentHunyuan::new(secret_id, secret_key)
+                .hunyuan_pro();
+        },
         "zhipu" => quote! {
             let api_key = std::env::var("ZHIPU_API_KEY")
                 .expect("ZHIPU_API_KEY environment variable not set");
             let llm = ::langhub::core::llm::ZhipuAI::new(api_key)
                 .glm4()
                 .with_temperature(0.7);
+        },
+        "minimax" => quote! {
+            let api_key = std::env::var("MINIMAX_API_KEY")
+                .expect("MINIMAX_API_KEY environment variable not set");
+            let group_id = std::env::var("MINIMAX_GROUP_ID")
+                .expect("MINIMAX_GROUP_ID environment variable not set");
+            let llm = ::langhub::core::llm::MiniMax::new(api_key, group_id)
+                .abab6_5();
         },
         "moonshot" => quote! {
             let api_key = std::env::var("MOONSHOT_API_KEY")
@@ -93,17 +189,19 @@ pub fn chat(attr: TokenStream, item: TokenStream) -> TokenStream {
                 .kimi_128k()
                 .with_temperature(0.7);
         },
-        "baidu" => quote! {
-            let api_key = std::env::var("BAIDU_API_KEY")
-                .expect("BAIDU_API_KEY environment variable not set");
-            let secret_key = std::env::var("BAIDU_SECRET_KEY")
-                .expect("BAIDU_SECRET_KEY environment variable not set");
-            let llm = ::langhub::core::llm::BaiduWenxin::new(api_key, secret_key);
+        "baichuan" => quote! {
+            let api_key = std::env::var("BAICHUAN_API_KEY")
+                .expect("BAICHUAN_API_KEY environment variable not set");
+            let llm = ::langhub::core::llm::Baichuan::new(api_key)
+                .baichuan4()
+                .with_temperature(0.7);
         },
-        "alibaba" => quote! {
-            let api_key = std::env::var("ALIBABA_API_KEY")
-                .expect("ALIBABA_API_KEY environment variable not set");
-            let llm = ::langhub::core::llm::AlibabaTongyi::new(api_key);
+        "yi" => quote! {
+            let api_key = std::env::var("YI_API_KEY")
+                .expect("YI_API_KEY environment variable not set");
+            let llm = ::langhub::core::llm::Yi::new(api_key)
+                .yi34b()
+                .with_temperature(0.7);
         },
         _ => quote! {
             let api_key = std::env::var("OPENAI_API_KEY")
