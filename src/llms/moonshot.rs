@@ -29,6 +29,7 @@ impl From<MoonshotModel> for String {
     }
 }
 
+#[derive(Clone)]
 pub struct Moonshot {
     api_key: String,
     model: MoonshotModel,

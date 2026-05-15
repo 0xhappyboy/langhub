@@ -37,6 +37,7 @@ impl From<TogetherModel> for String {
     }
 }
 
+#[derive(Clone)]
 pub struct Together {
     api_key: String,
     model: TogetherModel,

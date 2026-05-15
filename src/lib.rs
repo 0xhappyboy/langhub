@@ -6,6 +6,7 @@ use crate::llms::*;
 use crate::types::{ChatMessage, LangHubError, ModelProvider, Result};
 
 /// llm clinet enum
+#[derive(Clone)]
 pub enum LLMClient {
     OpenAI(OpenAI),
     Anthropic(Anthropic),

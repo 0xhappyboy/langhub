@@ -39,6 +39,7 @@ impl From<OpenAIModel> for String {
     }
 }
 
+#[derive(Clone)]
 pub struct OpenAI {
     api_key: String,
     model: OpenAIModel,

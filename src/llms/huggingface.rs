@@ -43,6 +43,7 @@ impl From<HuggingFaceModel> for String {
     }
 }
 
+#[derive(Clone)]
 pub struct HuggingFace {
     api_key: String,
     model: HuggingFaceModel,

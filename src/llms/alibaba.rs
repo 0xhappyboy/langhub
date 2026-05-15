@@ -39,6 +39,7 @@ impl From<AlibabaModel> for String {
     }
 }
 
+#[derive(Clone)]
 pub struct AlibabaTongyi {
     api_key: String,
     model: AlibabaModel,

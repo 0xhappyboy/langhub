@@ -33,6 +33,7 @@ impl From<AnthropicModel> for String {
     }
 }
 
+#[derive(Clone)]
 pub struct Anthropic {
     api_key: String,
     model: AnthropicModel,

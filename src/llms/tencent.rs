@@ -29,6 +29,7 @@ impl From<TencentModel> for String {
     }
 }
 
+#[derive(Clone)]
 pub struct TencentHunyuan {
     secret_id: String,
     secret_key: String,

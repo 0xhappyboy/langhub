@@ -41,6 +41,7 @@ impl From<FireworksModel> for String {
     }
 }
 
+#[derive(Clone)]
 pub struct Fireworks {
     api_key: String,
     model: FireworksModel,

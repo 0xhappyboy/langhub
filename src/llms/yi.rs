@@ -31,6 +31,7 @@ impl From<YiModel> for String {
     }
 }
 
+#[derive(Clone)]
 pub struct Yi {
     api_key: String,
     model: YiModel,

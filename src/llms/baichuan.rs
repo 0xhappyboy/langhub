@@ -33,6 +33,7 @@ impl From<BaichuanModel> for String {
     }
 }
 
+#[derive(Clone)]
 pub struct Baichuan {
     api_key: String,
     model: BaichuanModel,

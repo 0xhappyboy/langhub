@@ -35,6 +35,7 @@ impl From<PerplexityModel> for String {
     }
 }
 
+#[derive(Clone)]
 pub struct Perplexity {
     api_key: String,
     model: PerplexityModel,

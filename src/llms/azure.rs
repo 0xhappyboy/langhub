@@ -31,6 +31,7 @@ impl From<AzureModel> for String {
     }
 }
 
+#[derive(Clone)]
 pub struct AzureOpenAI {
     api_key: String,
     endpoint: String,

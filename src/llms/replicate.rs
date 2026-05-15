@@ -33,6 +33,7 @@ impl From<ReplicateModel> for String {
     }
 }
 
+#[derive(Clone)]
 pub struct Replicate {
     api_key: String,
     model: ReplicateModel,

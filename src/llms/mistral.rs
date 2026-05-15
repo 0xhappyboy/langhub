@@ -35,6 +35,7 @@ impl From<MistralModel> for String {
     }
 }
 
+#[derive(Clone)]
 pub struct Mistral {
     api_key: String,
     model: MistralModel,

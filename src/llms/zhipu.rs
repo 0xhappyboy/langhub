@@ -33,6 +33,7 @@ impl From<ZhipuModel> for String {
     }
 }
 
+#[derive(Clone)]
 pub struct ZhipuAI {
     api_key: String,
     model: ZhipuModel,

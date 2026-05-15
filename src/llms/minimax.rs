@@ -31,6 +31,7 @@ impl From<MiniMaxModel> for String {
     }
 }
 
+#[derive(Clone)]
 pub struct MiniMax {
     api_key: String,
     group_id: String,

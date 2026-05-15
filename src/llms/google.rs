@@ -35,6 +35,7 @@ impl From<GoogleModel> for String {
     }
 }
 
+#[derive(Clone)]
 pub struct GoogleAI {
     api_key: String,
     model: GoogleModel,

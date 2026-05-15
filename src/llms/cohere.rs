@@ -31,6 +31,7 @@ impl From<CohereModel> for String {
     }
 }
 
+#[derive(Clone)]
 pub struct Cohere {
     api_key: String,
     model: CohereModel,

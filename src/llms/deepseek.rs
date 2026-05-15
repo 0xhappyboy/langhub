@@ -29,6 +29,7 @@ impl From<DeepSeekModel> for String {
     }
 }
 
+#[derive(Clone)]
 pub struct DeepSeek {
     api_key: String,
     model: DeepSeekModel,

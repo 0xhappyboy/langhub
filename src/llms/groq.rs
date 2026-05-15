@@ -31,6 +31,7 @@ impl From<GroqModel> for String {
     }
 }
 
+#[derive(Clone)]
 pub struct Groq {
     api_key: String,
     model: GroqModel,
