@@ -124,7 +124,7 @@ pub enum ModelProvider {
     Moonshot,
     Baichuan,
     Yi,
-    Local,
+    Custom,
 }
 
 impl fmt::Display for ModelProvider {
@@ -151,7 +151,7 @@ impl fmt::Display for ModelProvider {
             ModelProvider::Moonshot => write!(f, "Moonshot"),
             ModelProvider::Baichuan => write!(f, "Baichuan"),
             ModelProvider::Yi => write!(f, "Yi"),
-            ModelProvider::Local => write!(f, "Local"),
+            ModelProvider::Custom => write!(f, "Custom"),
         }
     }
 }
@@ -180,7 +180,7 @@ impl ModelProvider {
             ModelProvider::Moonshot,
             ModelProvider::Baichuan,
             ModelProvider::Yi,
-            ModelProvider::Local,
+            ModelProvider::Custom,
         ]
     }
 
@@ -204,6 +204,7 @@ impl ModelProvider {
             ModelProvider::MiniMax => true,
             ModelProvider::Baichuan => true,
             ModelProvider::Yi => true,
+            ModelProvider::Custom => true,
             _ => false,
         }
     }
@@ -227,6 +228,7 @@ impl ModelProvider {
             ModelProvider::Moonshot => true,
             ModelProvider::Baichuan => true,
             ModelProvider::Yi => true,
+            ModelProvider::Custom => true,
             _ => false,
         }
     }

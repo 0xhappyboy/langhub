@@ -74,6 +74,8 @@ pub struct LLMConfig {
     pub baichuan_api_key: Option<String>,
     /// Yi AI API key
     pub yi_api_key: Option<String>,
+    /// Custom API base URL
+    pub custom_api_base: Option<String>,
 }
 
 impl LLMConfig {
@@ -285,6 +287,15 @@ impl LLMConfig {
         self.yi_api_key = Some(api_key);
         self
     }
+
+    /// Sets the custom API base URL
+    ///
+    /// # Arguments
+    /// * `api_base` - Custom API base URL
+    pub fn custom_api_base(mut self, api_base: String) -> Self {
+        self.custom_api_base = Some(api_base);
+        self
+    }
 }
 
 /// Unified LLM client for multiple AI providers
@@ -327,6 +338,7 @@ pub enum LLMClient {
     Moonshot(Moonshot),
     Baichuan(Baichuan),
     Yi(Yi),
+    Custom(CustomLLM),
 }
 
 impl LLMClient {
@@ -501,10 +513,15 @@ impl LLMClient {
                     .ok_or_else(|| LangHubError::LLMError("Yi API key not provided".to_string()))?;
                 config = config.yi(key);
             }
-            ModelProvider::Local => {
-                return Err(LangHubError::LLMError(
-                    "Local models not yet supported".to_string(),
-                ));
+            ModelProvider::Custom => {
+                let api_key = api_key.ok_or_else(|| {
+                    LangHubError::LLMError("Custom model API key not provided".to_string())
+                })?;
+                let api_base = extra.get("api_base").ok_or_else(|| {
+                    LangHubError::LLMError("Custom model API base URL not provided".to_string())
+                })?;
+                let client = CustomLLM::new(api_key, api_base.clone());
+                return Ok(LLMClient::Custom(client));
             }
         }
         Self::new_with_config(provider, &config)
@@ -709,9 +726,18 @@ impl LLMClient {
                     .ok_or_else(|| LangHubError::LLMError("Yi API key not provided".to_string()))?;
                 Ok(LLMClient::Yi(Yi::new(api_key.clone()).yi34b()))
             }
-            ModelProvider::Local => Err(LangHubError::LLMError(
-                "Local models not yet supported".to_string(),
-            )),
+            ModelProvider::Custom => {
+                let api_key = config.openai_api_key.as_ref().ok_or_else(|| {
+                    LangHubError::LLMError("Custom model API key not provided".to_string())
+                })?;
+                let api_base = config.custom_api_base.as_ref().ok_or_else(|| {
+                    LangHubError::LLMError("Custom model API base URL not provided".to_string())
+                })?;
+                Ok(LLMClient::Custom(CustomLLM::new(
+                    api_key.clone(),
+                    api_base.clone(),
+                )))
+            }
         }
     }
 
@@ -756,6 +782,7 @@ impl LLMClient {
             LLMClient::Moonshot(m) => m.generate(prompt).await.map(|r| r.text),
             LLMClient::Baichuan(m) => m.generate(prompt).await.map(|r| r.text),
             LLMClient::Yi(m) => m.generate(prompt).await.map(|r| r.text),
+            LLMClient::Custom(m) => m.generate(prompt).await.map(|r| r.text),
         }
     }
 
@@ -807,6 +834,7 @@ impl LLMClient {
             LLMClient::Moonshot(m) => m.chat(messages).await.map(|r| r.text),
             LLMClient::Baichuan(m) => m.chat(messages).await.map(|r| r.text),
             LLMClient::Yi(m) => m.chat(messages).await.map(|r| r.text),
+            LLMClient::Custom(m) => m.chat(messages).await.map(|r| r.text),
         }
     }
 }

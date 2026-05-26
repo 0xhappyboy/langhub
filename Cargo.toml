@@ -1,6 +1,6 @@
 [package]
 name = "langhub"
-version = "0.2.5"
+version = "0.3.0"
 edition = "2024"
 authors = ["happyboy <superhappyboy1995@gmail.com>"]
 description = "An LLM application development framework based on Rust."

@@ -4,6 +4,7 @@ mod azure;
 mod baichuan;
 mod baidu;
 mod cohere;
+mod custom;
 mod deepseek;
 mod fireworks;
 mod google;
@@ -26,6 +27,7 @@ pub use azure::{AzureModel, AzureOpenAI};
 pub use baichuan::{Baichuan, BaichuanModel};
 pub use baidu::{BaiduModel, BaiduWenxin};
 pub use cohere::{Cohere, CohereModel};
+pub use custom::*;
 pub use deepseek::{DeepSeek, DeepSeekModel};
 pub use fireworks::{Fireworks, FireworksModel};
 pub use google::{GoogleAI, GoogleModel};
@@ -127,7 +129,7 @@ pub trait LLM: Send + Sync {
     fn get_provider_name(&self) -> String;
 
     fn get_provider_enum(&self) -> ModelProvider {
-        ModelProvider::Local
+        ModelProvider::Custom
     }
 
     fn supports_function_calling(&self) -> bool {
