@@ -792,7 +792,7 @@ impl LLMClient {
     /// * `messages` - A vector of chat messages representing the conversation
     ///
     /// # Returns
-    /// A `Result` containing the assistant's response or an error
+    /// A `Result` containing the llm's response or an error
     ///
     /// # Example
     /// ```
@@ -803,7 +803,7 @@ impl LLMClient {
     /// # let client = langhub::LLMClient::new_with_config(langhub::types::ModelProvider::OpenAI, &config)?;
     /// let messages = vec![
     ///     ChatMessage::user("Hello, who are you?"),
-    ///     ChatMessage::assistant("I am an AI assistant."),
+    ///     ChatMessage::llm("I am an llm."),
     ///     ChatMessage::user("What can you do?"),
     /// ];
     /// let response = client.chat(messages).await?;

@@ -98,7 +98,7 @@ impl TencentHunyuan {
         let mut request_body = json!({
             "Model": model_name,
             "Messages": messages.iter().map(|m| json!({
-                "Role": if m.role == "assistant" { "assistant" } else { "user" },
+                "Role": if m.role == "llm" { "llm" } else { "user" },
                 "Content": m.content,
             })).collect::<Vec<_>>(),
         });

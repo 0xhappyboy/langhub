@@ -142,8 +142,8 @@ impl BaiduWenxin {
         let mut messages_json: Vec<serde_json::Value> = messages
             .iter()
             .map(|m| {
-                let role = if m.role == "assistant" {
-                    "assistant"
+                let role = if m.role == "llm" {
+                    "llm"
                 } else {
                     "user"
                 };

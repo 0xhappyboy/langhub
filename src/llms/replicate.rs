@@ -114,11 +114,11 @@ impl Replicate {
                 prompt.push_str(&format!("<|system|>\n{}\n", msg.content));
             } else if msg.role == "user" {
                 prompt.push_str(&format!("<|user|>\n{}\n", msg.content));
-            } else if msg.role == "assistant" {
-                prompt.push_str(&format!("<|assistant|>\n{}\n", msg.content));
+            } else if msg.role == "llm" {
+                prompt.push_str(&format!("<|llm|>\n{}\n", msg.content));
             }
         }
-        prompt.push_str("<|assistant|>\n");
+        prompt.push_str("<|llm|>\n");
 
         let mut input = json!({});
 

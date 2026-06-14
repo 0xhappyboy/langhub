@@ -91,7 +91,7 @@ impl MiniMax {
         let mut messages_json: Vec<serde_json::Value> = messages
             .iter()
             .map(|m| {
-                let sender_type = if m.role == "assistant" { "BOT" } else { "USER" };
+                let sender_type = if m.role == "llm" { "BOT" } else { "USER" };
                 json!({
                     "sender_type": sender_type,
                     "text": m.content,
