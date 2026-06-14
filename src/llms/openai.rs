@@ -8,14 +8,14 @@ use std::pin::Pin;
 
 #[derive(Debug, Clone)]
 pub enum OpenAIModel {
-    Gpt4,          // GPT-4
-    Gpt4Turbo,     // GPT-4 Turbo
-    Gpt4Vision,    // GPT-4 Vision
-    Gpt432k,       // GPT-4 32K
-    Gpt35Turbo,    // GPT-3.5 Turbo
-    Gpt35Turbo16k, // GPT-3.5 Turbo 16K
-    O1Preview,     // O1 Preview
-    O1Mini,        // O1 Mini
+    Gpt4,
+    Gpt4Turbo,
+    Gpt4Vision,
+    Gpt432k,
+    Gpt35Turbo,
+    Gpt35Turbo16k,
+    O1Preview,
+    O1Mini,
 }
 
 impl OpenAIModel {
@@ -109,7 +109,7 @@ impl OpenAI {
         &self,
         messages: &[ChatMessage],
         options: &LLMOptions,
-    ) -> Result<String> {
+    ) -> Result<LLMResult> {
         let model_name: String = self.model.clone().into();
 
         let mut request_body = json!({
@@ -182,19 +182,17 @@ impl OpenAI {
             )));
         }
 
-        let json: serde_json::Value = response
+        let raw_response: serde_json::Value = response
             .json()
             .await
             .map_err(|e| LangHubError::LLMError(format!("JSON parse error: {}", e)))?;
 
-        let text = json["choices"][0]["message"]["content"]
+        let text = raw_response["choices"][0]["message"]["content"]
             .as_str()
-            .ok_or_else(|| {
-                LangHubError::ParseError("Missing 'content' field in response".to_string())
-            })?
+            .unwrap_or("")
             .to_string();
 
-        Ok(text)
+        Ok(LLMResult { text, raw_response })
     }
 }
 
@@ -207,11 +205,7 @@ impl LLM for OpenAI {
         let options = self.default_options.clone();
         Box::pin(async move {
             let messages = vec![ChatMessage::user(&prompt)];
-            let text = self.chat_completion(&messages, &options).await?;
-            Ok(LLMResult {
-                text,
-                metadata: None,
-            })
+            self.chat_completion(&messages, &options).await
         })
     }
 
@@ -223,11 +217,7 @@ impl LLM for OpenAI {
         let prompt = prompt.to_string();
         Box::pin(async move {
             let messages = vec![ChatMessage::user(&prompt)];
-            let text = self.chat_completion(&messages, &options).await?;
-            Ok(LLMResult {
-                text,
-                metadata: None,
-            })
+            self.chat_completion(&messages, &options).await
         })
     }
 
@@ -236,14 +226,17 @@ impl LLM for OpenAI {
         messages: Vec<ChatMessage>,
     ) -> Pin<Box<dyn Future<Output = Result<LLMResult>> + Send + '_>> {
         Box::pin(async move {
-            let text = self
-                .chat_completion(&messages, &LLMOptions::default())
-                .await?;
-            Ok(LLMResult {
-                text,
-                metadata: None,
-            })
+            self.chat_completion(&messages, &LLMOptions::default())
+                .await
         })
+    }
+
+    fn chat_with_options(
+        &self,
+        messages: Vec<ChatMessage>,
+        options: LLMOptions,
+    ) -> Pin<Box<dyn Future<Output = Result<LLMResult>> + Send + '_>> {
+        Box::pin(async move { self.chat_completion(&messages, &options).await })
     }
 
     fn get_model_name(&self) -> String {

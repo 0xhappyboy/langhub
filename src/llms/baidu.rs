@@ -9,11 +9,11 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 #[derive(Debug, Clone)]
 pub enum BaiduModel {
-    Ernie4_0,   // ERNIE 4.0
-    Ernie3_5,   // ERNIE 3.5
-    ErnieSpeed, // ERNIE Speed
-    ErnieLite,  // ERNIE Lite
-    ErnieTiny,  // ERNIE Tiny
+    Ernie4_0,
+    Ernie3_5,
+    ErnieSpeed,
+    ErnieLite,
+    ErnieTiny,
 }
 
 impl BaiduModel {
@@ -34,6 +34,7 @@ impl From<BaiduModel> for String {
     }
 }
 
+#[derive(Clone)]
 pub struct BaiduWenxin {
     api_key: String,
     secret_key: String,
@@ -135,26 +136,20 @@ impl BaiduWenxin {
         &mut self,
         messages: &[ChatMessage],
         options: &LLMOptions,
-    ) -> Result<String> {
+    ) -> Result<LLMResult> {
         let model_name: String = self.model.clone().into();
         let access_token = self.get_access_token().await?;
 
         let mut messages_json: Vec<serde_json::Value> = messages
             .iter()
             .map(|m| {
-                let role = if m.role == "llm" {
-                    "llm"
-                } else {
-                    "user"
-                };
+                let role = if m.role == "assistant" { "assistant" } else { "user" };
                 json!({
                     "role": role,
                     "content": m.content,
                 })
             })
             .collect();
-
-        // Add system message if present
         if let Some(system_msg) = messages.iter().find(|m| m.role == "system") {
             messages_json.insert(
                 0,
@@ -202,27 +197,24 @@ impl BaiduWenxin {
             )));
         }
 
-        let json: serde_json::Value = response
+        let raw_response: serde_json::Value = response
             .json()
             .await
             .map_err(|e| LangHubError::LLMError(format!("JSON parse error: {}", e)))?;
 
-        if let Some(error_code) = json["error_code"].as_i64() {
+        if let Some(error_code) = raw_response["error_code"].as_i64() {
             return Err(LangHubError::LLMError(format!(
                 "Baidu error {}: {}",
                 error_code,
-                json["error_msg"].as_str().unwrap_or("Unknown error")
+                raw_response["error_msg"]
+                    .as_str()
+                    .unwrap_or("Unknown error")
             )));
         }
 
-        let text = json["result"]
-            .as_str()
-            .ok_or_else(|| {
-                LangHubError::ParseError("Missing 'result' field in response".to_string())
-            })?
-            .to_string();
+        let text = raw_response["result"].as_str().unwrap_or("").to_string();
 
-        Ok(text)
+        Ok(LLMResult { text, raw_response })
     }
 }
 
@@ -236,11 +228,7 @@ impl LLM for BaiduWenxin {
         let mut self_clone = self.clone();
         Box::pin(async move {
             let messages = vec![ChatMessage::user(&prompt)];
-            let text = self_clone.chat_completion(&messages, &options).await?;
-            Ok(LLMResult {
-                text,
-                metadata: None,
-            })
+            self_clone.chat_completion(&messages, &options).await
         })
     }
 
@@ -253,11 +241,7 @@ impl LLM for BaiduWenxin {
         let mut self_clone = self.clone();
         Box::pin(async move {
             let messages = vec![ChatMessage::user(&prompt)];
-            let text = self_clone.chat_completion(&messages, &options).await?;
-            Ok(LLMResult {
-                text,
-                metadata: None,
-            })
+            self_clone.chat_completion(&messages, &options).await
         })
     }
 
@@ -267,13 +251,9 @@ impl LLM for BaiduWenxin {
     ) -> Pin<Box<dyn Future<Output = Result<LLMResult>> + Send + '_>> {
         let mut self_clone = self.clone();
         Box::pin(async move {
-            let text = self_clone
+            self_clone
                 .chat_completion(&messages, &LLMOptions::default())
-                .await?;
-            Ok(LLMResult {
-                text,
-                metadata: None,
-            })
+                .await
         })
     }
 
@@ -315,20 +295,6 @@ impl LLM for BaiduWenxin {
             BaiduModel::Ernie3_5 => Some(16000),
             BaiduModel::ErnieSpeed => Some(112000),
             _ => Some(8000),
-        }
-    }
-}
-
-impl Clone for BaiduWenxin {
-    fn clone(&self) -> Self {
-        Self {
-            api_key: self.api_key.clone(),
-            secret_key: self.secret_key.clone(),
-            model: self.model.clone(),
-            access_token: None,
-            token_expiry: None,
-            client: reqwest::Client::new(),
-            default_options: self.default_options.clone(),
         }
     }
 }

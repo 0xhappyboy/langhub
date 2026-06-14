@@ -8,10 +8,10 @@ use std::pin::Pin;
 
 #[derive(Debug, Clone)]
 pub enum MiniMaxModel {
-    Abab6_5,  // Abab 6.5
-    Abab6_5S, // Abab 6.5s
-    Abab5_5,  // Abab 5.5
-    Abab5_5S, // Abab 5.5s
+    Abab6_5,
+    Abab6_5S,
+    Abab5_5,
+    Abab5_5S,
 }
 
 impl MiniMaxModel {
@@ -85,13 +85,12 @@ impl MiniMax {
         &self,
         messages: &[ChatMessage],
         options: &LLMOptions,
-    ) -> Result<String> {
+    ) -> Result<LLMResult> {
         let model_name: String = self.model.clone().into();
-
-        let mut messages_json: Vec<serde_json::Value> = messages
+        let messages_json: Vec<serde_json::Value> = messages
             .iter()
             .map(|m| {
-                let sender_type = if m.role == "llm" { "BOT" } else { "USER" };
+                let sender_type = if m.role == "assistant" { "BOT" } else { "USER" };
                 json!({
                     "sender_type": sender_type,
                     "text": m.content,
@@ -134,19 +133,14 @@ impl MiniMax {
             )));
         }
 
-        let json: serde_json::Value = response
+        let raw_response: serde_json::Value = response
             .json()
             .await
             .map_err(|e| LangHubError::LLMError(format!("JSON parse error: {}", e)))?;
 
-        let text = json["reply"]
-            .as_str()
-            .ok_or_else(|| {
-                LangHubError::ParseError("Missing 'reply' field in response".to_string())
-            })?
-            .to_string();
+        let text = raw_response["reply"].as_str().unwrap_or("").to_string();
 
-        Ok(text)
+        Ok(LLMResult { text, raw_response })
     }
 }
 
@@ -159,11 +153,7 @@ impl LLM for MiniMax {
         let options = self.default_options.clone();
         Box::pin(async move {
             let messages = vec![ChatMessage::user(&prompt)];
-            let text = self.chat_completion(&messages, &options).await?;
-            Ok(LLMResult {
-                text,
-                metadata: None,
-            })
+            self.chat_completion(&messages, &options).await
         })
     }
 
@@ -175,11 +165,7 @@ impl LLM for MiniMax {
         let prompt = prompt.to_string();
         Box::pin(async move {
             let messages = vec![ChatMessage::user(&prompt)];
-            let text = self.chat_completion(&messages, &options).await?;
-            Ok(LLMResult {
-                text,
-                metadata: None,
-            })
+            self.chat_completion(&messages, &options).await
         })
     }
 
@@ -188,13 +174,8 @@ impl LLM for MiniMax {
         messages: Vec<ChatMessage>,
     ) -> Pin<Box<dyn Future<Output = Result<LLMResult>> + Send + '_>> {
         Box::pin(async move {
-            let text = self
-                .chat_completion(&messages, &LLMOptions::default())
-                .await?;
-            Ok(LLMResult {
-                text,
-                metadata: None,
-            })
+            self.chat_completion(&messages, &LLMOptions::default())
+                .await
         })
     }
 

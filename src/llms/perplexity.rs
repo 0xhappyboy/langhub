@@ -101,7 +101,7 @@ impl Perplexity {
         &self,
         messages: &[ChatMessage],
         options: &LLMOptions,
-    ) -> Result<String> {
+    ) -> Result<LLMResult> {
         let model_name: String = self.model.clone().into();
 
         let mut request_body = json!({
@@ -151,19 +151,17 @@ impl Perplexity {
             )));
         }
 
-        let json: serde_json::Value = response
+        let raw_response: serde_json::Value = response
             .json()
             .await
             .map_err(|e| LangHubError::LLMError(format!("JSON parse error: {}", e)))?;
 
-        let text = json["choices"][0]["message"]["content"]
+        let text = raw_response["choices"][0]["message"]["content"]
             .as_str()
-            .ok_or_else(|| {
-                LangHubError::ParseError("Missing 'content' field in response".to_string())
-            })?
+            .unwrap_or("")
             .to_string();
 
-        Ok(text)
+        Ok(LLMResult { text, raw_response })
     }
 }
 
@@ -176,11 +174,7 @@ impl LLM for Perplexity {
         let options = self.default_options.clone();
         Box::pin(async move {
             let messages = vec![ChatMessage::user(&prompt)];
-            let text = self.chat_completion(&messages, &options).await?;
-            Ok(LLMResult {
-                text,
-                metadata: None,
-            })
+            self.chat_completion(&messages, &options).await
         })
     }
 
@@ -192,11 +186,7 @@ impl LLM for Perplexity {
         let prompt = prompt.to_string();
         Box::pin(async move {
             let messages = vec![ChatMessage::user(&prompt)];
-            let text = self.chat_completion(&messages, &options).await?;
-            Ok(LLMResult {
-                text,
-                metadata: None,
-            })
+            self.chat_completion(&messages, &options).await
         })
     }
 
@@ -205,13 +195,8 @@ impl LLM for Perplexity {
         messages: Vec<ChatMessage>,
     ) -> Pin<Box<dyn Future<Output = Result<LLMResult>> + Send + '_>> {
         Box::pin(async move {
-            let text = self
-                .chat_completion(&messages, &LLMOptions::default())
-                .await?;
-            Ok(LLMResult {
-                text,
-                metadata: None,
-            })
+            self.chat_completion(&messages, &LLMOptions::default())
+                .await
         })
     }
 

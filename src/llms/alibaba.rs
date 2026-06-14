@@ -8,14 +8,14 @@ use std::pin::Pin;
 
 #[derive(Debug, Clone)]
 pub enum AlibabaModel {
-    QwenTurbo,   // Qwen-Turbo
-    QwenPlus,    // Qwen-Plus
-    QwenMax,     // Qwen-Max
-    QwenMaxLong, // Qwen-Max-LongContext
-    Qwen72B,     // Qwen-72B-Chat
-    Qwen14B,     // Qwen-14B-Chat
-    Qwen7B,      // Qwen-7B-Chat
-    QwenVL,      // Qwen-VL
+    QwenTurbo,
+    QwenPlus,
+    QwenMax,
+    QwenMaxLong,
+    Qwen72B,
+    Qwen14B,
+    Qwen7B,
+    QwenVL,
 }
 
 impl AlibabaModel {
@@ -109,7 +109,7 @@ impl AlibabaTongyi {
         &self,
         messages: &[ChatMessage],
         options: &LLMOptions,
-    ) -> Result<String> {
+    ) -> Result<LLMResult> {
         let model_name: String = self.model.clone().into();
 
         let mut input = json!({
@@ -162,19 +162,17 @@ impl AlibabaTongyi {
             )));
         }
 
-        let json: serde_json::Value = response
+        let raw_response: serde_json::Value = response
             .json()
             .await
             .map_err(|e| LangHubError::LLMError(format!("JSON parse error: {}", e)))?;
 
-        let text = json["output"]["text"]
+        let text = raw_response["output"]["text"]
             .as_str()
-            .ok_or_else(|| {
-                LangHubError::ParseError("Missing 'text' field in response".to_string())
-            })?
+            .unwrap_or("")
             .to_string();
 
-        Ok(text)
+        Ok(LLMResult { text, raw_response })
     }
 }
 
@@ -187,11 +185,7 @@ impl LLM for AlibabaTongyi {
         let options = self.default_options.clone();
         Box::pin(async move {
             let messages = vec![ChatMessage::user(&prompt)];
-            let text = self.chat_completion(&messages, &options).await?;
-            Ok(LLMResult {
-                text,
-                metadata: None,
-            })
+            self.chat_completion(&messages, &options).await
         })
     }
 
@@ -203,11 +197,7 @@ impl LLM for AlibabaTongyi {
         let prompt = prompt.to_string();
         Box::pin(async move {
             let messages = vec![ChatMessage::user(&prompt)];
-            let text = self.chat_completion(&messages, &options).await?;
-            Ok(LLMResult {
-                text,
-                metadata: None,
-            })
+            self.chat_completion(&messages, &options).await
         })
     }
 
@@ -216,13 +206,8 @@ impl LLM for AlibabaTongyi {
         messages: Vec<ChatMessage>,
     ) -> Pin<Box<dyn Future<Output = Result<LLMResult>> + Send + '_>> {
         Box::pin(async move {
-            let text = self
-                .chat_completion(&messages, &LLMOptions::default())
-                .await?;
-            Ok(LLMResult {
-                text,
-                metadata: None,
-            })
+            self.chat_completion(&messages, &LLMOptions::default())
+                .await
         })
     }
 

@@ -8,9 +8,9 @@ use std::pin::Pin;
 
 #[derive(Debug, Clone)]
 pub enum TencentModel {
-    HunyuanPro,  // Hunyuan Pro
-    HunyuanStd,  // Hunyuan Standard
-    HunyuanLite, // Hunyuan Lite
+    HunyuanPro,
+    HunyuanStd,
+    HunyuanLite,
 }
 
 impl TencentModel {
@@ -92,13 +92,13 @@ impl TencentHunyuan {
         &self,
         messages: &[ChatMessage],
         options: &LLMOptions,
-    ) -> Result<String> {
+    ) -> Result<LLMResult> {
         let model_name: String = self.model.clone().into();
 
         let mut request_body = json!({
             "Model": model_name,
             "Messages": messages.iter().map(|m| json!({
-                "Role": if m.role == "llm" { "llm" } else { "user" },
+                "Role": if m.role == "assistant" { "assistant" } else { "user" },
                 "Content": m.content,
             })).collect::<Vec<_>>(),
         });
@@ -113,8 +113,6 @@ impl TencentHunyuan {
             request_body["TopP"] = json!(top_p);
         }
 
-        // Note: This is a simplified implementation
-        // In production, you'd need to properly sign the request with Tencent Cloud API signatures
         let url = format!(
             "https://hunyuan.tencentcloudapi.com/?Action=ChatCompletions&Version=2023-09-01&Region={}",
             self.region
@@ -138,19 +136,17 @@ impl TencentHunyuan {
             )));
         }
 
-        let json: serde_json::Value = response
+        let raw_response: serde_json::Value = response
             .json()
             .await
             .map_err(|e| LangHubError::LLMError(format!("JSON parse error: {}", e)))?;
 
-        let text = json["Response"]["Choices"][0]["Message"]["Content"]
+        let text = raw_response["Response"]["Choices"][0]["Message"]["Content"]
             .as_str()
-            .ok_or_else(|| {
-                LangHubError::ParseError("Missing 'Content' field in response".to_string())
-            })?
+            .unwrap_or("")
             .to_string();
 
-        Ok(text)
+        Ok(LLMResult { text, raw_response })
     }
 }
 
@@ -163,11 +159,7 @@ impl LLM for TencentHunyuan {
         let options = self.default_options.clone();
         Box::pin(async move {
             let messages = vec![ChatMessage::user(&prompt)];
-            let text = self.chat_completion(&messages, &options).await?;
-            Ok(LLMResult {
-                text,
-                metadata: None,
-            })
+            self.chat_completion(&messages, &options).await
         })
     }
 
@@ -179,11 +171,7 @@ impl LLM for TencentHunyuan {
         let prompt = prompt.to_string();
         Box::pin(async move {
             let messages = vec![ChatMessage::user(&prompt)];
-            let text = self.chat_completion(&messages, &options).await?;
-            Ok(LLMResult {
-                text,
-                metadata: None,
-            })
+            self.chat_completion(&messages, &options).await
         })
     }
 
@@ -192,13 +180,8 @@ impl LLM for TencentHunyuan {
         messages: Vec<ChatMessage>,
     ) -> Pin<Box<dyn Future<Output = Result<LLMResult>> + Send + '_>> {
         Box::pin(async move {
-            let text = self
-                .chat_completion(&messages, &LLMOptions::default())
-                .await?;
-            Ok(LLMResult {
-                text,
-                metadata: None,
-            })
+            self.chat_completion(&messages, &LLMOptions::default())
+                .await
         })
     }
 

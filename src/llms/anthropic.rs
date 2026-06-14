@@ -8,11 +8,11 @@ use std::pin::Pin;
 
 #[derive(Debug, Clone)]
 pub enum AnthropicModel {
-    Claude3Opus,   // Claude 3 Opus
-    Claude3Sonnet, // Claude 3 Sonnet
-    Claude3Haiku,  // Claude 3 Haiku
-    Claude21,      // Claude 2.1
-    Claude2,       // Claude 2.0
+    Claude3Opus,
+    Claude3Sonnet,
+    Claude3Haiku,
+    Claude21,
+    Claude2,
 }
 
 impl AnthropicModel {
@@ -99,7 +99,7 @@ impl Anthropic {
         &self,
         messages: &[ChatMessage],
         options: &LLMOptions,
-    ) -> Result<String> {
+    ) -> Result<LLMResult> {
         let model_name: String = self.model.clone().into();
 
         let anthropic_messages: Vec<serde_json::Value> = messages
@@ -119,7 +119,6 @@ impl Anthropic {
             "max_tokens": options.max_tokens.or(self.default_options.max_tokens).unwrap_or(4096),
         });
 
-        // Add system prompt if present
         if let Some(system_msg) = messages.iter().find(|m| m.role == "system") {
             request_body["system"] = json!(system_msg.content);
         }
@@ -161,19 +160,17 @@ impl Anthropic {
             )));
         }
 
-        let json: serde_json::Value = response
+        let raw_response: serde_json::Value = response
             .json()
             .await
             .map_err(|e| LangHubError::LLMError(format!("JSON parse error: {}", e)))?;
 
-        let text = json["content"][0]["text"]
+        let text = raw_response["content"][0]["text"]
             .as_str()
-            .ok_or_else(|| {
-                LangHubError::ParseError("Missing 'text' field in response".to_string())
-            })?
+            .unwrap_or("")
             .to_string();
 
-        Ok(text)
+        Ok(LLMResult { text, raw_response })
     }
 }
 
@@ -186,11 +183,7 @@ impl LLM for Anthropic {
         let options = self.default_options.clone();
         Box::pin(async move {
             let messages = vec![ChatMessage::user(&prompt)];
-            let text = self.chat_completion(&messages, &options).await?;
-            Ok(LLMResult {
-                text,
-                metadata: None,
-            })
+            self.chat_completion(&messages, &options).await
         })
     }
 
@@ -202,11 +195,7 @@ impl LLM for Anthropic {
         let prompt = prompt.to_string();
         Box::pin(async move {
             let messages = vec![ChatMessage::user(&prompt)];
-            let text = self.chat_completion(&messages, &options).await?;
-            Ok(LLMResult {
-                text,
-                metadata: None,
-            })
+            self.chat_completion(&messages, &options).await
         })
     }
 
@@ -215,13 +204,8 @@ impl LLM for Anthropic {
         messages: Vec<ChatMessage>,
     ) -> Pin<Box<dyn Future<Output = Result<LLMResult>> + Send + '_>> {
         Box::pin(async move {
-            let text = self
-                .chat_completion(&messages, &LLMOptions::default())
-                .await?;
-            Ok(LLMResult {
-                text,
-                metadata: None,
-            })
+            self.chat_completion(&messages, &LLMOptions::default())
+                .await
         })
     }
 

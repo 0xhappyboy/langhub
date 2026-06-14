@@ -104,21 +104,20 @@ impl Replicate {
         &self,
         messages: &[ChatMessage],
         options: &LLMOptions,
-    ) -> Result<String> {
+    ) -> Result<LLMResult> {
         let model_name: String = self.model.clone().into();
 
-        // Build prompt from messages
         let mut prompt = String::new();
         for msg in messages {
             if msg.role == "system" {
                 prompt.push_str(&format!("<|system|>\n{}\n", msg.content));
             } else if msg.role == "user" {
                 prompt.push_str(&format!("<|user|>\n{}\n", msg.content));
-            } else if msg.role == "llm" {
-                prompt.push_str(&format!("<|llm|>\n{}\n", msg.content));
+            } else if msg.role == "assistant" || msg.role == "llm" {
+                prompt.push_str(&format!("<|assistant|>\n{}\n", msg.content));
             }
         }
-        prompt.push_str("<|llm|>\n");
+        prompt.push_str("<|assistant|>\n");
 
         let mut input = json!({});
 
@@ -159,16 +158,15 @@ impl Replicate {
             )));
         }
 
-        let prediction: serde_json::Value = response
+        let raw_response: serde_json::Value = response
             .json()
             .await
             .map_err(|e| LangHubError::LLMError(format!("JSON parse error: {}", e)))?;
 
-        let prediction_url = prediction["urls"]["get"]
+        let prediction_url = raw_response["urls"]["get"]
             .as_str()
             .ok_or_else(|| LangHubError::ParseError("Missing prediction URL".to_string()))?;
 
-        // Wait for prediction to complete
         let mut output = None;
         for _ in 0..60 {
             let status_response = self
@@ -196,7 +194,7 @@ impl Replicate {
         let text =
             output.ok_or_else(|| LangHubError::LLMError("Prediction timeout".to_string()))?;
 
-        Ok(text)
+        Ok(LLMResult { text, raw_response })
     }
 }
 
@@ -209,11 +207,7 @@ impl LLM for Replicate {
         let options = self.default_options.clone();
         Box::pin(async move {
             let messages = vec![ChatMessage::user(&prompt)];
-            let text = self.chat_completion(&messages, &options).await?;
-            Ok(LLMResult {
-                text,
-                metadata: None,
-            })
+            self.chat_completion(&messages, &options).await
         })
     }
 
@@ -225,11 +219,7 @@ impl LLM for Replicate {
         let prompt = prompt.to_string();
         Box::pin(async move {
             let messages = vec![ChatMessage::user(&prompt)];
-            let text = self.chat_completion(&messages, &options).await?;
-            Ok(LLMResult {
-                text,
-                metadata: None,
-            })
+            self.chat_completion(&messages, &options).await
         })
     }
 
@@ -238,13 +228,8 @@ impl LLM for Replicate {
         messages: Vec<ChatMessage>,
     ) -> Pin<Box<dyn Future<Output = Result<LLMResult>> + Send + '_>> {
         Box::pin(async move {
-            let text = self
-                .chat_completion(&messages, &LLMOptions::default())
-                .await?;
-            Ok(LLMResult {
-                text,
-                metadata: None,
-            })
+            self.chat_completion(&messages, &LLMOptions::default())
+                .await
         })
     }
 

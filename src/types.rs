@@ -19,9 +19,9 @@ impl ChatMessage {
         }
     }
 
-    pub fn llm(content: &str) -> Self {
+    pub fn assistant(content: &str) -> Self {
         Self {
-            role: "llm".to_string(),
+            role: "assistant".to_string(),
             content: content.to_string(),
             name: None,
             tool_calls: None,

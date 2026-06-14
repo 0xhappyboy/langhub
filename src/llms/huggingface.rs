@@ -118,29 +118,25 @@ impl HuggingFace {
         &self,
         messages: &[ChatMessage],
         options: &LLMOptions,
-    ) -> Result<String> {
+    ) -> Result<LLMResult> {
         let model_name: String = self.model.clone().into();
 
-        // Build prompt from messages
         let mut prompt = String::new();
         for msg in messages {
             if msg.role == "system" {
                 prompt.push_str(&format!("<|system|>\n{}\n", msg.content));
             } else if msg.role == "user" {
                 prompt.push_str(&format!("<|user|>\n{}\n", msg.content));
-            } else if msg.role == "llm" {
-                prompt.push_str(&format!("<|llm|>\n{}\n", msg.content));
+            } else if msg.role == "assistant" {
+                prompt.push_str(&format!("<|assistant|>\n{}\n", msg.content));
             }
         }
-        prompt.push_str("<|llm|>\n");
-
+        prompt.push_str("<|assistant|>\n");
         let mut request_body = json!({
             "inputs": prompt,
             "parameters": {},
         });
-
         let parameters = &mut request_body["parameters"];
-
         if let Some(temp) = options.temperature.or(self.default_options.temperature) {
             parameters["temperature"] = json!(temp);
         }
@@ -153,9 +149,7 @@ impl HuggingFace {
         if let Some(top_k) = options.top_k.or(self.default_options.top_k) {
             parameters["top_k"] = json!(top_k);
         }
-
         let url = format!("{}/{}", self.base_url, model_name);
-
         let response = self
             .client
             .post(&url)
@@ -175,35 +169,29 @@ impl HuggingFace {
             )));
         }
 
-        let json: serde_json::Value = response
+        let raw_response: serde_json::Value = response
             .json()
             .await
             .map_err(|e| LangHubError::LLMError(format!("JSON parse error: {}", e)))?;
 
-        let text = if json.is_array() {
-            json[0]["generated_text"]
+        let text = if raw_response.is_array() {
+            raw_response[0]["generated_text"]
                 .as_str()
-                .ok_or_else(|| {
-                    LangHubError::ParseError(
-                        "Missing 'generated_text' field in response".to_string(),
-                    )
-                })?
+                .unwrap_or("")
                 .to_string()
         } else {
-            json["generated_text"]
+            raw_response["generated_text"]
                 .as_str()
-                .ok_or_else(|| {
-                    LangHubError::ParseError(
-                        "Missing 'generated_text' field in response".to_string(),
-                    )
-                })?
+                .unwrap_or("")
                 .to_string()
         };
 
-        // Remove the prompt from the response
         let response_text = text.replace(&prompt, "").trim().to_string();
 
-        Ok(response_text)
+        Ok(LLMResult {
+            text: response_text,
+            raw_response,
+        })
     }
 }
 
@@ -216,11 +204,7 @@ impl LLM for HuggingFace {
         let options = self.default_options.clone();
         Box::pin(async move {
             let messages = vec![ChatMessage::user(&prompt)];
-            let text = self.chat_completion(&messages, &options).await?;
-            Ok(LLMResult {
-                text,
-                metadata: None,
-            })
+            self.chat_completion(&messages, &options).await
         })
     }
 
@@ -232,11 +216,7 @@ impl LLM for HuggingFace {
         let prompt = prompt.to_string();
         Box::pin(async move {
             let messages = vec![ChatMessage::user(&prompt)];
-            let text = self.chat_completion(&messages, &options).await?;
-            Ok(LLMResult {
-                text,
-                metadata: None,
-            })
+            self.chat_completion(&messages, &options).await
         })
     }
 
@@ -245,13 +225,8 @@ impl LLM for HuggingFace {
         messages: Vec<ChatMessage>,
     ) -> Pin<Box<dyn Future<Output = Result<LLMResult>> + Send + '_>> {
         Box::pin(async move {
-            let text = self
-                .chat_completion(&messages, &LLMOptions::default())
-                .await?;
-            Ok(LLMResult {
-                text,
-                metadata: None,
-            })
+            self.chat_completion(&messages, &LLMOptions::default())
+                .await
         })
     }
 

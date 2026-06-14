@@ -1,3 +1,5 @@
+//! LLM providers module
+
 mod alibaba;
 mod anthropic;
 mod azure;
@@ -50,10 +52,104 @@ use std::collections::HashMap;
 use std::future::Future;
 use std::pin::Pin;
 
+/// Token usage information from LLM API response
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct Usage {
+    pub prompt_tokens: u32,
+    pub completion_tokens: u32,
+    pub total_tokens: u32,
+}
+
+/// Complete LLM API response
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct LLMResult {
+    /// The generated text content
     pub text: String,
-    pub metadata: Option<HashMap<String, serde_json::Value>>,
+    /// Complete raw response from API (includes usage, finish_reason, logprobs, etc.)
+    pub raw_response: serde_json::Value,
+}
+
+impl LLMResult {
+    /// Extract usage from raw response (works for OpenAI, Anthropic, Google, etc.)
+    pub fn extract_usage(&self) -> Option<Usage> {
+        extract_usage_from_raw(&self.raw_response)
+    }
+}
+
+/// Extract usage from various LLM API response formats
+pub fn extract_usage_from_raw(raw: &serde_json::Value) -> Option<Usage> {
+    // OpenAI / OpenAI-compatible format (DeepSeek, Mistral, Groq, Together, etc.)
+    if let Some(u) = raw.get("usage") {
+        if let (Some(prompt), Some(completion), Some(total)) = (
+            u.get("prompt_tokens").and_then(|v| v.as_u64()),
+            u.get("completion_tokens").and_then(|v| v.as_u64()),
+            u.get("total_tokens").and_then(|v| v.as_u64()),
+        ) {
+            return Some(Usage {
+                prompt_tokens: prompt as u32,
+                completion_tokens: completion as u32,
+                total_tokens: total as u32,
+            });
+        }
+    }
+
+    // Anthropic format
+    if let Some(u) = raw.get("usage") {
+        if let (Some(prompt), Some(completion)) = (
+            u.get("input_tokens").and_then(|v| v.as_u64()),
+            u.get("output_tokens").and_then(|v| v.as_u64()),
+        ) {
+            return Some(Usage {
+                prompt_tokens: prompt as u32,
+                completion_tokens: completion as u32,
+                total_tokens: (prompt + completion) as u32,
+            });
+        }
+    }
+
+    // Google Gemini format
+    if let Some(u) = raw.get("usageMetadata") {
+        if let (Some(prompt), Some(completion), Some(total)) = (
+            u.get("promptTokenCount").and_then(|v| v.as_u64()),
+            u.get("candidatesTokenCount").and_then(|v| v.as_u64()),
+            u.get("totalTokenCount").and_then(|v| v.as_u64()),
+        ) {
+            return Some(Usage {
+                prompt_tokens: prompt as u32,
+                completion_tokens: completion as u32,
+                total_tokens: total as u32,
+            });
+        }
+    }
+
+    // Cohere format
+    if let Some(u) = raw.get("meta").and_then(|m| m.get("billed_units")) {
+        if let Some(prompt) = u.get("input_tokens").and_then(|v| v.as_u64()) {
+            if let Some(completion) = u.get("output_tokens").and_then(|v| v.as_u64()) {
+                return Some(Usage {
+                    prompt_tokens: prompt as u32,
+                    completion_tokens: completion as u32,
+                    total_tokens: (prompt + completion) as u32,
+                });
+            }
+        }
+    }
+
+    // HuggingFace format (some endpoints return usage)
+    if let Some(u) = raw.get("usage") {
+        if let (Some(prompt), Some(completion)) = (
+            u.get("prompt_tokens").and_then(|v| v.as_u64()),
+            u.get("completion_tokens").and_then(|v| v.as_u64()),
+        ) {
+            return Some(Usage {
+                prompt_tokens: prompt as u32,
+                completion_tokens: completion as u32,
+                total_tokens: (prompt + completion) as u32,
+            });
+        }
+    }
+
+    None
 }
 
 #[derive(Debug, Clone)]
@@ -107,39 +203,58 @@ pub struct FunctionCall {
     pub arguments: String,
 }
 
+/// LLM trait - unified interface for all providers
 pub trait LLM: Send + Sync {
+    /// Generate text from a prompt
     fn generate(
         &self,
         prompt: &str,
     ) -> Pin<Box<dyn Future<Output = Result<LLMResult>> + Send + '_>>;
 
+    /// Generate text with options
     fn generate_with_options(
         &self,
         prompt: &str,
         options: LLMOptions,
     ) -> Pin<Box<dyn Future<Output = Result<LLMResult>> + Send + '_>>;
 
+    /// Chat with message history
     fn chat(
         &self,
         messages: Vec<ChatMessage>,
     ) -> Pin<Box<dyn Future<Output = Result<LLMResult>> + Send + '_>>;
 
+    /// Chat with options
+    fn chat_with_options(
+        &self,
+        messages: Vec<ChatMessage>,
+        options: LLMOptions,
+    ) -> Pin<Box<dyn Future<Output = Result<LLMResult>> + Send + '_>> {
+        Box::pin(async move { self.chat(messages).await })
+    }
+
+    /// Get model name
     fn get_model_name(&self) -> String;
 
+    /// Get provider name
     fn get_provider_name(&self) -> String;
 
+    /// Get provider enum
     fn get_provider_enum(&self) -> ModelProvider {
         ModelProvider::Custom
     }
 
+    /// Check if provider supports function calling
     fn supports_function_calling(&self) -> bool {
         false
     }
 
+    /// Check if provider supports JSON mode
     fn supports_json_mode(&self) -> bool {
         false
     }
 
+    /// Get max context length
     fn max_context_length(&self) -> Option<usize> {
         None
     }

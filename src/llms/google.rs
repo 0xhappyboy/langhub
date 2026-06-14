@@ -8,12 +8,12 @@ use std::pin::Pin;
 
 #[derive(Debug, Clone)]
 pub enum GoogleModel {
-    Gemini15Pro,       // Gemini 1.5 Pro
-    Gemini15Flash,     // Gemini 1.5 Flash
-    Gemini15ProVision, // Gemini 1.5 Pro Vision
-    GeminiPro,         // Gemini Pro
-    GeminiProVision,   // Gemini Pro Vision
-    GeminiUltra,       // Gemini Ultra
+    Gemini15Pro,
+    Gemini15Flash,
+    Gemini15ProVision,
+    GeminiPro,
+    GeminiProVision,
+    GeminiUltra,
 }
 
 impl GoogleModel {
@@ -101,7 +101,7 @@ impl GoogleAI {
         &self,
         messages: &[ChatMessage],
         options: &LLMOptions,
-    ) -> Result<String> {
+    ) -> Result<LLMResult> {
         let model_name: String = self.model.clone().into();
 
         let contents: Vec<serde_json::Value> = messages
@@ -157,19 +157,17 @@ impl GoogleAI {
             )));
         }
 
-        let json: serde_json::Value = response
+        let raw_response: serde_json::Value = response
             .json()
             .await
             .map_err(|e| LangHubError::LLMError(format!("JSON parse error: {}", e)))?;
 
-        let text = json["candidates"][0]["content"]["parts"][0]["text"]
+        let text = raw_response["candidates"][0]["content"]["parts"][0]["text"]
             .as_str()
-            .ok_or_else(|| {
-                LangHubError::ParseError("Missing 'text' field in response".to_string())
-            })?
+            .unwrap_or("")
             .to_string();
 
-        Ok(text)
+        Ok(LLMResult { text, raw_response })
     }
 }
 
@@ -182,11 +180,7 @@ impl LLM for GoogleAI {
         let options = self.default_options.clone();
         Box::pin(async move {
             let messages = vec![ChatMessage::user(&prompt)];
-            let text = self.chat_completion(&messages, &options).await?;
-            Ok(LLMResult {
-                text,
-                metadata: None,
-            })
+            self.chat_completion(&messages, &options).await
         })
     }
 
@@ -198,11 +192,7 @@ impl LLM for GoogleAI {
         let prompt = prompt.to_string();
         Box::pin(async move {
             let messages = vec![ChatMessage::user(&prompt)];
-            let text = self.chat_completion(&messages, &options).await?;
-            Ok(LLMResult {
-                text,
-                metadata: None,
-            })
+            self.chat_completion(&messages, &options).await
         })
     }
 
@@ -211,13 +201,8 @@ impl LLM for GoogleAI {
         messages: Vec<ChatMessage>,
     ) -> Pin<Box<dyn Future<Output = Result<LLMResult>> + Send + '_>> {
         Box::pin(async move {
-            let text = self
-                .chat_completion(&messages, &LLMOptions::default())
-                .await?;
-            Ok(LLMResult {
-                text,
-                metadata: None,
-            })
+            self.chat_completion(&messages, &LLMOptions::default())
+                .await
         })
     }
 
