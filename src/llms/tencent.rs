@@ -1,18 +1,15 @@
+use super::{ChatMessage, LLM, LLMOptions, LLMResult};
 /// Tencent Hunyuan
 use crate::types::*;
-
-use super::{ChatMessage, LLM, LLMOptions, LLMResult};
 use serde_json::json;
 use std::future::Future;
 use std::pin::Pin;
-
 #[derive(Debug, Clone)]
 pub enum TencentModel {
     HunyuanPro,
     HunyuanStd,
     HunyuanLite,
 }
-
 impl TencentModel {
     fn as_str(&self) -> &'static str {
         match self {
@@ -22,13 +19,11 @@ impl TencentModel {
         }
     }
 }
-
 impl From<TencentModel> for String {
     fn from(model: TencentModel) -> Self {
         model.as_str().to_string()
     }
 }
-
 #[derive(Clone)]
 pub struct TencentHunyuan {
     secret_id: String,
@@ -38,7 +33,6 @@ pub struct TencentHunyuan {
     client: reqwest::Client,
     default_options: LLMOptions,
 }
-
 impl TencentHunyuan {
     pub fn new(secret_id: String, secret_key: String) -> Self {
         Self {
@@ -50,51 +44,41 @@ impl TencentHunyuan {
             default_options: LLMOptions::default(),
         }
     }
-
     pub fn with_model(mut self, model: TencentModel) -> Self {
         self.model = model;
         self
     }
-
     pub fn hunyuan_pro(self) -> Self {
         self.with_model(TencentModel::HunyuanPro)
     }
-
     pub fn hunyuan_std(self) -> Self {
         self.with_model(TencentModel::HunyuanStd)
     }
-
     pub fn hunyuan_lite(self) -> Self {
         self.with_model(TencentModel::HunyuanLite)
     }
-
     pub fn with_region(mut self, region: &str) -> Self {
         self.region = region.to_string();
         self
     }
-
     pub fn with_temperature(mut self, temperature: f32) -> Self {
         self.default_options.temperature = Some(temperature);
         self
     }
-
     pub fn with_max_tokens(mut self, max_tokens: u32) -> Self {
         self.default_options.max_tokens = Some(max_tokens);
         self
     }
-
     pub fn with_top_p(mut self, top_p: f32) -> Self {
         self.default_options.top_p = Some(top_p);
         self
     }
-
     async fn chat_completion(
         &self,
         messages: &[ChatMessage],
         options: &LLMOptions,
     ) -> Result<LLMResult> {
         let model_name: String = self.model.clone().into();
-
         let mut request_body = json!({
             "Model": model_name,
             "Messages": messages.iter().map(|m| json!({
@@ -102,7 +86,6 @@ impl TencentHunyuan {
                 "Content": m.content,
             })).collect::<Vec<_>>(),
         });
-
         if let Some(temp) = options.temperature.or(self.default_options.temperature) {
             request_body["Temperature"] = json!(temp);
         }
@@ -112,12 +95,10 @@ impl TencentHunyuan {
         if let Some(top_p) = options.top_p.or(self.default_options.top_p) {
             request_body["TopP"] = json!(top_p);
         }
-
         let url = format!(
             "https://hunyuan.tencentcloudapi.com/?Action=ChatCompletions&Version=2023-09-01&Region={}",
             self.region
         );
-
         let response = self
             .client
             .post(&url)
@@ -126,7 +107,6 @@ impl TencentHunyuan {
             .send()
             .await
             .map_err(|e| LangHubError::LLMError(format!("Tencent request error: {}", e)))?;
-
         if !response.status().is_success() {
             let status = response.status();
             let error_text = response.text().await.unwrap_or_default();
@@ -135,21 +115,17 @@ impl TencentHunyuan {
                 status, error_text
             )));
         }
-
         let raw_response: serde_json::Value = response
             .json()
             .await
             .map_err(|e| LangHubError::LLMError(format!("JSON parse error: {}", e)))?;
-
         let text = raw_response["Response"]["Choices"][0]["Message"]["Content"]
             .as_str()
             .unwrap_or("")
             .to_string();
-
         Ok(LLMResult { text, raw_response })
     }
 }
-
 impl LLM for TencentHunyuan {
     fn generate(
         &self,
@@ -162,7 +138,6 @@ impl LLM for TencentHunyuan {
             self.chat_completion(&messages, &options).await
         })
     }
-
     fn generate_with_options(
         &self,
         prompt: &str,
@@ -174,7 +149,6 @@ impl LLM for TencentHunyuan {
             self.chat_completion(&messages, &options).await
         })
     }
-
     fn chat(
         &self,
         messages: Vec<ChatMessage>,
@@ -184,7 +158,6 @@ impl LLM for TencentHunyuan {
                 .await
         })
     }
-
     fn get_model_name(&self) -> String {
         match self.model {
             TencentModel::HunyuanPro => "hunyuan-pro".to_string(),
@@ -192,7 +165,6 @@ impl LLM for TencentHunyuan {
             TencentModel::HunyuanLite => "hunyuan-lite".to_string(),
         }
     }
-
     fn get_provider_name(&self) -> String {
         match self.model {
             TencentModel::HunyuanPro => "Tencent-Hunyuan-Pro".to_string(),
@@ -200,19 +172,15 @@ impl LLM for TencentHunyuan {
             TencentModel::HunyuanLite => "Tencent-Hunyuan-Lite".to_string(),
         }
     }
-
     fn get_provider_enum(&self) -> ModelProvider {
         ModelProvider::Tencent
     }
-
     fn supports_function_calling(&self) -> bool {
         true
     }
-
     fn supports_json_mode(&self) -> bool {
         true
     }
-
     fn max_context_length(&self) -> Option<usize> {
         match self.model {
             TencentModel::HunyuanPro => Some(32768),

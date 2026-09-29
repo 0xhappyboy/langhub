@@ -1,18 +1,15 @@
+use super::{ChatMessage, LLM, LLMOptions, LLMResult};
 /// moonshot AI (Kimi)
 use crate::types::*;
-
-use super::{ChatMessage, LLM, LLMOptions, LLMResult};
 use serde_json::json;
 use std::future::Future;
 use std::pin::Pin;
-
 #[derive(Debug, Clone)]
 pub enum MoonshotModel {
     Kimi8K,
     Kimi32K,
     Kimi128K,
 }
-
 impl MoonshotModel {
     fn as_str(&self) -> &'static str {
         match self {
@@ -22,13 +19,11 @@ impl MoonshotModel {
         }
     }
 }
-
 impl From<MoonshotModel> for String {
     fn from(model: MoonshotModel) -> Self {
         model.as_str().to_string()
     }
 }
-
 #[derive(Clone)]
 pub struct Moonshot {
     api_key: String,
@@ -37,7 +32,6 @@ pub struct Moonshot {
     client: reqwest::Client,
     default_options: LLMOptions,
 }
-
 impl Moonshot {
     pub fn new(api_key: String) -> Self {
         Self {
@@ -48,51 +42,41 @@ impl Moonshot {
             default_options: LLMOptions::default(),
         }
     }
-
     pub fn with_model(mut self, model: MoonshotModel) -> Self {
         self.model = model;
         self
     }
-
     pub fn kimi_8k(self) -> Self {
         self.with_model(MoonshotModel::Kimi8K)
     }
-
     pub fn kimi_32k(self) -> Self {
         self.with_model(MoonshotModel::Kimi32K)
     }
-
     pub fn kimi_128k(self) -> Self {
         self.with_model(MoonshotModel::Kimi128K)
     }
-
     pub fn with_temperature(mut self, temperature: f32) -> Self {
         self.default_options.temperature = Some(temperature);
         self
     }
-
     pub fn with_max_tokens(mut self, max_tokens: u32) -> Self {
         self.default_options.max_tokens = Some(max_tokens);
         self
     }
-
     pub fn with_top_p(mut self, top_p: f32) -> Self {
         self.default_options.top_p = Some(top_p);
         self
     }
-
     pub fn with_base_url(mut self, base_url: &str) -> Self {
         self.base_url = base_url.to_string();
         self
     }
-
     async fn chat_completion(
         &self,
         messages: &[ChatMessage],
         options: &LLMOptions,
     ) -> Result<LLMResult> {
         let model_name: String = self.model.clone().into();
-
         let mut request_body = json!({
             "model": model_name,
             "messages": messages.iter().map(|m| json!({
@@ -100,7 +84,6 @@ impl Moonshot {
                 "content": m.content,
             })).collect::<Vec<_>>(),
         });
-
         if let Some(temp) = options.temperature.or(self.default_options.temperature) {
             request_body["temperature"] = json!(temp);
         }
@@ -117,7 +100,6 @@ impl Moonshot {
         {
             request_body["stop"] = json!(stop);
         }
-
         let response = self
             .client
             .post(format!("{}/chat/completions", self.base_url))
@@ -127,7 +109,6 @@ impl Moonshot {
             .send()
             .await
             .map_err(|e| LangHubError::LLMError(format!("Moonshot request error: {}", e)))?;
-
         if !response.status().is_success() {
             let status = response.status();
             let error_text = response.text().await.unwrap_or_default();
@@ -136,21 +117,17 @@ impl Moonshot {
                 status, error_text
             )));
         }
-
         let raw_response: serde_json::Value = response
             .json()
             .await
             .map_err(|e| LangHubError::LLMError(format!("JSON parse error: {}", e)))?;
-
         let text = raw_response["choices"][0]["message"]["content"]
             .as_str()
             .unwrap_or("")
             .to_string();
-
         Ok(LLMResult { text, raw_response })
     }
 }
-
 impl LLM for Moonshot {
     fn generate(
         &self,
@@ -163,7 +140,6 @@ impl LLM for Moonshot {
             self.chat_completion(&messages, &options).await
         })
     }
-
     fn generate_with_options(
         &self,
         prompt: &str,
@@ -175,7 +151,6 @@ impl LLM for Moonshot {
             self.chat_completion(&messages, &options).await
         })
     }
-
     fn chat(
         &self,
         messages: Vec<ChatMessage>,
@@ -185,7 +160,6 @@ impl LLM for Moonshot {
                 .await
         })
     }
-
     fn get_model_name(&self) -> String {
         match self.model {
             MoonshotModel::Kimi8K => "moonshot-v1-8k".to_string(),
@@ -193,7 +167,6 @@ impl LLM for Moonshot {
             MoonshotModel::Kimi128K => "moonshot-v1-128k".to_string(),
         }
     }
-
     fn get_provider_name(&self) -> String {
         match self.model {
             MoonshotModel::Kimi8K => "Moonshot-Kimi-8K".to_string(),
@@ -201,19 +174,15 @@ impl LLM for Moonshot {
             MoonshotModel::Kimi128K => "Moonshot-Kimi-128K".to_string(),
         }
     }
-
     fn get_provider_enum(&self) -> ModelProvider {
         ModelProvider::Moonshot
     }
-
     fn supports_function_calling(&self) -> bool {
         true
     }
-
     fn supports_json_mode(&self) -> bool {
         true
     }
-
     fn max_context_length(&self) -> Option<usize> {
         match self.model {
             MoonshotModel::Kimi128K => Some(128000),

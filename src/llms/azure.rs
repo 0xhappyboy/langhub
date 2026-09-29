@@ -1,11 +1,9 @@
+use super::{ChatMessage, LLM, LLMOptions, LLMResult, ResponseFormat};
 /// Azure OpenAI
 use crate::types::*;
-
-use super::{ChatMessage, LLM, LLMOptions, LLMResult, ResponseFormat};
 use serde_json::json;
 use std::future::Future;
 use std::pin::Pin;
-
 #[derive(Debug, Clone)]
 pub enum AzureModel {
     Gpt4,
@@ -13,7 +11,6 @@ pub enum AzureModel {
     Gpt35Turbo,
     Custom(String),
 }
-
 impl AzureModel {
     fn as_str(&self) -> String {
         match self {
@@ -24,13 +21,11 @@ impl AzureModel {
         }
     }
 }
-
 impl From<AzureModel> for String {
     fn from(model: AzureModel) -> Self {
         model.as_str()
     }
 }
-
 #[derive(Clone)]
 pub struct AzureOpenAI {
     api_key: String,
@@ -41,7 +36,6 @@ pub struct AzureOpenAI {
     client: reqwest::Client,
     default_options: LLMOptions,
 }
-
 impl AzureOpenAI {
     pub fn new(api_key: String, endpoint: String, deployment_name: String) -> Self {
         Self {
@@ -54,44 +48,36 @@ impl AzureOpenAI {
             default_options: LLMOptions::default(),
         }
     }
-
     pub fn with_model(mut self, model: AzureModel) -> Self {
         self.model = model;
         self
     }
-
     pub fn with_api_version(mut self, api_version: &str) -> Self {
         self.api_version = api_version.to_string();
         self
     }
-
     pub fn with_temperature(mut self, temperature: f32) -> Self {
         self.default_options.temperature = Some(temperature);
         self
     }
-
     pub fn with_max_tokens(mut self, max_tokens: u32) -> Self {
         self.default_options.max_tokens = Some(max_tokens);
         self
     }
-
     pub fn with_top_p(mut self, top_p: f32) -> Self {
         self.default_options.top_p = Some(top_p);
         self
     }
-
     pub fn with_json_mode(mut self) -> Self {
         self.default_options.response_format = Some(ResponseFormat::Json);
         self
     }
-
     async fn chat_completion(
         &self,
         messages: &[ChatMessage],
         options: &LLMOptions,
     ) -> Result<LLMResult> {
         let model_name: String = self.model.clone().into();
-
         let mut request_body = json!({
             "model": model_name,
             "messages": messages.iter().map(|m| json!({
@@ -99,7 +85,6 @@ impl AzureOpenAI {
                 "content": m.content,
             })).collect::<Vec<_>>(),
         });
-
         if let Some(temp) = options.temperature.or(self.default_options.temperature) {
             request_body["temperature"] = json!(temp);
         }
@@ -136,12 +121,10 @@ impl AzureOpenAI {
                 _ => {}
             }
         }
-
         let url = format!(
             "{}/openai/deployments/{}/chat/completions?api-version={}",
             self.endpoint, self.deployment_name, self.api_version
         );
-
         let response = self
             .client
             .post(&url)
@@ -151,7 +134,6 @@ impl AzureOpenAI {
             .send()
             .await
             .map_err(|e| LangHubError::LLMError(format!("Azure OpenAI request error: {}", e)))?;
-
         if !response.status().is_success() {
             let status = response.status();
             let error_text = response.text().await.unwrap_or_default();
@@ -160,21 +142,17 @@ impl AzureOpenAI {
                 status, error_text
             )));
         }
-
         let raw_response: serde_json::Value = response
             .json()
             .await
             .map_err(|e| LangHubError::LLMError(format!("JSON parse error: {}", e)))?;
-
         let text = raw_response["choices"][0]["message"]["content"]
             .as_str()
             .unwrap_or("")
             .to_string();
-
         Ok(LLMResult { text, raw_response })
     }
 }
-
 impl LLM for AzureOpenAI {
     fn generate(
         &self,
@@ -187,7 +165,6 @@ impl LLM for AzureOpenAI {
             self.chat_completion(&messages, &options).await
         })
     }
-
     fn generate_with_options(
         &self,
         prompt: &str,
@@ -199,7 +176,6 @@ impl LLM for AzureOpenAI {
             self.chat_completion(&messages, &options).await
         })
     }
-
     fn chat(
         &self,
         messages: Vec<ChatMessage>,
@@ -209,7 +185,6 @@ impl LLM for AzureOpenAI {
                 .await
         })
     }
-
     fn get_model_name(&self) -> String {
         match &self.model {
             AzureModel::Gpt4 => "azure-gpt-4".to_string(),
@@ -218,23 +193,18 @@ impl LLM for AzureOpenAI {
             AzureModel::Custom(name) => name.to_string(),
         }
     }
-
     fn get_provider_name(&self) -> String {
         "Azure-OpenAI".to_string()
     }
-
     fn get_provider_enum(&self) -> ModelProvider {
         ModelProvider::Azure
     }
-
     fn supports_function_calling(&self) -> bool {
         true
     }
-
     fn supports_json_mode(&self) -> bool {
         true
     }
-
     fn max_context_length(&self) -> Option<usize> {
         match self.model {
             AzureModel::Gpt4Turbo => Some(128000),

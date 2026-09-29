@@ -1,6 +1,5 @@
 use std::error::Error;
 use std::fmt;
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ChatMessage {
     pub role: String,
@@ -8,7 +7,6 @@ pub struct ChatMessage {
     pub name: Option<String>,
     pub tool_calls: Option<Vec<ToolCall>>,
 }
-
 impl ChatMessage {
     pub fn user(content: &str) -> Self {
         Self {
@@ -18,7 +16,6 @@ impl ChatMessage {
             tool_calls: None,
         }
     }
-
     pub fn assistant(content: &str) -> Self {
         Self {
             role: "assistant".to_string(),
@@ -27,7 +24,6 @@ impl ChatMessage {
             tool_calls: None,
         }
     }
-
     pub fn system(content: &str) -> Self {
         Self {
             role: "system".to_string(),
@@ -37,7 +33,6 @@ impl ChatMessage {
         }
     }
 }
-
 #[derive(Debug)]
 pub enum LangHubError {
     LLMError(String),
@@ -47,7 +42,6 @@ pub enum LangHubError {
     IoError(std::io::Error),
     JsonError(serde_json::Error),
 }
-
 impl fmt::Display for LangHubError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
@@ -60,7 +54,6 @@ impl fmt::Display for LangHubError {
         }
     }
 }
-
 impl Error for LangHubError {
     fn source(&self) -> Option<&(dyn Error + 'static)> {
         match self {
@@ -70,37 +63,29 @@ impl Error for LangHubError {
         }
     }
 }
-
 impl From<std::io::Error> for LangHubError {
     fn from(err: std::io::Error) -> Self {
         LangHubError::IoError(err)
     }
 }
-
 impl From<serde_json::Error> for LangHubError {
     fn from(err: serde_json::Error) -> Self {
         LangHubError::JsonError(err)
     }
 }
-
 impl From<String> for LangHubError {
     fn from(msg: String) -> Self {
         LangHubError::LLMError(msg)
     }
 }
-
 impl From<&str> for LangHubError {
     fn from(msg: &str) -> Self {
         LangHubError::LLMError(msg.to_string())
     }
 }
-
 pub type Result<T> = std::result::Result<T, LangHubError>;
-
-use serde::{Deserialize, Serialize};
-
 use crate::llms::ToolCall;
-
+use serde::{Deserialize, Serialize};
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum ModelProvider {
     OpenAI,
@@ -126,7 +111,6 @@ pub enum ModelProvider {
     Yi,
     Custom,
 }
-
 impl fmt::Display for ModelProvider {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
@@ -155,7 +139,6 @@ impl fmt::Display for ModelProvider {
         }
     }
 }
-
 impl ModelProvider {
     pub fn all() -> Vec<ModelProvider> {
         vec![
@@ -183,7 +166,6 @@ impl ModelProvider {
             ModelProvider::Custom,
         ]
     }
-
     pub fn supports_function_calling(&self) -> bool {
         match self {
             ModelProvider::OpenAI => true,
@@ -208,7 +190,6 @@ impl ModelProvider {
             _ => false,
         }
     }
-
     pub fn supports_json_mode(&self) -> bool {
         match self {
             ModelProvider::OpenAI => true,
@@ -231,5 +212,62 @@ impl ModelProvider {
             ModelProvider::Custom => true,
             _ => false,
         }
+    }
+}
+/// Video model vendor/provider type.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+pub enum VideoVendor {
+    /// ByteDance (Seedance, Volcengine Ark)
+    ByteDance,
+    /// Alibaba Cloud (Wan, HappyHorse)
+    Alibaba,
+    /// Kuaishou (Kling)
+    Kuaishou,
+    /// Google (Veo, Gemini Omni Flash)
+    Google,
+    /// Runway
+    Runway,
+    /// MiniMax (Hailuo / H3)
+    MiniMax,
+    /// Lightricks (LTX)
+    Lightricks,
+    /// xAI (Grok Imagine)
+    Xai,
+    /// Pruna AI (P-Video)
+    Pruna,
+    /// Custom / self-hosted vendor
+    Custom,
+}
+impl fmt::Display for VideoVendor {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            VideoVendor::ByteDance => write!(f, "ByteDance"),
+            VideoVendor::Alibaba => write!(f, "Alibaba"),
+            VideoVendor::Kuaishou => write!(f, "Kuaishou"),
+            VideoVendor::Google => write!(f, "Google"),
+            VideoVendor::Runway => write!(f, "Runway"),
+            VideoVendor::MiniMax => write!(f, "MiniMax"),
+            VideoVendor::Lightricks => write!(f, "Lightricks"),
+            VideoVendor::Xai => write!(f, "xAI"),
+            VideoVendor::Pruna => write!(f, "Pruna"),
+            VideoVendor::Custom => write!(f, "Custom"),
+        }
+    }
+}
+impl VideoVendor {
+    /// Returns all supported video vendors.
+    pub fn all() -> Vec<VideoVendor> {
+        vec![
+            VideoVendor::ByteDance,
+            VideoVendor::Alibaba,
+            VideoVendor::Kuaishou,
+            VideoVendor::Google,
+            VideoVendor::Runway,
+            VideoVendor::MiniMax,
+            VideoVendor::Lightricks,
+            VideoVendor::Xai,
+            VideoVendor::Pruna,
+            VideoVendor::Custom,
+        ]
     }
 }

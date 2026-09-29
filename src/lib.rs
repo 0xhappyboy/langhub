@@ -2,15 +2,11 @@
 pub mod llms;
 pub mod tools;
 pub mod types;
-
+pub mod video;
 use crate::llms::*;
 use crate::types::{ChatMessage, LangHubError, ModelProvider, Result};
-
+use crate::video::*;
 /// Configuration for LLM client initialization
-///
-/// This struct holds all the API keys and credentials needed to initialize
-/// LLM clients for different providers. All fields are optional, and you only
-/// need to set the ones for the provider you plan to use.
 ///
 /// # Example
 /// ```
@@ -77,7 +73,6 @@ pub struct LLMConfig {
     /// Custom API base URL
     pub custom_api_base: Option<String>,
 }
-
 impl LLMConfig {
     /// Creates a new empty configuration
     ///
@@ -88,7 +83,6 @@ impl LLMConfig {
     pub fn new() -> Self {
         Self::default()
     }
-
     /// Sets the OpenAI API key
     ///
     /// # Arguments
@@ -97,7 +91,6 @@ impl LLMConfig {
         self.openai_api_key = Some(api_key);
         self
     }
-
     /// Sets the Anthropic API key
     ///
     /// # Arguments
@@ -106,7 +99,6 @@ impl LLMConfig {
         self.anthropic_api_key = Some(api_key);
         self
     }
-
     /// Sets the DeepSeek API key
     ///
     /// # Arguments
@@ -115,7 +107,6 @@ impl LLMConfig {
         self.deepseek_api_key = Some(api_key);
         self
     }
-
     /// Sets the Google API key
     ///
     /// # Arguments
@@ -124,7 +115,6 @@ impl LLMConfig {
         self.google_api_key = Some(api_key);
         self
     }
-
     /// Sets the Cohere API key
     ///
     /// # Arguments
@@ -133,7 +123,6 @@ impl LLMConfig {
         self.cohere_api_key = Some(api_key);
         self
     }
-
     /// Sets the HuggingFace API key
     ///
     /// # Arguments
@@ -142,7 +131,6 @@ impl LLMConfig {
         self.huggingface_api_key = Some(api_key);
         self
     }
-
     /// Sets the Azure OpenAI configuration
     ///
     /// # Arguments
@@ -155,7 +143,6 @@ impl LLMConfig {
         self.azure_deployment_name = Some(deployment_name);
         self
     }
-
     /// Sets the Mistral API key
     ///
     /// # Arguments
@@ -164,7 +151,6 @@ impl LLMConfig {
         self.mistral_api_key = Some(api_key);
         self
     }
-
     /// Sets the Groq API key
     ///
     /// # Arguments
@@ -173,7 +159,6 @@ impl LLMConfig {
         self.groq_api_key = Some(api_key);
         self
     }
-
     /// Sets the Together.ai API key
     ///
     /// # Arguments
@@ -182,7 +167,6 @@ impl LLMConfig {
         self.together_api_key = Some(api_key);
         self
     }
-
     /// Sets the Replicate API key
     ///
     /// # Arguments
@@ -191,7 +175,6 @@ impl LLMConfig {
         self.replicate_api_key = Some(api_key);
         self
     }
-
     /// Sets the Fireworks AI API key
     ///
     /// # Arguments
@@ -200,7 +183,6 @@ impl LLMConfig {
         self.fireworks_api_key = Some(api_key);
         self
     }
-
     /// Sets the Perplexity API key
     ///
     /// # Arguments
@@ -209,7 +191,6 @@ impl LLMConfig {
         self.perplexity_api_key = Some(api_key);
         self
     }
-
     /// Sets the Baidu Wenxin configuration
     ///
     /// # Arguments
@@ -220,7 +201,6 @@ impl LLMConfig {
         self.baidu_secret_key = Some(secret_key);
         self
     }
-
     /// Sets the Alibaba Tongyi API key
     ///
     /// # Arguments
@@ -229,7 +209,6 @@ impl LLMConfig {
         self.alibaba_api_key = Some(api_key);
         self
     }
-
     /// Sets the Tencent Hunyuan configuration
     ///
     /// # Arguments
@@ -240,7 +219,6 @@ impl LLMConfig {
         self.tencent_secret_key = Some(secret_key);
         self
     }
-
     /// Sets the Zhipu AI API key
     ///
     /// # Arguments
@@ -249,7 +227,6 @@ impl LLMConfig {
         self.zhipu_api_key = Some(api_key);
         self
     }
-
     /// Sets the MiniMax configuration
     ///
     /// # Arguments
@@ -260,7 +237,6 @@ impl LLMConfig {
         self.minimax_group_id = Some(group_id);
         self
     }
-
     /// Sets the Moonshot API key
     ///
     /// # Arguments
@@ -269,7 +245,6 @@ impl LLMConfig {
         self.moonshot_api_key = Some(api_key);
         self
     }
-
     /// Sets the Baichuan API key
     ///
     /// # Arguments
@@ -278,7 +253,6 @@ impl LLMConfig {
         self.baichuan_api_key = Some(api_key);
         self
     }
-
     /// Sets the Yi API key
     ///
     /// # Arguments
@@ -287,7 +261,6 @@ impl LLMConfig {
         self.yi_api_key = Some(api_key);
         self
     }
-
     /// Sets the custom API base URL
     ///
     /// # Arguments
@@ -297,7 +270,6 @@ impl LLMConfig {
         self
     }
 }
-
 /// Unified LLM client for multiple AI providers
 ///
 /// This enum represents a client for any supported LLM provider.
@@ -340,7 +312,6 @@ pub enum LLMClient {
     Yi(Yi),
     Custom(CustomLLM),
 }
-
 impl LLMClient {
     /// Creates a new LLM client with the given provider using optional API keys
     ///
@@ -526,7 +497,6 @@ impl LLMClient {
         }
         Self::new_with_config(provider, &config)
     }
-
     /// Creates a new LLM client with the given provider and configuration
     ///
     /// # Arguments
@@ -740,7 +710,6 @@ impl LLMClient {
             }
         }
     }
-
     /// Generates a text completion from a prompt
     ///
     /// # Arguments
@@ -785,7 +754,6 @@ impl LLMClient {
             LLMClient::Custom(m) => m.generate(prompt).await,
         }
     }
-
     /// Generates a chat completion from a conversation history
     ///
     /// # Arguments
@@ -836,5 +804,619 @@ impl LLMClient {
             LLMClient::Yi(m) => m.chat(messages).await,
             LLMClient::Custom(m) => m.chat(messages).await,
         }
+    }
+}
+/// Configuration for video LLM client initialization
+///
+/// # Example
+/// ```
+/// use langhub::VideoLLMConfig;
+///
+/// let config = VideoLLMConfig::new()
+///     .seedance("your-ark-api-key".to_string())
+///     .wan("your-dashscope-api-key".to_string());
+/// ```
+#[derive(Debug, Clone, Default)]
+pub struct VideoLLMConfig {
+    /// Seedance API key (Volcengine Ark)
+    pub seedance_api_key: Option<String>,
+    /// Seedance custom base URL
+    pub seedance_base_url: Option<String>,
+    /// Wan API key (Alibaba Cloud Bailian)
+    pub wan_api_key: Option<String>,
+    /// Wan custom base URL
+    pub wan_base_url: Option<String>,
+    /// Kling API key
+    pub kling_api_key: Option<String>,
+    /// Kling secret key
+    pub kling_secret_key: Option<String>,
+    /// Kling custom base URL
+    pub kling_base_url: Option<String>,
+    /// Veo API key (Google AI Studio)
+    pub veo_api_key: Option<String>,
+    /// Veo custom base URL
+    pub veo_base_url: Option<String>,
+    /// Runway API key
+    pub runway_api_key: Option<String>,
+    /// Runway custom base URL
+    pub runway_base_url: Option<String>,
+    /// MiniMax H3 API key
+    pub minimax_h3_api_key: Option<String>,
+    /// MiniMax H3 group ID
+    pub minimax_h3_group_id: Option<String>,
+    /// MiniMax H3 custom base URL
+    pub minimax_h3_base_url: Option<String>,
+    /// HappyHorse API key
+    pub happyhorse_api_key: Option<String>,
+    /// HappyHorse custom base URL
+    pub happyhorse_base_url: Option<String>,
+    /// LTX API key
+    pub ltx_api_key: Option<String>,
+    /// LTX custom base URL
+    pub ltx_base_url: Option<String>,
+    /// Grok Imagine API key
+    pub grok_api_key: Option<String>,
+    /// Grok Imagine custom base URL
+    pub grok_base_url: Option<String>,
+    /// Pruna API key
+    pub pruna_api_key: Option<String>,
+    /// Pruna custom base URL
+    pub pruna_base_url: Option<String>,
+    /// Gemini API key (for Omni Flash)
+    pub gemini_api_key: Option<String>,
+    /// Gemini custom base URL
+    pub gemini_base_url: Option<String>,
+}
+impl VideoLLMConfig {
+    /// Creates a new empty video configuration
+    ///
+    /// # Example
+    /// ```
+    /// let config = VideoLLMConfig::new();
+    /// ```
+    pub fn new() -> Self {
+        Self::default()
+    }
+    /// Sets the Seedance API key
+    ///
+    /// # Arguments
+    /// * `api_key` - Seedance API key
+    pub fn seedance(mut self, api_key: String) -> Self {
+        self.seedance_api_key = Some(api_key);
+        self
+    }
+    /// Sets the Wan API key
+    ///
+    /// # Arguments
+    /// * `api_key` - Wan API key
+    pub fn wan(mut self, api_key: String) -> Self {
+        self.wan_api_key = Some(api_key);
+        self
+    }
+    /// Sets the Kling API key and secret key
+    ///
+    /// # Arguments
+    /// * `api_key` - Kling API key
+    /// * `secret_key` - Kling secret key
+    pub fn kling(mut self, api_key: String, secret_key: String) -> Self {
+        self.kling_api_key = Some(api_key);
+        self.kling_secret_key = Some(secret_key);
+        self
+    }
+    /// Sets the Veo API key
+    ///
+    /// # Arguments
+    /// * `api_key` - Veo API key
+    pub fn veo(mut self, api_key: String) -> Self {
+        self.veo_api_key = Some(api_key);
+        self
+    }
+    /// Sets the Runway API key
+    ///
+    /// # Arguments
+    /// * `api_key` - Runway API key
+    pub fn runway(mut self, api_key: String) -> Self {
+        self.runway_api_key = Some(api_key);
+        self
+    }
+    /// Sets the MiniMax H3 API key and group ID
+    ///
+    /// # Arguments
+    /// * `api_key` - MiniMax H3 API key
+    /// * `group_id` - MiniMax H3 group ID
+    pub fn minimax_h3(mut self, api_key: String, group_id: String) -> Self {
+        self.minimax_h3_api_key = Some(api_key);
+        self.minimax_h3_group_id = Some(group_id);
+        self
+    }
+    /// Sets the HappyHorse API key
+    ///
+    /// # Arguments
+    /// * `api_key` - HappyHorse API key
+    pub fn happyhorse(mut self, api_key: String) -> Self {
+        self.happyhorse_api_key = Some(api_key);
+        self
+    }
+    /// Sets the LTX API key
+    ///
+    /// # Arguments
+    /// * `api_key` - LTX API key
+    pub fn ltx(mut self, api_key: String) -> Self {
+        self.ltx_api_key = Some(api_key);
+        self
+    }
+    /// Sets the Grok Imagine API key
+    ///
+    /// # Arguments
+    /// * `api_key` - Grok Imagine API key
+    pub fn grok(mut self, api_key: String) -> Self {
+        self.grok_api_key = Some(api_key);
+        self
+    }
+    /// Sets the Pruna API key
+    ///
+    /// # Arguments
+    /// * `api_key` - Pruna API key
+    pub fn pruna(mut self, api_key: String) -> Self {
+        self.pruna_api_key = Some(api_key);
+        self
+    }
+    /// Sets the Gemini API key
+    ///
+    /// # Arguments
+    /// * `api_key` - Gemini API key
+    pub fn gemini(mut self, api_key: String) -> Self {
+        self.gemini_api_key = Some(api_key);
+        self
+    }
+}
+/// Unified video generation client for multiple providers
+///
+/// This is the video counterpart of `LLMClient`. It represents a client for
+/// any supported text-to-video provider.
+///
+/// # Example
+/// ```
+/// use langhub::{VideoLLMClient, VideoLLMConfig, VideoModelProvider};
+///
+/// # async fn example() -> Result<(), Box<dyn std::error::Error>> {
+/// let config = VideoLLMConfig::new().seedance("your-api-key".to_string());
+/// let client = VideoLLMClient::new_with_config(VideoModelProvider::Seedance, &config)?;
+/// let result = client.generate("A cat walking on the beach").await?;
+/// # Ok(())
+/// # }
+/// ```
+#[derive(Clone)]
+pub enum VideoLLMClient {
+    Seedance(Seedance),
+    Wan(WanVideo),
+    Kling(KlingVideo),
+    Veo(Veo),
+    Runway(RunwayVideo),
+    MiniMaxH3(MiniMaxH3),
+    HappyHorse(HappyHorse),
+    Ltx(LtxVideo),
+    GrokImagine(GrokImagine),
+    Pruna(PrunaVideo),
+    GeminiOmniFlash(GeminiOmniFlash),
+}
+impl VideoLLMClient {
+    /// Creates a new video client with the given provider using optional API keys
+    ///
+    /// # Arguments
+    /// * `provider` - The video model provider to use
+    /// * `api_key` - Optional API key for the provider
+    /// * `extra_keys` - Optional additional keys for providers that need them
+    ///
+    /// # Returns
+    /// A `Result` containing the video client or an error if required keys are missing
+    ///
+    /// # Example
+    /// ```
+    /// use langhub::{VideoLLMClient, VideoModelProvider};
+    ///
+    /// let client = VideoLLMClient::new_with_key(
+    ///     VideoModelProvider::Seedance,
+    ///     Some("your-api-key".to_string()),
+    ///     None,
+    /// ).unwrap();
+    /// ```
+    pub fn new_with_key(
+        provider: VideoModelProvider,
+        api_key: Option<String>,
+        extra_keys: Option<std::collections::HashMap<String, String>>,
+    ) -> Result<Self> {
+        let extra = extra_keys.unwrap_or_default();
+        match provider {
+            VideoModelProvider::Seedance => {
+                let key = api_key.ok_or_else(|| {
+                    LangHubError::LLMError("Seedance API key not provided".to_string())
+                })?;
+                let mut client = Seedance::new(key);
+                if let Some(base) = extra.get("base_url") {
+                    client = client.with_base_url(base);
+                }
+                Ok(VideoLLMClient::Seedance(client))
+            }
+            VideoModelProvider::Wan => {
+                let key = api_key.ok_or_else(|| {
+                    LangHubError::LLMError("Wan API key not provided".to_string())
+                })?;
+                let mut client = WanVideo::new(key);
+                if let Some(base) = extra.get("base_url") {
+                    client = client.with_base_url(base);
+                }
+                Ok(VideoLLMClient::Wan(client))
+            }
+            VideoModelProvider::Kling => {
+                let key = api_key.ok_or_else(|| {
+                    LangHubError::LLMError("Kling API key not provided".to_string())
+                })?;
+                let mut client = KlingVideo::new(key);
+                if let Some(secret) = extra.get("secret_key") {
+                    client = client.with_secret_key(secret.clone());
+                }
+                if let Some(base) = extra.get("base_url") {
+                    client = client.with_base_url(base);
+                }
+                Ok(VideoLLMClient::Kling(client))
+            }
+            VideoModelProvider::Veo => {
+                let key = api_key.ok_or_else(|| {
+                    LangHubError::LLMError("Veo API key not provided".to_string())
+                })?;
+                let mut client = Veo::new(key);
+                if let Some(base) = extra.get("base_url") {
+                    client = client.with_base_url(base);
+                }
+                Ok(VideoLLMClient::Veo(client))
+            }
+            VideoModelProvider::Runway => {
+                let key = api_key.ok_or_else(|| {
+                    LangHubError::LLMError("Runway API key not provided".to_string())
+                })?;
+                let mut client = RunwayVideo::new(key);
+                if let Some(base) = extra.get("base_url") {
+                    client = client.with_base_url(base);
+                }
+                Ok(VideoLLMClient::Runway(client))
+            }
+            VideoModelProvider::MiniMaxH3 => {
+                let key = api_key.ok_or_else(|| {
+                    LangHubError::LLMError("MiniMax H3 API key not provided".to_string())
+                })?;
+                let mut client = MiniMaxH3::new(key);
+                if let Some(group) = extra.get("group_id") {
+                    client = client.with_group_id(group.clone());
+                }
+                if let Some(base) = extra.get("base_url") {
+                    client = client.with_base_url(base);
+                }
+                Ok(VideoLLMClient::MiniMaxH3(client))
+            }
+            VideoModelProvider::HappyHorse => {
+                let key = api_key.ok_or_else(|| {
+                    LangHubError::LLMError("HappyHorse API key not provided".to_string())
+                })?;
+                let mut client = HappyHorse::new(key);
+                if let Some(base) = extra.get("base_url") {
+                    client = client.with_base_url(base);
+                }
+                Ok(VideoLLMClient::HappyHorse(client))
+            }
+            VideoModelProvider::Ltx => {
+                let key = api_key.ok_or_else(|| {
+                    LangHubError::LLMError("LTX API key not provided".to_string())
+                })?;
+                let mut client = LtxVideo::new(key);
+                if let Some(base) = extra.get("base_url") {
+                    client = client.with_base_url(base);
+                }
+                Ok(VideoLLMClient::Ltx(client))
+            }
+            VideoModelProvider::GrokImagine => {
+                let key = api_key.ok_or_else(|| {
+                    LangHubError::LLMError("Grok Imagine API key not provided".to_string())
+                })?;
+                let mut client = GrokImagine::new(key);
+                if let Some(base) = extra.get("base_url") {
+                    client = client.with_base_url(base);
+                }
+                Ok(VideoLLMClient::GrokImagine(client))
+            }
+            VideoModelProvider::Pruna => {
+                let key = api_key.ok_or_else(|| {
+                    LangHubError::LLMError("Pruna API key not provided".to_string())
+                })?;
+                let mut client = PrunaVideo::new(key);
+                if let Some(base) = extra.get("base_url") {
+                    client = client.with_base_url(base);
+                }
+                Ok(VideoLLMClient::Pruna(client))
+            }
+            VideoModelProvider::GeminiOmniFlash => {
+                let key = api_key.ok_or_else(|| {
+                    LangHubError::LLMError("Gemini Omni Flash API key not provided".to_string())
+                })?;
+                let mut client = GeminiOmniFlash::new(key);
+                if let Some(base) = extra.get("base_url") {
+                    client = client.with_base_url(base);
+                }
+                Ok(VideoLLMClient::GeminiOmniFlash(client))
+            }
+        }
+    }
+    /// Creates a new video client with the given provider and configuration
+    ///
+    /// # Arguments
+    /// * `provider` - The video model provider to use
+    /// * `config` - Configuration containing API keys and credentials
+    ///
+    /// # Returns
+    /// A `Result` containing the video client or an error if required keys are missing
+    ///
+    /// # Errors
+    /// Returns `LangHubError::LLMError` if the required API key for the provider is not provided
+    ///
+    /// # Example
+    /// ```
+    /// use langhub::{VideoLLMClient, VideoLLMConfig, VideoModelProvider};
+    ///
+    /// let config = VideoLLMConfig::new()
+    ///     .seedance("your-ark-api-key".to_string())
+    ///     .wan("your-dashscope-api-key".to_string());
+    ///
+    /// let seedance_client = VideoLLMClient::new_with_config(VideoModelProvider::Seedance, &config).unwrap();
+    /// let wan_client = VideoLLMClient::new_with_config(VideoModelProvider::Wan, &config).unwrap();
+    /// ```
+    pub fn new_with_config(provider: VideoModelProvider, config: &VideoLLMConfig) -> Result<Self> {
+        match provider {
+            VideoModelProvider::Seedance => {
+                let key = config.seedance_api_key.as_ref().ok_or_else(|| {
+                    LangHubError::LLMError("Seedance API key not provided".to_string())
+                })?;
+                let mut client = Seedance::new(key.clone());
+                if let Some(base) = &config.seedance_base_url {
+                    client = client.with_base_url(base);
+                }
+                Ok(VideoLLMClient::Seedance(client))
+            }
+            VideoModelProvider::Wan => {
+                let key = config.wan_api_key.as_ref().ok_or_else(|| {
+                    LangHubError::LLMError("Wan API key not provided".to_string())
+                })?;
+                let mut client = WanVideo::new(key.clone());
+                if let Some(base) = &config.wan_base_url {
+                    client = client.with_base_url(base);
+                }
+                Ok(VideoLLMClient::Wan(client))
+            }
+            VideoModelProvider::Kling => {
+                let key = config.kling_api_key.as_ref().ok_or_else(|| {
+                    LangHubError::LLMError("Kling API key not provided".to_string())
+                })?;
+                let mut client = KlingVideo::new(key.clone());
+                if let Some(secret) = &config.kling_secret_key {
+                    client = client.with_secret_key(secret.clone());
+                }
+                if let Some(base) = &config.kling_base_url {
+                    client = client.with_base_url(base);
+                }
+                Ok(VideoLLMClient::Kling(client))
+            }
+            VideoModelProvider::Veo => {
+                let key = config.veo_api_key.as_ref().ok_or_else(|| {
+                    LangHubError::LLMError("Veo API key not provided".to_string())
+                })?;
+                let mut client = Veo::new(key.clone());
+                if let Some(base) = &config.veo_base_url {
+                    client = client.with_base_url(base);
+                }
+                Ok(VideoLLMClient::Veo(client))
+            }
+            VideoModelProvider::Runway => {
+                let key = config.runway_api_key.as_ref().ok_or_else(|| {
+                    LangHubError::LLMError("Runway API key not provided".to_string())
+                })?;
+                let mut client = RunwayVideo::new(key.clone());
+                if let Some(base) = &config.runway_base_url {
+                    client = client.with_base_url(base);
+                }
+                Ok(VideoLLMClient::Runway(client))
+            }
+            VideoModelProvider::MiniMaxH3 => {
+                let key = config.minimax_h3_api_key.as_ref().ok_or_else(|| {
+                    LangHubError::LLMError("MiniMax H3 API key not provided".to_string())
+                })?;
+                let mut client = MiniMaxH3::new(key.clone());
+                if let Some(group) = &config.minimax_h3_group_id {
+                    client = client.with_group_id(group.clone());
+                }
+                if let Some(base) = &config.minimax_h3_base_url {
+                    client = client.with_base_url(base);
+                }
+                Ok(VideoLLMClient::MiniMaxH3(client))
+            }
+            VideoModelProvider::HappyHorse => {
+                let key = config.happyhorse_api_key.as_ref().ok_or_else(|| {
+                    LangHubError::LLMError("HappyHorse API key not provided".to_string())
+                })?;
+                let mut client = HappyHorse::new(key.clone());
+                if let Some(base) = &config.happyhorse_base_url {
+                    client = client.with_base_url(base);
+                }
+                Ok(VideoLLMClient::HappyHorse(client))
+            }
+            VideoModelProvider::Ltx => {
+                let key = config.ltx_api_key.as_ref().ok_or_else(|| {
+                    LangHubError::LLMError("LTX API key not provided".to_string())
+                })?;
+                let mut client = LtxVideo::new(key.clone());
+                if let Some(base) = &config.ltx_base_url {
+                    client = client.with_base_url(base);
+                }
+                Ok(VideoLLMClient::Ltx(client))
+            }
+            VideoModelProvider::GrokImagine => {
+                let key = config.grok_api_key.as_ref().ok_or_else(|| {
+                    LangHubError::LLMError("Grok Imagine API key not provided".to_string())
+                })?;
+                let mut client = GrokImagine::new(key.clone());
+                if let Some(base) = &config.grok_base_url {
+                    client = client.with_base_url(base);
+                }
+                Ok(VideoLLMClient::GrokImagine(client))
+            }
+            VideoModelProvider::Pruna => {
+                let key = config.pruna_api_key.as_ref().ok_or_else(|| {
+                    LangHubError::LLMError("Pruna API key not provided".to_string())
+                })?;
+                let mut client = PrunaVideo::new(key.clone());
+                if let Some(base) = &config.pruna_base_url {
+                    client = client.with_base_url(base);
+                }
+                Ok(VideoLLMClient::Pruna(client))
+            }
+            VideoModelProvider::GeminiOmniFlash => {
+                let key = config.gemini_api_key.as_ref().ok_or_else(|| {
+                    LangHubError::LLMError("Gemini API key not provided".to_string())
+                })?;
+                let mut client = GeminiOmniFlash::new(key.clone());
+                if let Some(base) = &config.gemini_base_url {
+                    client = client.with_base_url(base);
+                }
+                Ok(VideoLLMClient::GeminiOmniFlash(client))
+            }
+        }
+    }
+    /// Generates a video from a text prompt
+    ///
+    /// # Arguments
+    /// * `prompt` - The input text prompt string
+    ///
+    /// # Returns
+    /// A `Result` containing the generated video result or an error
+    ///
+    /// # Example
+    /// ```
+    /// # async fn example() -> Result<(), Box<dyn std::error::Error>> {
+    /// # let config = langhub::VideoLLMConfig::new().seedance("your-api-key".to_string());
+    /// # let client = langhub::VideoLLMClient::new_with_config(langhub::video::VideoModelProvider::Seedance, &config)?;
+    /// let result = client.generate("A cat walking on the beach").await?;
+    /// # Ok(())
+    /// # }
+    /// ```
+    pub async fn generate(&self, prompt: &str) -> Result<VideoLLMResult> {
+        match self {
+            VideoLLMClient::Seedance(m) => m.generate(prompt).await,
+            VideoLLMClient::Wan(m) => m.generate(prompt).await,
+            VideoLLMClient::Kling(m) => m.generate(prompt).await,
+            VideoLLMClient::Veo(m) => m.generate(prompt).await,
+            VideoLLMClient::Runway(m) => m.generate(prompt).await,
+            VideoLLMClient::MiniMaxH3(m) => m.generate(prompt).await,
+            VideoLLMClient::HappyHorse(m) => m.generate(prompt).await,
+            VideoLLMClient::Ltx(m) => m.generate(prompt).await,
+            VideoLLMClient::GrokImagine(m) => m.generate(prompt).await,
+            VideoLLMClient::Pruna(m) => m.generate(prompt).await,
+            VideoLLMClient::GeminiOmniFlash(m) => m.generate(prompt).await,
+        }
+    }
+    /// Generates a video with options
+    ///
+    /// # Arguments
+    /// * `prompt` - The input text prompt string
+    /// * `options` - Generation options such as duration, resolution, aspect ratio
+    ///
+    /// # Returns
+    /// A `Result` containing the generated video result or an error
+    pub async fn generate_with_options(
+        &self,
+        prompt: &str,
+        options: VideoLLMOptions,
+    ) -> Result<VideoLLMResult> {
+        match self {
+            VideoLLMClient::Seedance(m) => m.generate_with_options(prompt, options).await,
+            VideoLLMClient::Wan(m) => m.generate_with_options(prompt, options).await,
+            VideoLLMClient::Kling(m) => m.generate_with_options(prompt, options).await,
+            VideoLLMClient::Veo(m) => m.generate_with_options(prompt, options).await,
+            VideoLLMClient::Runway(m) => m.generate_with_options(prompt, options).await,
+            VideoLLMClient::MiniMaxH3(m) => m.generate_with_options(prompt, options).await,
+            VideoLLMClient::HappyHorse(m) => m.generate_with_options(prompt, options).await,
+            VideoLLMClient::Ltx(m) => m.generate_with_options(prompt, options).await,
+            VideoLLMClient::GrokImagine(m) => m.generate_with_options(prompt, options).await,
+            VideoLLMClient::Pruna(m) => m.generate_with_options(prompt, options).await,
+            VideoLLMClient::GeminiOmniFlash(m) => m.generate_with_options(prompt, options).await,
+        }
+    }
+    /// Submits an asynchronous video generation task
+    ///
+    /// # Arguments
+    /// * `prompt` - The input text prompt string
+    /// * `options` - Generation options
+    ///
+    /// # Returns
+    /// A `Result` containing a `VideoTask` handle for polling
+    pub async fn submit_task(&self, prompt: &str, options: VideoLLMOptions) -> Result<VideoTask> {
+        match self {
+            VideoLLMClient::Seedance(m) => m.submit_task(prompt, options).await,
+            VideoLLMClient::Wan(m) => m.submit_task(prompt, options).await,
+            VideoLLMClient::Kling(m) => m.submit_task(prompt, options).await,
+            VideoLLMClient::Veo(m) => m.submit_task(prompt, options).await,
+            VideoLLMClient::Runway(m) => m.submit_task(prompt, options).await,
+            VideoLLMClient::MiniMaxH3(m) => m.submit_task(prompt, options).await,
+            VideoLLMClient::HappyHorse(m) => m.submit_task(prompt, options).await,
+            VideoLLMClient::Ltx(m) => m.submit_task(prompt, options).await,
+            VideoLLMClient::GrokImagine(m) => m.submit_task(prompt, options).await,
+            VideoLLMClient::Pruna(m) => m.submit_task(prompt, options).await,
+            VideoLLMClient::GeminiOmniFlash(m) => m.submit_task(prompt, options).await,
+        }
+    }
+    /// Polls an asynchronous video generation task
+    ///
+    /// # Arguments
+    /// * `task_id` - The task ID returned by `submit_task`
+    ///
+    /// # Returns
+    /// A `Result` containing the current `VideoTask` state
+    pub async fn poll_task(&self, task_id: &str) -> Result<VideoTask> {
+        match self {
+            VideoLLMClient::Seedance(m) => m.poll_task(task_id).await,
+            VideoLLMClient::Wan(m) => m.poll_task(task_id).await,
+            VideoLLMClient::Kling(m) => m.poll_task(task_id).await,
+            VideoLLMClient::Veo(m) => m.poll_task(task_id).await,
+            VideoLLMClient::Runway(m) => m.poll_task(task_id).await,
+            VideoLLMClient::MiniMaxH3(m) => m.poll_task(task_id).await,
+            VideoLLMClient::HappyHorse(m) => m.poll_task(task_id).await,
+            VideoLLMClient::Ltx(m) => m.poll_task(task_id).await,
+            VideoLLMClient::GrokImagine(m) => m.poll_task(task_id).await,
+            VideoLLMClient::Pruna(m) => m.poll_task(task_id).await,
+            VideoLLMClient::GeminiOmniFlash(m) => m.poll_task(task_id).await,
+        }
+    }
+    /// Gets the provider enum for this client
+    ///
+    /// # Returns
+    /// The `VideoModelProvider` variant corresponding to this client
+    pub fn get_provider_enum(&self) -> VideoModelProvider {
+        match self {
+            VideoLLMClient::Seedance(_) => VideoModelProvider::Seedance,
+            VideoLLMClient::Wan(_) => VideoModelProvider::Wan,
+            VideoLLMClient::Kling(_) => VideoModelProvider::Kling,
+            VideoLLMClient::Veo(_) => VideoModelProvider::Veo,
+            VideoLLMClient::Runway(_) => VideoModelProvider::Runway,
+            VideoLLMClient::MiniMaxH3(_) => VideoModelProvider::MiniMaxH3,
+            VideoLLMClient::HappyHorse(_) => VideoModelProvider::HappyHorse,
+            VideoLLMClient::Ltx(_) => VideoModelProvider::Ltx,
+            VideoLLMClient::GrokImagine(_) => VideoModelProvider::GrokImagine,
+            VideoLLMClient::Pruna(_) => VideoModelProvider::Pruna,
+            VideoLLMClient::GeminiOmniFlash(_) => VideoModelProvider::GeminiOmniFlash,
+        }
+    }
+    /// Gets the vendor of this client's model.
+    ///
+    /// # Returns
+    /// The `VideoVendor` corresponding to this client's provider.
+    pub fn get_vendor(&self) -> crate::types::VideoVendor {
+        self.get_provider_enum().vendor()
     }
 }

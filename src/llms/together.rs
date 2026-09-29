@@ -1,11 +1,9 @@
+use super::{ChatMessage, LLM, LLMOptions, LLMResult};
 /// Together AI
 use crate::types::*;
-
-use super::{ChatMessage, LLM, LLMOptions, LLMResult};
 use serde_json::json;
 use std::future::Future;
 use std::pin::Pin;
-
 #[derive(Debug, Clone)]
 pub enum TogetherModel {
     Llama3_8b,
@@ -16,7 +14,6 @@ pub enum TogetherModel {
     Gemma_7b,
     Custom(String),
 }
-
 impl TogetherModel {
     fn as_str(&self) -> String {
         match self {
@@ -30,13 +27,11 @@ impl TogetherModel {
         }
     }
 }
-
 impl From<TogetherModel> for String {
     fn from(model: TogetherModel) -> Self {
         model.as_str()
     }
 }
-
 #[derive(Clone)]
 pub struct Together {
     api_key: String,
@@ -45,7 +40,6 @@ pub struct Together {
     client: reqwest::Client,
     default_options: LLMOptions,
 }
-
 impl Together {
     pub fn new(api_key: String) -> Self {
         Self {
@@ -56,66 +50,53 @@ impl Together {
             default_options: LLMOptions::default(),
         }
     }
-
     pub fn with_model(mut self, model: TogetherModel) -> Self {
         self.model = model;
         self
     }
-
     pub fn llama3_8b(self) -> Self {
         self.with_model(TogetherModel::Llama3_8b)
     }
-
     pub fn llama3_70b(self) -> Self {
         self.with_model(TogetherModel::Llama3_70b)
     }
-
     pub fn mixtral(self) -> Self {
         self.with_model(TogetherModel::Mixtral_8x7b)
     }
-
     pub fn with_custom_model(mut self, model_name: &str) -> Self {
         self.model = TogetherModel::Custom(model_name.to_string());
         self
     }
-
     pub fn with_temperature(mut self, temperature: f32) -> Self {
         self.default_options.temperature = Some(temperature);
         self
     }
-
     pub fn with_max_tokens(mut self, max_tokens: u32) -> Self {
         self.default_options.max_tokens = Some(max_tokens);
         self
     }
-
     pub fn with_top_p(mut self, top_p: f32) -> Self {
         self.default_options.top_p = Some(top_p);
         self
     }
-
     pub fn with_top_k(mut self, top_k: u32) -> Self {
         self.default_options.top_k = Some(top_k);
         self
     }
-
     pub fn with_repetition_penalty(mut self, penalty: f32) -> Self {
         self.default_options.repetition_penalty = Some(penalty);
         self
     }
-
     pub fn with_base_url(mut self, base_url: &str) -> Self {
         self.base_url = base_url.to_string();
         self
     }
-
     async fn chat_completion(
         &self,
         messages: &[ChatMessage],
         options: &LLMOptions,
     ) -> Result<LLMResult> {
         let model_name: String = self.model.clone().into();
-
         let mut request_body = json!({
             "model": model_name,
             "messages": messages.iter().map(|m| json!({
@@ -123,7 +104,6 @@ impl Together {
                 "content": m.content,
             })).collect::<Vec<_>>(),
         });
-
         if let Some(temp) = options.temperature.or(self.default_options.temperature) {
             request_body["temperature"] = json!(temp);
         }
@@ -149,7 +129,6 @@ impl Together {
         {
             request_body["stop"] = json!(stop);
         }
-
         let response = self
             .client
             .post(format!("{}/chat/completions", self.base_url))
@@ -159,7 +138,6 @@ impl Together {
             .send()
             .await
             .map_err(|e| LangHubError::LLMError(format!("Together request error: {}", e)))?;
-
         if !response.status().is_success() {
             let status = response.status();
             let error_text = response.text().await.unwrap_or_default();
@@ -168,21 +146,17 @@ impl Together {
                 status, error_text
             )));
         }
-
         let raw_response: serde_json::Value = response
             .json()
             .await
             .map_err(|e| LangHubError::LLMError(format!("JSON parse error: {}", e)))?;
-
         let text = raw_response["choices"][0]["message"]["content"]
             .as_str()
             .unwrap_or("")
             .to_string();
-
         Ok(LLMResult { text, raw_response })
     }
 }
-
 impl LLM for Together {
     fn generate(
         &self,
@@ -195,7 +169,6 @@ impl LLM for Together {
             self.chat_completion(&messages, &options).await
         })
     }
-
     fn generate_with_options(
         &self,
         prompt: &str,
@@ -207,7 +180,6 @@ impl LLM for Together {
             self.chat_completion(&messages, &options).await
         })
     }
-
     fn chat(
         &self,
         messages: Vec<ChatMessage>,
@@ -217,7 +189,6 @@ impl LLM for Together {
                 .await
         })
     }
-
     fn get_model_name(&self) -> String {
         match &self.model {
             TogetherModel::Llama3_8b => "llama3-8b".to_string(),
@@ -229,7 +200,6 @@ impl LLM for Together {
             TogetherModel::Custom(name) => name.to_string(),
         }
     }
-
     fn get_provider_name(&self) -> String {
         match &self.model {
             TogetherModel::Llama3_8b => "Together-Llama3-8B".to_string(),
@@ -241,19 +211,15 @@ impl LLM for Together {
             TogetherModel::Custom(name) => format!("Together-{}", name).to_string(),
         }
     }
-
     fn get_provider_enum(&self) -> ModelProvider {
         ModelProvider::Together
     }
-
     fn supports_function_calling(&self) -> bool {
         true
     }
-
     fn supports_json_mode(&self) -> bool {
         true
     }
-
     fn max_context_length(&self) -> Option<usize> {
         match self.model {
             TogetherModel::Llama3_8b | TogetherModel::Llama3_70b => Some(8192),

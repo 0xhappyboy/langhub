@@ -1,11 +1,9 @@
+use super::{ChatMessage, LLM, LLMOptions, LLMResult};
 /// baichuan AI
 use crate::types::*;
-
-use super::{ChatMessage, LLM, LLMOptions, LLMResult};
 use serde_json::json;
 use std::future::Future;
 use std::pin::Pin;
-
 #[derive(Debug, Clone)]
 pub enum BaichuanModel {
     Baichuan4,
@@ -14,7 +12,6 @@ pub enum BaichuanModel {
     Baichuan2Turbo,
     Baichuan2,
 }
-
 impl BaichuanModel {
     fn as_str(&self) -> &'static str {
         match self {
@@ -26,13 +23,11 @@ impl BaichuanModel {
         }
     }
 }
-
 impl From<BaichuanModel> for String {
     fn from(model: BaichuanModel) -> Self {
         model.as_str().to_string()
     }
 }
-
 #[derive(Clone)]
 pub struct Baichuan {
     api_key: String,
@@ -41,7 +36,6 @@ pub struct Baichuan {
     client: reqwest::Client,
     default_options: LLMOptions,
 }
-
 impl Baichuan {
     pub fn new(api_key: String) -> Self {
         Self {
@@ -52,51 +46,41 @@ impl Baichuan {
             default_options: LLMOptions::default(),
         }
     }
-
     pub fn with_model(mut self, model: BaichuanModel) -> Self {
         self.model = model;
         self
     }
-
     pub fn baichuan4(self) -> Self {
         self.with_model(BaichuanModel::Baichuan4)
     }
-
     pub fn baichuan3_turbo(self) -> Self {
         self.with_model(BaichuanModel::Baichuan3Turbo)
     }
-
     pub fn baichuan2_turbo(self) -> Self {
         self.with_model(BaichuanModel::Baichuan2Turbo)
     }
-
     pub fn with_temperature(mut self, temperature: f32) -> Self {
         self.default_options.temperature = Some(temperature);
         self
     }
-
     pub fn with_max_tokens(mut self, max_tokens: u32) -> Self {
         self.default_options.max_tokens = Some(max_tokens);
         self
     }
-
     pub fn with_top_p(mut self, top_p: f32) -> Self {
         self.default_options.top_p = Some(top_p);
         self
     }
-
     pub fn with_base_url(mut self, base_url: &str) -> Self {
         self.base_url = base_url.to_string();
         self
     }
-
     async fn chat_completion(
         &self,
         messages: &[ChatMessage],
         options: &LLMOptions,
     ) -> Result<LLMResult> {
         let model_name: String = self.model.clone().into();
-
         let mut request_body = json!({
             "model": model_name,
             "messages": messages.iter().map(|m| json!({
@@ -104,7 +88,6 @@ impl Baichuan {
                 "content": m.content,
             })).collect::<Vec<_>>(),
         });
-
         if let Some(temp) = options.temperature.or(self.default_options.temperature) {
             request_body["temperature"] = json!(temp);
         }
@@ -121,7 +104,6 @@ impl Baichuan {
         {
             request_body["stop"] = json!(stop);
         }
-
         let response = self
             .client
             .post(format!("{}/chat/completions", self.base_url))
@@ -131,7 +113,6 @@ impl Baichuan {
             .send()
             .await
             .map_err(|e| LangHubError::LLMError(format!("Baichuan request error: {}", e)))?;
-
         if !response.status().is_success() {
             let status = response.status();
             let error_text = response.text().await.unwrap_or_default();
@@ -140,21 +121,17 @@ impl Baichuan {
                 status, error_text
             )));
         }
-
         let raw_response: serde_json::Value = response
             .json()
             .await
             .map_err(|e| LangHubError::LLMError(format!("JSON parse error: {}", e)))?;
-
         let text = raw_response["choices"][0]["message"]["content"]
             .as_str()
             .unwrap_or("")
             .to_string();
-
         Ok(LLMResult { text, raw_response })
     }
 }
-
 impl LLM for Baichuan {
     fn generate(
         &self,
@@ -167,7 +144,6 @@ impl LLM for Baichuan {
             self.chat_completion(&messages, &options).await
         })
     }
-
     fn generate_with_options(
         &self,
         prompt: &str,
@@ -179,7 +155,6 @@ impl LLM for Baichuan {
             self.chat_completion(&messages, &options).await
         })
     }
-
     fn chat(
         &self,
         messages: Vec<ChatMessage>,
@@ -189,7 +164,6 @@ impl LLM for Baichuan {
                 .await
         })
     }
-
     fn get_model_name(&self) -> String {
         match self.model {
             BaichuanModel::Baichuan4 => "baichuan-4".to_string(),
@@ -199,7 +173,6 @@ impl LLM for Baichuan {
             BaichuanModel::Baichuan2 => "baichuan-2".to_string(),
         }
     }
-
     fn get_provider_name(&self) -> String {
         match self.model {
             BaichuanModel::Baichuan4 => "Baichuan-4".to_string(),
@@ -209,19 +182,15 @@ impl LLM for Baichuan {
             BaichuanModel::Baichuan2 => "Baichuan-2".to_string(),
         }
     }
-
     fn get_provider_enum(&self) -> ModelProvider {
         ModelProvider::Baichuan
     }
-
     fn supports_function_calling(&self) -> bool {
         true
     }
-
     fn supports_json_mode(&self) -> bool {
         true
     }
-
     fn max_context_length(&self) -> Option<usize> {
         match self.model {
             BaichuanModel::Baichuan4 => Some(128000),

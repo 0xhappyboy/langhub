@@ -1,11 +1,9 @@
+use super::{ChatMessage, LLM, LLMOptions, LLMResult};
 /// Replicate
 use crate::types::*;
-
-use super::{ChatMessage, LLM, LLMOptions, LLMResult};
 use serde_json::json;
 use std::future::Future;
 use std::pin::Pin;
-
 #[derive(Debug, Clone)]
 pub enum ReplicateModel {
     Llama3_8b,
@@ -14,7 +12,6 @@ pub enum ReplicateModel {
     Mistral_7b,
     Custom(String),
 }
-
 impl ReplicateModel {
     fn as_str(&self) -> String {
         match self {
@@ -26,13 +23,11 @@ impl ReplicateModel {
         }
     }
 }
-
 impl From<ReplicateModel> for String {
     fn from(model: ReplicateModel) -> Self {
         model.as_str()
     }
 }
-
 #[derive(Clone)]
 pub struct Replicate {
     api_key: String,
@@ -41,7 +36,6 @@ pub struct Replicate {
     client: reqwest::Client,
     default_options: LLMOptions,
 }
-
 impl Replicate {
     pub fn new(api_key: String) -> Self {
         Self {
@@ -52,61 +46,49 @@ impl Replicate {
             default_options: LLMOptions::default(),
         }
     }
-
     pub fn with_model(mut self, model: ReplicateModel) -> Self {
         self.model = model;
         self
     }
-
     pub fn llama3_8b(self) -> Self {
         self.with_model(ReplicateModel::Llama3_8b)
     }
-
     pub fn llama3_70b(self) -> Self {
         self.with_model(ReplicateModel::Llama3_70b)
     }
-
     pub fn mixtral(self) -> Self {
         self.with_model(ReplicateModel::Mixtral_8x7b)
     }
-
     pub fn with_custom_model(mut self, model_name: &str) -> Self {
         self.model = ReplicateModel::Custom(model_name.to_string());
         self
     }
-
     pub fn with_temperature(mut self, temperature: f32) -> Self {
         self.default_options.temperature = Some(temperature);
         self
     }
-
     pub fn with_max_tokens(mut self, max_tokens: u32) -> Self {
         self.default_options.max_tokens = Some(max_tokens);
         self
     }
-
     pub fn with_top_p(mut self, top_p: f32) -> Self {
         self.default_options.top_p = Some(top_p);
         self
     }
-
     pub fn with_top_k(mut self, top_k: u32) -> Self {
         self.default_options.top_k = Some(top_k);
         self
     }
-
     pub fn with_base_url(mut self, base_url: &str) -> Self {
         self.base_url = base_url.to_string();
         self
     }
-
     async fn chat_completion(
         &self,
         messages: &[ChatMessage],
         options: &LLMOptions,
     ) -> Result<LLMResult> {
         let model_name: String = self.model.clone().into();
-
         let mut prompt = String::new();
         for msg in messages {
             if msg.role == "system" {
@@ -118,9 +100,7 @@ impl Replicate {
             }
         }
         prompt.push_str("<|assistant|>\n");
-
         let mut input = json!({});
-
         if let Some(temp) = options.temperature.or(self.default_options.temperature) {
             input["temperature"] = json!(temp);
         }
@@ -133,9 +113,7 @@ impl Replicate {
         if let Some(top_k) = options.top_k.or(self.default_options.top_k) {
             input["top_k"] = json!(top_k);
         }
-
         input["prompt"] = json!(prompt);
-
         let response = self
             .client
             .post(format!(
@@ -148,7 +126,6 @@ impl Replicate {
             .send()
             .await
             .map_err(|e| LangHubError::LLMError(format!("Replicate request error: {}", e)))?;
-
         if !response.status().is_success() {
             let status = response.status();
             let error_text = response.text().await.unwrap_or_default();
@@ -157,16 +134,13 @@ impl Replicate {
                 status, error_text
             )));
         }
-
         let raw_response: serde_json::Value = response
             .json()
             .await
             .map_err(|e| LangHubError::LLMError(format!("JSON parse error: {}", e)))?;
-
         let prediction_url = raw_response["urls"]["get"]
             .as_str()
             .ok_or_else(|| LangHubError::ParseError("Missing prediction URL".to_string()))?;
-
         let mut output = None;
         for _ in 0..60 {
             let status_response = self
@@ -176,12 +150,10 @@ impl Replicate {
                 .send()
                 .await
                 .map_err(|e| LangHubError::LLMError(format!("Status check error: {}", e)))?;
-
             let status_json: serde_json::Value = status_response
                 .json()
                 .await
                 .map_err(|e| LangHubError::LLMError(format!("JSON parse error: {}", e)))?;
-
             if status_json["status"] == "succeeded" {
                 output = status_json["output"].as_str().map(String::from);
                 break;
@@ -190,14 +162,11 @@ impl Replicate {
             }
             tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
         }
-
         let text =
             output.ok_or_else(|| LangHubError::LLMError("Prediction timeout".to_string()))?;
-
         Ok(LLMResult { text, raw_response })
     }
 }
-
 impl LLM for Replicate {
     fn generate(
         &self,
@@ -210,7 +179,6 @@ impl LLM for Replicate {
             self.chat_completion(&messages, &options).await
         })
     }
-
     fn generate_with_options(
         &self,
         prompt: &str,
@@ -222,7 +190,6 @@ impl LLM for Replicate {
             self.chat_completion(&messages, &options).await
         })
     }
-
     fn chat(
         &self,
         messages: Vec<ChatMessage>,
@@ -232,7 +199,6 @@ impl LLM for Replicate {
                 .await
         })
     }
-
     fn get_model_name(&self) -> String {
         match &self.model {
             ReplicateModel::Llama3_8b => "llama3-8b".to_string(),
@@ -242,7 +208,6 @@ impl LLM for Replicate {
             ReplicateModel::Custom(name) => name.to_string(),
         }
     }
-
     fn get_provider_name(&self) -> String {
         match &self.model {
             ReplicateModel::Llama3_8b => "Replicate-Llama3-8B".to_string(),
@@ -252,19 +217,15 @@ impl LLM for Replicate {
             ReplicateModel::Custom(name) => format!("Replicate-{}", name).to_string(),
         }
     }
-
     fn get_provider_enum(&self) -> ModelProvider {
         ModelProvider::Replicate
     }
-
     fn supports_function_calling(&self) -> bool {
         false
     }
-
     fn supports_json_mode(&self) -> bool {
         false
     }
-
     fn max_context_length(&self) -> Option<usize> {
         Some(4096)
     }
