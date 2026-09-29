@@ -3,20 +3,14 @@ use crate::video::{VideoLLM, VideoLLMOptions, VideoLLMResult, VideoTask, VideoTa
 use serde_json::json;
 use std::future::Future;
 use std::pin::Pin;
-/// Kling model variants.
 #[derive(Debug, Clone)]
 pub enum KlingVideoModel {
-    /// Kling 3.0 (native audio, smart storyboard)
     Kling30,
-    /// Kling 3.0 Omni (multi-reference)
     Kling30Omni,
-    /// Kling 4.0 (30s native, multi-keyframe)
     Kling40,
-    /// Custom model name
     Custom(String),
 }
 impl KlingVideoModel {
-    /// Returns the API model identifier.
     fn as_str(&self) -> String {
         match self {
             KlingVideoModel::Kling30 => "kling-v3".to_string(),
@@ -31,7 +25,6 @@ impl From<KlingVideoModel> for String {
         model.as_str()
     }
 }
-/// Kling video generation client.
 #[derive(Clone)]
 pub struct KlingVideo {
     api_key: String,
@@ -42,7 +35,6 @@ pub struct KlingVideo {
     default_options: VideoLLMOptions,
 }
 impl KlingVideo {
-    /// Creates a new Kling client with the given API key.
     pub fn new(api_key: String) -> Self {
         Self {
             api_key,
@@ -53,39 +45,31 @@ impl KlingVideo {
             default_options: VideoLLMOptions::default(),
         }
     }
-    /// Sets the secret key (some Kling accounts use dual-key auth).
     pub fn with_secret_key(mut self, secret_key: String) -> Self {
         self.secret_key = Some(secret_key);
         self
     }
-    /// Sets the model variant.
     pub fn with_model(mut self, model: KlingVideoModel) -> Self {
         self.model = model;
         self
     }
-    /// Uses the Kling 3.0 model.
     pub fn kling30(self) -> Self {
         self.with_model(KlingVideoModel::Kling30)
     }
-    /// Uses the Kling 3.0 Omni model.
     pub fn kling30_omni(self) -> Self {
         self.with_model(KlingVideoModel::Kling30Omni)
     }
-    /// Uses the Kling 4.0 model.
     pub fn kling40(self) -> Self {
         self.with_model(KlingVideoModel::Kling40)
     }
-    /// Sets a custom base URL.
     pub fn with_base_url(mut self, base_url: &str) -> Self {
         self.base_url = base_url.to_string();
         self
     }
-    /// Sets default generation options.
     pub fn with_options(mut self, options: VideoLLMOptions) -> Self {
         self.default_options = options;
         self
     }
-    /// Builds the JSON request body for the Kling video generation API.
     fn build_request_body(&self, prompt: &str, options: &VideoLLMOptions) -> serde_json::Value {
         let model_name: String = self.model.clone().into();
         let mut body = json!({
@@ -136,7 +120,6 @@ impl KlingVideo {
         }
         body
     }
-    /// Submits the async generation request and returns the raw response.
     async fn submit_request(
         &self,
         prompt: &str,
@@ -165,7 +148,6 @@ impl KlingVideo {
             .await
             .map_err(|e| LangHubError::LLMError(format!("Kling JSON parse error: {}", e)))
     }
-    /// Polls the task until it succeeds or fails.
     async fn poll_until_done(&self, task_id: &str) -> Result<VideoLLMResult> {
         let url = format!("{}/v1/videos/text2video/{}", self.base_url, task_id);
         for _ in 0..180 {

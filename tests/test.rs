@@ -2,8 +2,8 @@
 mod tests {
     use super::*;
     use langhub::types::VideoVendor;
-use langhub::video::VideoModelProvider;
-use langhub::{LLMClient, LLMConfig, types::ModelProvider};
+    use langhub::video::VideoModelProvider;
+    use langhub::{LLMClient, LLMConfig, types::ModelProvider};
     #[tokio::test]
     async fn test_openai_client_creation() {
         let config = LLMConfig::new().openai("test-api-key".to_string());
@@ -224,5 +224,135 @@ use langhub::{LLMClient, LLMConfig, types::ModelProvider};
         assert!(!VideoModelProvider::HappyHorse.supports_audio());
         assert!(VideoModelProvider::HappyHorse.supports_reference_images());
         assert!(!VideoModelProvider::HappyHorse.supports_reference_videos());
+    }
+    // Image LLM client tests
+    use langhub::image::ImageModelProvider;
+    use langhub::types::ImageVendor;
+    use langhub::{ImageLLMClient, ImageLLMConfig};
+    /// Verifies that a Seedream client can be created from a config with an API key.
+    #[tokio::test]
+    async fn test_seedream_client_creation() {
+        let config = ImageLLMConfig::new().seedream("test-api-key".to_string());
+        let client = ImageLLMClient::new_with_config(ImageModelProvider::Seedream, &config);
+        assert!(client.is_ok());
+    }
+    /// Verifies that a Wan image client can be created from a config with an API key.
+    #[tokio::test]
+    async fn test_wan_image_client_creation() {
+        let config = ImageLLMConfig::new().wan_image("test-api-key".to_string());
+        let client = ImageLLMClient::new_with_config(ImageModelProvider::WanImage, &config);
+        assert!(client.is_ok());
+    }
+    /// Verifies that a Stability AI client can be created from a config with an API key.
+    #[tokio::test]
+    async fn test_stability_client_creation() {
+        let config = ImageLLMConfig::new().stability("test-api-key".to_string());
+        let client = ImageLLMClient::new_with_config(ImageModelProvider::StabilityImage, &config);
+        assert!(client.is_ok());
+    }
+    /// Verifies that a FLUX client can be created from a config with an API key.
+    #[tokio::test]
+    async fn test_flux_client_creation() {
+        let config = ImageLLMConfig::new().flux("test-api-key".to_string());
+        let client = ImageLLMClient::new_with_config(ImageModelProvider::Flux, &config);
+        assert!(client.is_ok());
+    }
+    /// Verifies that an Imagen client can be created from a config with an API key.
+    #[tokio::test]
+    async fn test_imagen_client_creation() {
+        let config = ImageLLMConfig::new().imagen("test-api-key".to_string());
+        let client = ImageLLMClient::new_with_config(ImageModelProvider::Imagen, &config);
+        assert!(client.is_ok());
+    }
+    /// Verifies that a DALL·E client can be created from a config with an API key.
+    #[tokio::test]
+    async fn test_dalle_client_creation() {
+        let config = ImageLLMConfig::new().dalle("test-api-key".to_string());
+        let client = ImageLLMClient::new_with_config(ImageModelProvider::DallE, &config);
+        assert!(client.is_ok());
+    }
+    /// Verifies that creating an image client without an API key returns an error.
+    #[tokio::test]
+    async fn test_image_missing_api_key_error() {
+        let config = ImageLLMConfig::new();
+        let client = ImageLLMClient::new_with_config(ImageModelProvider::Seedream, &config);
+        assert!(client.is_err());
+    }
+    /// Verifies that `new_with_key` creates a Seedream client successfully.
+    #[tokio::test]
+    async fn test_image_new_with_key_seedream() {
+        let client = ImageLLMClient::new_with_key(
+            ImageModelProvider::Seedream,
+            Some("test-api-key".to_string()),
+            None,
+        );
+        assert!(client.is_ok());
+    }
+    /// Verifies that `new_with_key` returns an error when the API key is missing.
+    #[tokio::test]
+    async fn test_image_new_with_key_missing() {
+        let client = ImageLLMClient::new_with_key(ImageModelProvider::DallE, None, None);
+        assert!(client.is_err());
+    }
+    /// Verifies that `get_provider_enum` returns the correct provider.
+    #[tokio::test]
+    async fn test_image_get_provider_enum() {
+        let config = ImageLLMConfig::new().seedream("test-api-key".to_string());
+        let client =
+            ImageLLMClient::new_with_config(ImageModelProvider::Seedream, &config).unwrap();
+        assert_eq!(client.get_provider_enum(), ImageModelProvider::Seedream);
+    }
+    /// Verifies that `get_vendor` returns the correct vendor for each provider.
+    #[tokio::test]
+    async fn test_image_get_vendor() {
+        let config = ImageLLMConfig::new()
+            .seedream("test-api-key".to_string())
+            .wan_image("test-api-key".to_string())
+            .stability("test-api-key".to_string())
+            .flux("test-api-key".to_string())
+            .imagen("test-api-key".to_string())
+            .dalle("test-api-key".to_string());
+        let seedream =
+            ImageLLMClient::new_with_config(ImageModelProvider::Seedream, &config).unwrap();
+        assert_eq!(seedream.get_vendor(), ImageVendor::ByteDance);
+        let wan = ImageLLMClient::new_with_config(ImageModelProvider::WanImage, &config).unwrap();
+        assert_eq!(wan.get_vendor(), ImageVendor::Alibaba);
+        let stability =
+            ImageLLMClient::new_with_config(ImageModelProvider::StabilityImage, &config).unwrap();
+        assert_eq!(stability.get_vendor(), ImageVendor::StabilityAI);
+        let flux = ImageLLMClient::new_with_config(ImageModelProvider::Flux, &config).unwrap();
+        assert_eq!(flux.get_vendor(), ImageVendor::BlackForestLabs);
+        let imagen = ImageLLMClient::new_with_config(ImageModelProvider::Imagen, &config).unwrap();
+        assert_eq!(imagen.get_vendor(), ImageVendor::Google);
+        let dalle = ImageLLMClient::new_with_config(ImageModelProvider::DallE, &config).unwrap();
+        assert_eq!(dalle.get_vendor(), ImageVendor::OpenAI);
+    }
+    /// Verifies `ImageModelProvider::all()` returns every supported provider.
+    #[tokio::test]
+    async fn test_image_model_provider_all() {
+        let all = ImageModelProvider::all();
+        assert_eq!(all.len(), 6);
+        assert!(all.contains(&ImageModelProvider::Seedream));
+        assert!(all.contains(&ImageModelProvider::WanImage));
+        assert!(all.contains(&ImageModelProvider::StabilityImage));
+        assert!(all.contains(&ImageModelProvider::Flux));
+        assert!(all.contains(&ImageModelProvider::Imagen));
+        assert!(all.contains(&ImageModelProvider::DallE));
+    }
+    /// Verifies `ImageVendor::all()` returns every supported vendor.
+    #[tokio::test]
+    async fn test_image_vendor_all() {
+        let all = ImageVendor::all();
+        assert_eq!(all.len(), 7);
+    }
+    /// Verifies capability flags for a few representative providers.
+    #[tokio::test]
+    async fn test_image_capability_flags() {
+        assert!(ImageModelProvider::Seedream.supports_reference_images());
+        assert!(ImageModelProvider::Seedream.supports_negative_prompt());
+        assert!(ImageModelProvider::Flux.supports_reference_images());
+        assert!(ImageModelProvider::Flux.supports_negative_prompt());
+        assert!(!ImageModelProvider::DallE.supports_reference_images());
+        assert!(!ImageModelProvider::DallE.supports_negative_prompt());
     }
 }

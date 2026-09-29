@@ -84,7 +84,7 @@ impl From<&str> for LangHubError {
     }
 }
 pub type Result<T> = std::result::Result<T, LangHubError>;
-use crate::llms::ToolCall;
+use crate::chat::ToolCall;
 use serde::{Deserialize, Serialize};
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum ModelProvider {
@@ -268,6 +268,51 @@ impl VideoVendor {
             VideoVendor::Xai,
             VideoVendor::Pruna,
             VideoVendor::Custom,
+        ]
+    }
+}
+/// Image model vendor/provider type.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+pub enum ImageVendor {
+    /// ByteDance (Seedream, Volcengine Ark)
+    ByteDance,
+    /// Alibaba Cloud (Wan text-to-image, Bailian)
+    Alibaba,
+    /// Stability AI (Stable Image, Stable Diffusion 3.5)
+    StabilityAI,
+    /// Black Forest Labs (FLUX.2)
+    BlackForestLabs,
+    /// Google (Imagen)
+    Google,
+    /// OpenAI (DALL·E)
+    OpenAI,
+    /// Custom / self-hosted vendor
+    Custom,
+}
+impl fmt::Display for ImageVendor {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            ImageVendor::ByteDance => write!(f, "ByteDance"),
+            ImageVendor::Alibaba => write!(f, "Alibaba"),
+            ImageVendor::StabilityAI => write!(f, "StabilityAI"),
+            ImageVendor::BlackForestLabs => write!(f, "BlackForestLabs"),
+            ImageVendor::Google => write!(f, "Google"),
+            ImageVendor::OpenAI => write!(f, "OpenAI"),
+            ImageVendor::Custom => write!(f, "Custom"),
+        }
+    }
+}
+impl ImageVendor {
+    /// Returns all supported image vendors.
+    pub fn all() -> Vec<ImageVendor> {
+        vec![
+            ImageVendor::ByteDance,
+            ImageVendor::Alibaba,
+            ImageVendor::StabilityAI,
+            ImageVendor::BlackForestLabs,
+            ImageVendor::Google,
+            ImageVendor::OpenAI,
+            ImageVendor::Custom,
         ]
     }
 }

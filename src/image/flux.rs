@@ -1,79 +1,88 @@
+use crate::image::{ImageLLM, ImageLLMOptions, ImageLLMResult, ImageTask, ImageTaskStatus};
 use crate::types::{LangHubError, Result};
-use crate::video::{VideoLLM, VideoLLMOptions, VideoLLMResult, VideoTask, VideoTaskStatus};
 use serde_json::json;
 use std::future::Future;
 use std::pin::Pin;
 #[derive(Debug, Clone)]
-pub enum LtxVideoModel {
-    Ltx23Fast,
-    Ltx23Pro,
+pub enum FluxImageModel {
+    Flux2Max,
+    Flux2Pro,
+    Flux2Klein,
+    Flux2Dev,
     Custom(String),
 }
-impl LtxVideoModel {
+impl FluxImageModel {
     fn as_str(&self) -> String {
         match self {
-            LtxVideoModel::Ltx23Fast => "ltx-2.3-fast".to_string(),
-            LtxVideoModel::Ltx23Pro => "ltx-2.3-pro".to_string(),
-            LtxVideoModel::Custom(name) => name.clone(),
+            FluxImageModel::Flux2Max => "flux-2-max".to_string(),
+            FluxImageModel::Flux2Pro => "flux-2-pro".to_string(),
+            FluxImageModel::Flux2Klein => "flux-2-klein".to_string(),
+            FluxImageModel::Flux2Dev => "flux-2-dev".to_string(),
+            FluxImageModel::Custom(name) => name.clone(),
         }
     }
 }
-impl From<LtxVideoModel> for String {
-    fn from(model: LtxVideoModel) -> Self {
+impl From<FluxImageModel> for String {
+    fn from(model: FluxImageModel) -> Self {
         model.as_str()
     }
 }
 #[derive(Clone)]
-pub struct LtxVideo {
+pub struct FluxImage {
     api_key: String,
-    model: LtxVideoModel,
+    model: FluxImageModel,
     base_url: String,
     client: reqwest::Client,
-    default_options: VideoLLMOptions,
+    default_options: ImageLLMOptions,
 }
-impl LtxVideo {
+impl FluxImage {
     pub fn new(api_key: String) -> Self {
         Self {
             api_key,
-            model: LtxVideoModel::Ltx23Fast,
-            base_url: "https://api.ltx.video/v1".to_string(),
+            model: FluxImageModel::Flux2Pro,
+            base_url: "https://api.bfl.ai/v1".to_string(),
             client: reqwest::Client::new(),
-            default_options: VideoLLMOptions::default(),
+            default_options: ImageLLMOptions::default(),
         }
     }
-    pub fn with_model(mut self, model: LtxVideoModel) -> Self {
+    pub fn with_model(mut self, model: FluxImageModel) -> Self {
         self.model = model;
         self
     }
-    pub fn ltx23_fast(self) -> Self {
-        self.with_model(LtxVideoModel::Ltx23Fast)
+    pub fn flux2_max(self) -> Self {
+        self.with_model(FluxImageModel::Flux2Max)
     }
-    pub fn ltx23_pro(self) -> Self {
-        self.with_model(LtxVideoModel::Ltx23Pro)
+    pub fn flux2_pro(self) -> Self {
+        self.with_model(FluxImageModel::Flux2Pro)
+    }
+    pub fn flux2_klein(self) -> Self {
+        self.with_model(FluxImageModel::Flux2Klein)
+    }
+    pub fn flux2_dev(self) -> Self {
+        self.with_model(FluxImageModel::Flux2Dev)
     }
     pub fn with_base_url(mut self, base_url: &str) -> Self {
         self.base_url = base_url.to_string();
         self
     }
-    pub fn with_options(mut self, options: VideoLLMOptions) -> Self {
+    pub fn with_options(mut self, options: ImageLLMOptions) -> Self {
         self.default_options = options;
         self
     }
-    fn build_request_body(&self, prompt: &str, options: &VideoLLMOptions) -> serde_json::Value {
-        let model_name: String = self.model.clone().into();
+    fn build_request_body(&self, prompt: &str, options: &ImageLLMOptions) -> serde_json::Value {
         let mut body = json!({
-            "model": model_name,
             "prompt": prompt,
         });
+        if let Some(n) = options.n.or(self.default_options.n) {
+            body["num_images"] = json!(n);
+        }
         if let Some(resolution) = options
             .resolution
             .as_ref()
             .or(self.default_options.resolution.as_ref())
         {
-            body["resolution"] = json!(resolution);
-        }
-        if let Some(duration) = options.duration.or(self.default_options.duration) {
-            body["duration"] = json!(duration);
+            body["width"] = json!(resolution);
+            body["height"] = json!(resolution);
         }
         if let Some(ratio) = options
             .aspect_ratio
@@ -85,80 +94,92 @@ impl LtxVideo {
         if let Some(seed) = options.seed.or(self.default_options.seed) {
             body["seed"] = json!(seed);
         }
-        if let Some(audio) = options
-            .generate_audio
-            .or(self.default_options.generate_audio)
-        {
-            body["generate_audio"] = json!(audio);
-        }
         if let Some(images) = options
             .reference_images
             .as_ref()
             .or(self.default_options.reference_images.as_ref())
         {
-            body["reference_images"] = json!(images);
+            body["input_image"] = json!(images);
+        }
+        if let Some(format) = options
+            .output_format
+            .as_ref()
+            .or(self.default_options.output_format.as_ref())
+        {
+            body["output_format"] = json!(format);
         }
         body
     }
     async fn submit_request(
         &self,
         prompt: &str,
-        options: &VideoLLMOptions,
+        options: &ImageLLMOptions,
     ) -> Result<serde_json::Value> {
         let body = self.build_request_body(prompt, options);
+        let model_name: String = self.model.clone().into();
         let response = self
             .client
-            .post(format!("{}/generate", self.base_url))
-            .header("Authorization", format!("Bearer {}", self.api_key))
+            .post(format!("{}/{}", self.base_url, model_name))
+            .header("x-key", &self.api_key)
             .header("Content-Type", "application/json")
             .json(&body)
             .send()
             .await
-            .map_err(|e| LangHubError::LLMError(format!("LTX request error: {}", e)))?;
+            .map_err(|e| LangHubError::LLMError(format!("FLUX request error: {}", e)))?;
         if !response.status().is_success() {
             let status = response.status();
             let error_text = response.text().await.unwrap_or_default();
             return Err(LangHubError::LLMError(format!(
-                "LTX API error ({}): {}",
+                "FLUX API error ({}): {}",
                 status, error_text
             )));
         }
         response
             .json()
             .await
-            .map_err(|e| LangHubError::LLMError(format!("LTX JSON parse error: {}", e)))
+            .map_err(|e| LangHubError::LLMError(format!("FLUX JSON parse error: {}", e)))
     }
-    async fn poll_until_done(&self, task_id: &str) -> Result<VideoLLMResult> {
-        let url = format!("{}/jobs/{}", self.base_url, task_id);
+    fn raw_to_result(raw: &serde_json::Value) -> ImageLLMResult {
+        let mut image_urls = Vec::new();
+        if let Some(url) = raw["result"]["sample"].as_str() {
+            image_urls.push(url.to_string());
+        }
+        if let Some(samples) = raw["result"]["samples"].as_array() {
+            for item in samples {
+                if let Some(url) = item["url"].as_str() {
+                    image_urls.push(url.to_string());
+                }
+            }
+        }
+        ImageLLMResult {
+            image_urls,
+            image_base64: None,
+            file_paths: None,
+            resolution: None,
+            raw_response: raw.clone(),
+        }
+    }
+    async fn poll_until_done(&self, task_id: &str) -> Result<ImageLLMResult> {
+        let url = format!("{}/get_result?id={}", self.base_url, task_id);
         for _ in 0..180 {
             let response = self
                 .client
                 .get(&url)
-                .header("Authorization", format!("Bearer {}", self.api_key))
+                .header("x-key", &self.api_key)
                 .send()
                 .await
-                .map_err(|e| LangHubError::LLMError(format!("LTX poll error: {}", e)))?;
+                .map_err(|e| LangHubError::LLMError(format!("FLUX poll error: {}", e)))?;
             let raw: serde_json::Value = response
                 .json()
                 .await
-                .map_err(|e| LangHubError::LLMError(format!("LTX JSON parse error: {}", e)))?;
+                .map_err(|e| LangHubError::LLMError(format!("FLUX JSON parse error: {}", e)))?;
             let status = raw["status"].as_str().unwrap_or("");
             match status {
-                "completed" => {
-                    let video_url = raw["output"]["video_url"].as_str().map(|s| s.to_string());
-                    return Ok(VideoLLMResult {
-                        video_url,
-                        video_base64: None,
-                        file_path: None,
-                        duration_seconds: None,
-                        resolution: None,
-                        raw_response: raw,
-                    });
-                }
-                "failed" => {
+                "Ready" => return Ok(Self::raw_to_result(&raw)),
+                "Error" | "Failed" => {
                     let error = raw["error"]
                         .as_str()
-                        .unwrap_or("LTX task failed")
+                        .unwrap_or("FLUX task failed")
                         .to_string();
                     return Err(LangHubError::LLMError(error));
                 }
@@ -168,15 +189,15 @@ impl LtxVideo {
             }
         }
         Err(LangHubError::LLMError(
-            "LTX task polling timeout".to_string(),
+            "FLUX task polling timeout".to_string(),
         ))
     }
 }
-impl VideoLLM for LtxVideo {
+impl ImageLLM for FluxImage {
     fn generate(
         &self,
         prompt: &str,
-    ) -> Pin<Box<dyn Future<Output = Result<VideoLLMResult>> + Send + '_>> {
+    ) -> Pin<Box<dyn Future<Output = Result<ImageLLMResult>> + Send + '_>> {
         let prompt = prompt.to_string();
         let options = self.default_options.clone();
         Box::pin(async move {
@@ -191,8 +212,8 @@ impl VideoLLM for LtxVideo {
     fn generate_with_options(
         &self,
         prompt: &str,
-        options: VideoLLMOptions,
-    ) -> Pin<Box<dyn Future<Output = Result<VideoLLMResult>> + Send + '_>> {
+        options: ImageLLMOptions,
+    ) -> Pin<Box<dyn Future<Output = Result<ImageLLMResult>> + Send + '_>> {
         let prompt = prompt.to_string();
         Box::pin(async move {
             let raw = self.submit_request(&prompt, &options).await?;
@@ -206,8 +227,8 @@ impl VideoLLM for LtxVideo {
     fn submit_task(
         &self,
         prompt: &str,
-        options: VideoLLMOptions,
-    ) -> Pin<Box<dyn Future<Output = Result<VideoTask>> + Send + '_>> {
+        options: ImageLLMOptions,
+    ) -> Pin<Box<dyn Future<Output = Result<ImageTask>> + Send + '_>> {
         let prompt = prompt.to_string();
         Box::pin(async move {
             let raw = self.submit_request(&prompt, &options).await?;
@@ -215,9 +236,9 @@ impl VideoLLM for LtxVideo {
                 .as_str()
                 .ok_or_else(|| LangHubError::ParseError("Missing task id".to_string()))?
                 .to_string();
-            Ok(VideoTask {
+            Ok(ImageTask {
                 task_id,
-                status: VideoTaskStatus::Pending,
+                status: ImageTaskStatus::Pending,
                 result: None,
                 error: None,
             })
@@ -226,52 +247,42 @@ impl VideoLLM for LtxVideo {
     fn poll_task(
         &self,
         task_id: &str,
-    ) -> Pin<Box<dyn Future<Output = Result<VideoTask>> + Send + '_>> {
+    ) -> Pin<Box<dyn Future<Output = Result<ImageTask>> + Send + '_>> {
         let task_id = task_id.to_string();
         Box::pin(async move {
-            let url = format!("{}/jobs/{}", self.base_url, task_id);
+            let url = format!("{}/get_result?id={}", self.base_url, task_id);
             let response = self
                 .client
                 .get(&url)
-                .header("Authorization", format!("Bearer {}", self.api_key))
+                .header("x-key", &self.api_key)
                 .send()
                 .await
-                .map_err(|e| LangHubError::LLMError(format!("LTX poll error: {}", e)))?;
+                .map_err(|e| LangHubError::LLMError(format!("FLUX poll error: {}", e)))?;
             let raw: serde_json::Value = response
                 .json()
                 .await
-                .map_err(|e| LangHubError::LLMError(format!("LTX JSON parse error: {}", e)))?;
+                .map_err(|e| LangHubError::LLMError(format!("FLUX JSON parse error: {}", e)))?;
             let status_str = raw["status"].as_str().unwrap_or("");
             let (status, result, error) = match status_str {
-                "completed" => {
-                    let video_url = raw["output"]["video_url"].as_str().map(|s| s.to_string());
-                    (
-                        VideoTaskStatus::Succeeded,
-                        Some(VideoLLMResult {
-                            video_url,
-                            video_base64: None,
-                            file_path: None,
-                            duration_seconds: None,
-                            resolution: None,
-                            raw_response: raw.clone(),
-                        }),
-                        None,
-                    )
-                }
-                "failed" => (
-                    VideoTaskStatus::Failed,
+                "Ready" => (
+                    ImageTaskStatus::Succeeded,
+                    Some(Self::raw_to_result(&raw)),
+                    None,
+                ),
+                "Error" | "Failed" => (
+                    ImageTaskStatus::Failed,
                     None,
                     Some(
                         raw["error"]
                             .as_str()
-                            .unwrap_or("LTX task failed")
+                            .unwrap_or("FLUX task failed")
                             .to_string(),
                     ),
                 ),
-                "processing" => (VideoTaskStatus::Processing, None, None),
-                _ => (VideoTaskStatus::Pending, None, None),
+                "Processing" => (ImageTaskStatus::Processing, None, None),
+                _ => (ImageTaskStatus::Pending, None, None),
             };
-            Ok(VideoTask {
+            Ok(ImageTask {
                 task_id,
                 status,
                 result,
@@ -283,18 +294,12 @@ impl VideoLLM for LtxVideo {
         self.model.as_str()
     }
     fn get_provider_name(&self) -> String {
-        "Lightricks-LTX".to_string()
-    }
-    fn max_duration(&self) -> Option<f32> {
-        Some(10.0)
-    }
-    fn supports_audio(&self) -> bool {
-        true
+        "BlackForestLabs-FLUX".to_string()
     }
     fn supports_reference_images(&self) -> bool {
         true
     }
-    fn supports_reference_videos(&self) -> bool {
+    fn supports_negative_prompt(&self) -> bool {
         true
     }
 }

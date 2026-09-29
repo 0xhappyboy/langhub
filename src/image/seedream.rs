@@ -1,74 +1,84 @@
+use crate::image::{ImageLLM, ImageLLMOptions, ImageLLMResult, ImageTask, ImageTaskStatus};
 use crate::types::{LangHubError, Result};
-use crate::video::{VideoLLM, VideoLLMOptions, VideoLLMResult, VideoTask, VideoTaskStatus};
 use serde_json::json;
 use std::future::Future;
 use std::pin::Pin;
 #[derive(Debug, Clone)]
-pub enum PrunaVideoModel {
-    PVideo2Pro,
+pub enum SeedreamModel {
+    Seedream30,
+    Seedream45,
+    Seedream50Lite,
     Custom(String),
 }
-impl PrunaVideoModel {
+impl SeedreamModel {
     fn as_str(&self) -> String {
         match self {
-            PrunaVideoModel::PVideo2Pro => "p-video-2-pro".to_string(),
-            PrunaVideoModel::Custom(name) => name.clone(),
+            SeedreamModel::Seedream30 => "seedream-3-0".to_string(),
+            SeedreamModel::Seedream45 => "doubao-seedream-4-5".to_string(),
+            SeedreamModel::Seedream50Lite => "doubao-seedream-5-0-lite".to_string(),
+            SeedreamModel::Custom(name) => name.clone(),
         }
     }
 }
-impl From<PrunaVideoModel> for String {
-    fn from(model: PrunaVideoModel) -> Self {
+impl From<SeedreamModel> for String {
+    fn from(model: SeedreamModel) -> Self {
         model.as_str()
     }
 }
 #[derive(Clone)]
-pub struct PrunaVideo {
+pub struct Seedream {
     api_key: String,
-    model: PrunaVideoModel,
+    model: SeedreamModel,
     base_url: String,
     client: reqwest::Client,
-    default_options: VideoLLMOptions,
+    default_options: ImageLLMOptions,
 }
-impl PrunaVideo {
+impl Seedream {
     pub fn new(api_key: String) -> Self {
         Self {
             api_key,
-            model: PrunaVideoModel::PVideo2Pro,
-            base_url: "https://api.pruna.ai/v1".to_string(),
+            model: SeedreamModel::Seedream30,
+            base_url: "https://ark.cn-beijing.volces.com/api/v3".to_string(),
             client: reqwest::Client::new(),
-            default_options: VideoLLMOptions::default(),
+            default_options: ImageLLMOptions::default(),
         }
     }
-    pub fn with_model(mut self, model: PrunaVideoModel) -> Self {
+    pub fn with_model(mut self, model: SeedreamModel) -> Self {
         self.model = model;
         self
     }
-    pub fn p_video_2_pro(self) -> Self {
-        self.with_model(PrunaVideoModel::PVideo2Pro)
+    pub fn seedream30(self) -> Self {
+        self.with_model(SeedreamModel::Seedream30)
+    }
+    pub fn seedream45(self) -> Self {
+        self.with_model(SeedreamModel::Seedream45)
+    }
+    pub fn seedream50_lite(self) -> Self {
+        self.with_model(SeedreamModel::Seedream50Lite)
     }
     pub fn with_base_url(mut self, base_url: &str) -> Self {
         self.base_url = base_url.to_string();
         self
     }
-    pub fn with_options(mut self, options: VideoLLMOptions) -> Self {
+    pub fn with_options(mut self, options: ImageLLMOptions) -> Self {
         self.default_options = options;
         self
     }
-    fn build_request_body(&self, prompt: &str, options: &VideoLLMOptions) -> serde_json::Value {
+    fn build_request_body(&self, prompt: &str, options: &ImageLLMOptions) -> serde_json::Value {
         let model_name: String = self.model.clone().into();
         let mut body = json!({
             "model": model_name,
             "prompt": prompt,
         });
+        if let Some(n) = options.n.or(self.default_options.n) {
+            body["n"] = json!(n);
+        }
         if let Some(resolution) = options
             .resolution
             .as_ref()
             .or(self.default_options.resolution.as_ref())
         {
-            body["resolution"] = json!(resolution);
-        }
-        if let Some(duration) = options.duration.or(self.default_options.duration) {
-            body["duration"] = json!(duration);
+            body["size"] = json!(resolution);
         }
         if let Some(ratio) = options
             .aspect_ratio
@@ -85,57 +95,77 @@ impl PrunaVideo {
             .as_ref()
             .or(self.default_options.reference_images.as_ref())
         {
-            body["reference_images"] = json!(images);
+            body["image"] = json!(images);
+        }
+        if let Some(format) = options
+            .output_format
+            .as_ref()
+            .or(self.default_options.output_format.as_ref())
+        {
+            body["response_format"] = json!(format);
         }
         body
     }
     async fn submit_request(
         &self,
         prompt: &str,
-        options: &VideoLLMOptions,
+        options: &ImageLLMOptions,
     ) -> Result<serde_json::Value> {
         let body = self.build_request_body(prompt, options);
         let response = self
             .client
-            .post(format!("{}/video/generations", self.base_url))
+            .post(format!("{}/images/generations", self.base_url))
             .header("Authorization", format!("Bearer {}", self.api_key))
             .header("Content-Type", "application/json")
             .json(&body)
             .send()
             .await
-            .map_err(|e| LangHubError::LLMError(format!("Pruna request error: {}", e)))?;
+            .map_err(|e| LangHubError::LLMError(format!("Seedream request error: {}", e)))?;
         if !response.status().is_success() {
             let status = response.status();
             let error_text = response.text().await.unwrap_or_default();
             return Err(LangHubError::LLMError(format!(
-                "Pruna API error ({}): {}",
+                "Seedream API error ({}): {}",
                 status, error_text
             )));
         }
         response
             .json()
             .await
-            .map_err(|e| LangHubError::LLMError(format!("Pruna JSON parse error: {}", e)))
+            .map_err(|e| LangHubError::LLMError(format!("Seedream JSON parse error: {}", e)))
     }
-    fn raw_to_result(raw: &serde_json::Value) -> VideoLLMResult {
-        let video_url = raw["video_url"].as_str().map(|s| s.to_string());
-        let duration = raw["duration"].as_f64().map(|v| v as f32);
-        let resolution = raw["resolution"].as_str().map(|s| s.to_string());
-        VideoLLMResult {
-            video_url,
-            video_base64: None,
-            file_path: None,
-            duration_seconds: duration,
+    fn raw_to_result(raw: &serde_json::Value) -> ImageLLMResult {
+        let mut image_urls = Vec::new();
+        let mut image_base64 = Vec::new();
+        if let Some(data) = raw["data"].as_array() {
+            for item in data {
+                if let Some(url) = item["url"].as_str() {
+                    image_urls.push(url.to_string());
+                }
+                if let Some(b64) = item["b64_json"].as_str() {
+                    image_base64.push(b64.to_string());
+                }
+            }
+        }
+        let resolution = raw["size"].as_str().map(|s| s.to_string());
+        ImageLLMResult {
+            image_urls,
+            image_base64: if image_base64.is_empty() {
+                None
+            } else {
+                Some(image_base64)
+            },
+            file_paths: None,
             resolution,
             raw_response: raw.clone(),
         }
     }
 }
-impl VideoLLM for PrunaVideo {
+impl ImageLLM for Seedream {
     fn generate(
         &self,
         prompt: &str,
-    ) -> Pin<Box<dyn Future<Output = Result<VideoLLMResult>> + Send + '_>> {
+    ) -> Pin<Box<dyn Future<Output = Result<ImageLLMResult>> + Send + '_>> {
         let prompt = prompt.to_string();
         let options = self.default_options.clone();
         Box::pin(async move {
@@ -146,8 +176,8 @@ impl VideoLLM for PrunaVideo {
     fn generate_with_options(
         &self,
         prompt: &str,
-        options: VideoLLMOptions,
-    ) -> Pin<Box<dyn Future<Output = Result<VideoLLMResult>> + Send + '_>> {
+        options: ImageLLMOptions,
+    ) -> Pin<Box<dyn Future<Output = Result<ImageLLMResult>> + Send + '_>> {
         let prompt = prompt.to_string();
         Box::pin(async move {
             let raw = self.submit_request(&prompt, &options).await?;
@@ -157,15 +187,18 @@ impl VideoLLM for PrunaVideo {
     fn submit_task(
         &self,
         prompt: &str,
-        options: VideoLLMOptions,
-    ) -> Pin<Box<dyn Future<Output = Result<VideoTask>> + Send + '_>> {
+        options: ImageLLMOptions,
+    ) -> Pin<Box<dyn Future<Output = Result<ImageTask>> + Send + '_>> {
         let prompt = prompt.to_string();
         Box::pin(async move {
             let raw = self.submit_request(&prompt, &options).await?;
-            let task_id = raw["id"].as_str().unwrap_or("pruna-sync-task").to_string();
-            Ok(VideoTask {
+            let task_id = raw["id"]
+                .as_str()
+                .unwrap_or("seedream-sync-task")
+                .to_string();
+            Ok(ImageTask {
                 task_id,
-                status: VideoTaskStatus::Succeeded,
+                status: ImageTaskStatus::Succeeded,
                 result: Some(Self::raw_to_result(&raw)),
                 error: None,
             })
@@ -174,42 +207,42 @@ impl VideoLLM for PrunaVideo {
     fn poll_task(
         &self,
         task_id: &str,
-    ) -> Pin<Box<dyn Future<Output = Result<VideoTask>> + Send + '_>> {
+    ) -> Pin<Box<dyn Future<Output = Result<ImageTask>> + Send + '_>> {
         let task_id = task_id.to_string();
         Box::pin(async move {
-            let url = format!("{}/video/generations/{}", self.base_url, task_id);
+            let url = format!("{}/images/generations/{}", self.base_url, task_id);
             let response = self
                 .client
                 .get(&url)
                 .header("Authorization", format!("Bearer {}", self.api_key))
                 .send()
                 .await
-                .map_err(|e| LangHubError::LLMError(format!("Pruna poll error: {}", e)))?;
+                .map_err(|e| LangHubError::LLMError(format!("Seedream poll error: {}", e)))?;
             let raw: serde_json::Value = response
                 .json()
                 .await
-                .map_err(|e| LangHubError::LLMError(format!("Pruna JSON parse error: {}", e)))?;
+                .map_err(|e| LangHubError::LLMError(format!("Seedream JSON parse error: {}", e)))?;
             let status_str = raw["status"].as_str().unwrap_or("succeeded");
             let (status, result, error) = match status_str {
                 "succeeded" | "completed" => (
-                    VideoTaskStatus::Succeeded,
+                    ImageTaskStatus::Succeeded,
                     Some(Self::raw_to_result(&raw)),
                     None,
                 ),
                 "failed" => (
-                    VideoTaskStatus::Failed,
+                    ImageTaskStatus::Failed,
                     None,
                     Some(
-                        raw["error"]
+                        raw["error"]["message"]
                             .as_str()
-                            .unwrap_or("Pruna task failed")
+                            .unwrap_or("Seedream task failed")
                             .to_string(),
                     ),
                 ),
-                "processing" => (VideoTaskStatus::Processing, None, None),
-                _ => (VideoTaskStatus::Pending, None, None),
+                "processing" => (ImageTaskStatus::Processing, None, None),
+                _ => (ImageTaskStatus::Pending, None, None),
             };
-            Ok(VideoTask {
+            Ok(ImageTask {
                 task_id,
                 status,
                 result,
@@ -221,18 +254,12 @@ impl VideoLLM for PrunaVideo {
         self.model.as_str()
     }
     fn get_provider_name(&self) -> String {
-        "Pruna-P-Video".to_string()
-    }
-    fn max_duration(&self) -> Option<f32> {
-        Some(10.0)
-    }
-    fn supports_audio(&self) -> bool {
-        false
+        "ByteDance-Seedream".to_string()
     }
     fn supports_reference_images(&self) -> bool {
         true
     }
-    fn supports_reference_videos(&self) -> bool {
-        false
+    fn supports_negative_prompt(&self) -> bool {
+        true
     }
 }

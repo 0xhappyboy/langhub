@@ -3,16 +3,12 @@ use crate::video::{VideoLLM, VideoLLMOptions, VideoLLMResult, VideoTask, VideoTa
 use serde_json::json;
 use std::future::Future;
 use std::pin::Pin;
-/// Gemini Omni Flash model variants.
 #[derive(Debug, Clone)]
 pub enum GeminiOmniFlashModel {
-    /// gemini-omni-flash-1.1
     GeminiOmniFlash11,
-    /// Custom model name
     Custom(String),
 }
 impl GeminiOmniFlashModel {
-    /// Returns the API model identifier.
     fn as_str(&self) -> String {
         match self {
             GeminiOmniFlashModel::GeminiOmniFlash11 => "gemini-omni-flash-1.1".to_string(),
@@ -25,7 +21,6 @@ impl From<GeminiOmniFlashModel> for String {
         model.as_str()
     }
 }
-/// Gemini Omni Flash video generation client.
 #[derive(Clone)]
 pub struct GeminiOmniFlash {
     api_key: String,
@@ -35,7 +30,6 @@ pub struct GeminiOmniFlash {
     default_options: VideoLLMOptions,
 }
 impl GeminiOmniFlash {
-    /// Creates a new Gemini Omni Flash client with the given API key.
     pub fn new(api_key: String) -> Self {
         Self {
             api_key,
@@ -45,26 +39,21 @@ impl GeminiOmniFlash {
             default_options: VideoLLMOptions::default(),
         }
     }
-    /// Sets the model variant.
     pub fn with_model(mut self, model: GeminiOmniFlashModel) -> Self {
         self.model = model;
         self
     }
-    /// Uses the Gemini Omni Flash 1.1 model.
     pub fn gemini_omni_flash11(self) -> Self {
         self.with_model(GeminiOmniFlashModel::GeminiOmniFlash11)
     }
-    /// Sets a custom base URL.
     pub fn with_base_url(mut self, base_url: &str) -> Self {
         self.base_url = base_url.to_string();
         self
     }
-    /// Sets default generation options.
     pub fn with_options(mut self, options: VideoLLMOptions) -> Self {
         self.default_options = options;
         self
     }
-    /// Builds the JSON request body for the Gemini predictLongRunning API.
     fn build_request_body(&self, prompt: &str, options: &VideoLLMOptions) -> serde_json::Value {
         let mut instance = json!({
             "prompt": prompt
@@ -111,7 +100,6 @@ impl GeminiOmniFlash {
             "parameters": parameters,
         })
     }
-    /// Submits the long-running generation request.
     async fn submit_request(
         &self,
         prompt: &str,
@@ -145,7 +133,6 @@ impl GeminiOmniFlash {
             LangHubError::LLMError(format!("Gemini Omni Flash JSON parse error: {}", e))
         })
     }
-    /// Polls the operation until it succeeds or fails.
     async fn poll_until_done(&self, operation_name: &str) -> Result<VideoLLMResult> {
         let url = format!("{}/{}?key={}", self.base_url, operation_name, self.api_key);
         for _ in 0..180 {

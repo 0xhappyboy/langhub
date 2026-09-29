@@ -3,16 +3,12 @@ use crate::video::{VideoLLM, VideoLLMOptions, VideoLLMResult, VideoTask, VideoTa
 use serde_json::json;
 use std::future::Future;
 use std::pin::Pin;
-/// HappyHorse model variants.
 #[derive(Debug, Clone)]
 pub enum HappyHorseModel {
-    /// HappyHorse 1.0
     HappyHorse10,
-    /// Custom model name
     Custom(String),
 }
 impl HappyHorseModel {
-    /// Returns the API model identifier.
     fn as_str(&self) -> String {
         match self {
             HappyHorseModel::HappyHorse10 => "happyhorse-1.0".to_string(),
@@ -25,7 +21,6 @@ impl From<HappyHorseModel> for String {
         model.as_str()
     }
 }
-/// HappyHorse video generation client.
 #[derive(Clone)]
 pub struct HappyHorse {
     api_key: String,
@@ -35,7 +30,6 @@ pub struct HappyHorse {
     default_options: VideoLLMOptions,
 }
 impl HappyHorse {
-    /// Creates a new HappyHorse client with the given API key.
     pub fn new(api_key: String) -> Self {
         Self {
             api_key,
@@ -45,26 +39,21 @@ impl HappyHorse {
             default_options: VideoLLMOptions::default(),
         }
     }
-    /// Sets the model variant.
     pub fn with_model(mut self, model: HappyHorseModel) -> Self {
         self.model = model;
         self
     }
-    /// Uses the HappyHorse 1.0 model.
     pub fn happyhorse10(self) -> Self {
         self.with_model(HappyHorseModel::HappyHorse10)
     }
-    /// Sets a custom base URL.
     pub fn with_base_url(mut self, base_url: &str) -> Self {
         self.base_url = base_url.to_string();
         self
     }
-    /// Sets default generation options.
     pub fn with_options(mut self, options: VideoLLMOptions) -> Self {
         self.default_options = options;
         self
     }
-    /// Builds the JSON request body for the HappyHorse video generation API.
     fn build_request_body(&self, prompt: &str, options: &VideoLLMOptions) -> serde_json::Value {
         let model_name: String = self.model.clone().into();
         let mut input = json!({
@@ -114,7 +103,6 @@ impl HappyHorse {
             "parameters": parameters,
         })
     }
-    /// Submits the async generation request and returns the raw response.
     async fn submit_request(
         &self,
         prompt: &str,
@@ -147,7 +135,6 @@ impl HappyHorse {
             .await
             .map_err(|e| LangHubError::LLMError(format!("HappyHorse JSON parse error: {}", e)))
     }
-    /// Polls the task until it succeeds or fails.
     async fn poll_until_done(&self, task_id: &str) -> Result<VideoLLMResult> {
         let url = format!("{}/tasks/{}", self.base_url, task_id);
         for _ in 0..180 {

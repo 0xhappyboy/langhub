@@ -3,20 +3,14 @@ use crate::video::{VideoLLM, VideoLLMOptions, VideoLLMResult, VideoTask, VideoTa
 use serde_json::json;
 use std::future::Future;
 use std::pin::Pin;
-/// Veo model variants.
 #[derive(Debug, Clone)]
 pub enum VeoModel {
-    /// veo-3.1 (flagship, native audio)
     Veo31,
-    /// veo-3.1-fast (faster, cheaper)
     Veo31Fast,
-    /// veo-3.1-lite (cheapest)
     Veo31Lite,
-    /// Custom model name
     Custom(String),
 }
 impl VeoModel {
-    /// Returns the API model identifier.
     fn as_str(&self) -> String {
         match self {
             VeoModel::Veo31 => "veo-3.1-generate-preview".to_string(),
@@ -31,7 +25,6 @@ impl From<VeoModel> for String {
         model.as_str()
     }
 }
-/// Veo video generation client.
 #[derive(Clone)]
 pub struct Veo {
     api_key: String,
@@ -41,7 +34,6 @@ pub struct Veo {
     default_options: VideoLLMOptions,
 }
 impl Veo {
-    /// Creates a new Veo client with the given API key.
     pub fn new(api_key: String) -> Self {
         Self {
             api_key,
@@ -51,34 +43,27 @@ impl Veo {
             default_options: VideoLLMOptions::default(),
         }
     }
-    /// Sets the model variant.
     pub fn with_model(mut self, model: VeoModel) -> Self {
         self.model = model;
         self
     }
-    /// Uses the Veo 3.1 model.
     pub fn veo31(self) -> Self {
         self.with_model(VeoModel::Veo31)
     }
-    /// Uses the Veo 3.1 Fast model.
     pub fn veo31_fast(self) -> Self {
         self.with_model(VeoModel::Veo31Fast)
     }
-    /// Uses the Veo 3.1 Lite model.
     pub fn veo31_lite(self) -> Self {
         self.with_model(VeoModel::Veo31Lite)
     }
-    /// Sets a custom base URL.
     pub fn with_base_url(mut self, base_url: &str) -> Self {
         self.base_url = base_url.to_string();
         self
     }
-    /// Sets default generation options.
     pub fn with_options(mut self, options: VideoLLMOptions) -> Self {
         self.default_options = options;
         self
     }
-    /// Builds the JSON request body for the Gemini predictLongRunning API.
     fn build_request_body(&self, prompt: &str, options: &VideoLLMOptions) -> serde_json::Value {
         let mut instance = json!({
             "prompt": prompt
@@ -136,7 +121,6 @@ impl Veo {
             "parameters": parameters,
         })
     }
-    /// Submits the long-running generation request.
     async fn submit_request(
         &self,
         prompt: &str,
@@ -169,7 +153,6 @@ impl Veo {
             .await
             .map_err(|e| LangHubError::LLMError(format!("Veo JSON parse error: {}", e)))
     }
-    /// Polls the operation until it succeeds or fails.
     async fn poll_until_done(&self, operation_name: &str) -> Result<VideoLLMResult> {
         let url = format!("{}/{}?key={}", self.base_url, operation_name, self.api_key);
         for _ in 0..180 {

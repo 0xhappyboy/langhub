@@ -1,9 +1,12 @@
 //! LangHub - An LLM application development library.
-pub mod llms;
+pub mod chat;
+pub mod image;
 pub mod tools;
 pub mod types;
 pub mod video;
-use crate::llms::*;
+use crate::chat::*;
+use crate::image::*;
+use crate::types::ImageVendor;
 use crate::types::{ChatMessage, LangHubError, ModelProvider, Result};
 use crate::video::*;
 /// Configuration for LLM client initialization
@@ -1412,11 +1415,412 @@ impl VideoLLMClient {
             VideoLLMClient::GeminiOmniFlash(_) => VideoModelProvider::GeminiOmniFlash,
         }
     }
-    /// Gets the vendor of this client's model.
+    /// Gets the vendor of this client's model
     ///
     /// # Returns
-    /// The `VideoVendor` corresponding to this client's provider.
+    /// The `VideoVendor` variant corresponding to this client's provider
     pub fn get_vendor(&self) -> crate::types::VideoVendor {
+        self.get_provider_enum().vendor()
+    }
+}
+/// Configuration for image LLM client initialization
+///
+/// # Example
+/// ```
+/// use langhub::ImageLLMConfig;
+///
+/// let config = ImageLLMConfig::new()
+///     .seedream("your-ark-api-key".to_string())
+///     .dalle("your-openai-api-key".to_string());
+/// ```
+#[derive(Debug, Clone, Default)]
+pub struct ImageLLMConfig {
+    /// Seedream API key (Volcengine Ark)
+    pub seedream_api_key: Option<String>,
+    /// Seedream custom base URL
+    pub seedream_base_url: Option<String>,
+    /// Wan text-to-image API key (Alibaba Cloud Bailian)
+    pub wan_image_api_key: Option<String>,
+    /// Wan text-to-image custom base URL
+    pub wan_image_base_url: Option<String>,
+    /// Stability AI API key
+    pub stability_api_key: Option<String>,
+    /// Stability AI custom base URL
+    pub stability_base_url: Option<String>,
+    /// Black Forest Labs (FLUX) API key
+    pub flux_api_key: Option<String>,
+    /// Black Forest Labs (FLUX) custom base URL
+    pub flux_base_url: Option<String>,
+    /// Google Imagen API key
+    pub imagen_api_key: Option<String>,
+    /// Google Imagen custom base URL
+    pub imagen_base_url: Option<String>,
+    /// OpenAI DALL·E API key
+    pub dalle_api_key: Option<String>,
+    /// OpenAI DALL·E custom base URL
+    pub dalle_base_url: Option<String>,
+}
+impl ImageLLMConfig {
+    /// Creates a new empty image configuration
+    ///
+    /// # Example
+    /// ```
+    /// let config = ImageLLMConfig::new();
+    /// ```
+    pub fn new() -> Self {
+        Self::default()
+    }
+    /// Sets the Seedream API key
+    ///
+    /// # Arguments
+    /// * `api_key` - Seedream API key
+    pub fn seedream(mut self, api_key: String) -> Self {
+        self.seedream_api_key = Some(api_key);
+        self
+    }
+    /// Sets the Wan text-to-image API key
+    ///
+    /// # Arguments
+    /// * `api_key` - Wan text-to-image API key
+    pub fn wan_image(mut self, api_key: String) -> Self {
+        self.wan_image_api_key = Some(api_key);
+        self
+    }
+    /// Sets the Stability AI API key
+    ///
+    /// # Arguments
+    /// * `api_key` - Stability AI API key
+    pub fn stability(mut self, api_key: String) -> Self {
+        self.stability_api_key = Some(api_key);
+        self
+    }
+    /// Sets the Black Forest Labs (FLUX) API key
+    ///
+    /// # Arguments
+    /// * `api_key` - FLUX API key
+    pub fn flux(mut self, api_key: String) -> Self {
+        self.flux_api_key = Some(api_key);
+        self
+    }
+    /// Sets the Google Imagen API key
+    ///
+    /// # Arguments
+    /// * `api_key` - Imagen API key
+    pub fn imagen(mut self, api_key: String) -> Self {
+        self.imagen_api_key = Some(api_key);
+        self
+    }
+    /// Sets the OpenAI DALL·E API key
+    ///
+    /// # Arguments
+    /// * `api_key` - DALL·E API key
+    pub fn dalle(mut self, api_key: String) -> Self {
+        self.dalle_api_key = Some(api_key);
+        self
+    }
+}
+/// Unified image generation client for multiple providers
+///
+/// # Example
+/// ```
+/// use langhub::{ImageLLMClient, ImageLLMConfig, ImageModelProvider};
+///
+/// # async fn example() -> Result<(), Box<dyn std::error::Error>> {
+/// let config = ImageLLMConfig::new().seedream("your-api-key".to_string());
+/// let client = ImageLLMClient::new_with_config(ImageModelProvider::Seedream, &config)?;
+/// let result = client.generate("A cat sitting on a windowsill").await?;
+/// # Ok(())
+/// # }
+/// ```
+#[derive(Clone)]
+pub enum ImageLLMClient {
+    Seedream(Seedream),
+    WanImage(WanImage),
+    StabilityImage(StabilityImage),
+    Flux(FluxImage),
+    Imagen(Imagen),
+    DallE(DallE),
+}
+impl ImageLLMClient {
+    /// Creates a new image client with the given provider using optional API keys
+    ///
+    /// # Arguments
+    /// * `provider` - The image model provider to use
+    /// * `api_key` - Optional API key for the provider
+    /// * `extra_keys` - Optional additional keys for providers that need them
+    ///
+    /// # Returns
+    /// A `Result` containing the image client or an error if required keys are missing
+    ///
+    /// # Example
+    /// ```
+    /// use langhub::{ImageLLMClient, ImageModelProvider};
+    ///
+    /// let client = ImageLLMClient::new_with_key(
+    ///     ImageModelProvider::Seedream,
+    ///     Some("your-api-key".to_string()),
+    ///     None,
+    /// ).unwrap();
+    /// ```
+    pub fn new_with_key(
+        provider: ImageModelProvider,
+        api_key: Option<String>,
+        extra_keys: Option<std::collections::HashMap<String, String>>,
+    ) -> Result<Self> {
+        let extra = extra_keys.unwrap_or_default();
+        match provider {
+            ImageModelProvider::Seedream => {
+                let key = api_key.ok_or_else(|| {
+                    LangHubError::LLMError("Seedream API key not provided".to_string())
+                })?;
+                let mut client = Seedream::new(key);
+                if let Some(base) = extra.get("base_url") {
+                    client = client.with_base_url(base);
+                }
+                Ok(ImageLLMClient::Seedream(client))
+            }
+            ImageModelProvider::WanImage => {
+                let key = api_key.ok_or_else(|| {
+                    LangHubError::LLMError("Wan image API key not provided".to_string())
+                })?;
+                let mut client = WanImage::new(key);
+                if let Some(base) = extra.get("base_url") {
+                    client = client.with_base_url(base);
+                }
+                Ok(ImageLLMClient::WanImage(client))
+            }
+            ImageModelProvider::StabilityImage => {
+                let key = api_key.ok_or_else(|| {
+                    LangHubError::LLMError("Stability AI API key not provided".to_string())
+                })?;
+                let mut client = StabilityImage::new(key);
+                if let Some(base) = extra.get("base_url") {
+                    client = client.with_base_url(base);
+                }
+                Ok(ImageLLMClient::StabilityImage(client))
+            }
+            ImageModelProvider::Flux => {
+                let key = api_key.ok_or_else(|| {
+                    LangHubError::LLMError("FLUX API key not provided".to_string())
+                })?;
+                let mut client = FluxImage::new(key);
+                if let Some(base) = extra.get("base_url") {
+                    client = client.with_base_url(base);
+                }
+                Ok(ImageLLMClient::Flux(client))
+            }
+            ImageModelProvider::Imagen => {
+                let key = api_key.ok_or_else(|| {
+                    LangHubError::LLMError("Imagen API key not provided".to_string())
+                })?;
+                let mut client = Imagen::new(key);
+                if let Some(base) = extra.get("base_url") {
+                    client = client.with_base_url(base);
+                }
+                Ok(ImageLLMClient::Imagen(client))
+            }
+            ImageModelProvider::DallE => {
+                let key = api_key.ok_or_else(|| {
+                    LangHubError::LLMError("DALL·E API key not provided".to_string())
+                })?;
+                let mut client = DallE::new(key);
+                if let Some(base) = extra.get("base_url") {
+                    client = client.with_base_url(base);
+                }
+                Ok(ImageLLMClient::DallE(client))
+            }
+        }
+    }
+    /// Creates a new image client with the given provider and configuration
+    ///
+    /// # Arguments
+    /// * `provider` - The image model provider to use
+    /// * `config` - Configuration containing API keys and credentials
+    ///
+    /// # Returns
+    /// A `Result` containing the image client or an error if required keys are missing
+    ///
+    /// # Errors
+    /// Returns `LangHubError::LLMError` if the required API key for the provider is not provided
+    ///
+    /// # Example
+    /// ```
+    /// use langhub::{ImageLLMClient, ImageLLMConfig, ImageModelProvider};
+    ///
+    /// let config = ImageLLMConfig::new()
+    ///     .seedream("your-ark-api-key".to_string())
+    ///     .dalle("your-openai-api-key".to_string());
+    ///
+    /// let seedream_client = ImageLLMClient::new_with_config(ImageModelProvider::Seedream, &config).unwrap();
+    /// let dalle_client = ImageLLMClient::new_with_config(ImageModelProvider::DallE, &config).unwrap();
+    /// ```
+    pub fn new_with_config(provider: ImageModelProvider, config: &ImageLLMConfig) -> Result<Self> {
+        match provider {
+            ImageModelProvider::Seedream => {
+                let key = config.seedream_api_key.as_ref().ok_or_else(|| {
+                    LangHubError::LLMError("Seedream API key not provided".to_string())
+                })?;
+                let mut client = Seedream::new(key.clone());
+                if let Some(base) = &config.seedream_base_url {
+                    client = client.with_base_url(base);
+                }
+                Ok(ImageLLMClient::Seedream(client))
+            }
+            ImageModelProvider::WanImage => {
+                let key = config.wan_image_api_key.as_ref().ok_or_else(|| {
+                    LangHubError::LLMError("Wan image API key not provided".to_string())
+                })?;
+                let mut client = WanImage::new(key.clone());
+                if let Some(base) = &config.wan_image_base_url {
+                    client = client.with_base_url(base);
+                }
+                Ok(ImageLLMClient::WanImage(client))
+            }
+            ImageModelProvider::StabilityImage => {
+                let key = config.stability_api_key.as_ref().ok_or_else(|| {
+                    LangHubError::LLMError("Stability AI API key not provided".to_string())
+                })?;
+                let mut client = StabilityImage::new(key.clone());
+                if let Some(base) = &config.stability_base_url {
+                    client = client.with_base_url(base);
+                }
+                Ok(ImageLLMClient::StabilityImage(client))
+            }
+            ImageModelProvider::Flux => {
+                let key = config.flux_api_key.as_ref().ok_or_else(|| {
+                    LangHubError::LLMError("FLUX API key not provided".to_string())
+                })?;
+                let mut client = FluxImage::new(key.clone());
+                if let Some(base) = &config.flux_base_url {
+                    client = client.with_base_url(base);
+                }
+                Ok(ImageLLMClient::Flux(client))
+            }
+            ImageModelProvider::Imagen => {
+                let key = config.imagen_api_key.as_ref().ok_or_else(|| {
+                    LangHubError::LLMError("Imagen API key not provided".to_string())
+                })?;
+                let mut client = Imagen::new(key.clone());
+                if let Some(base) = &config.imagen_base_url {
+                    client = client.with_base_url(base);
+                }
+                Ok(ImageLLMClient::Imagen(client))
+            }
+            ImageModelProvider::DallE => {
+                let key = config.dalle_api_key.as_ref().ok_or_else(|| {
+                    LangHubError::LLMError("DALL·E API key not provided".to_string())
+                })?;
+                let mut client = DallE::new(key.clone());
+                if let Some(base) = &config.dalle_base_url {
+                    client = client.with_base_url(base);
+                }
+                Ok(ImageLLMClient::DallE(client))
+            }
+        }
+    }
+    /// Generates images from a text prompt
+    ///
+    /// # Arguments
+    /// * `prompt` - The input text prompt string
+    ///
+    /// # Returns
+    /// A `Result` containing the generated image result or an error
+    ///
+    /// # Example
+    /// ```
+    /// # async fn example() -> Result<(), Box<dyn std::error::Error>> {
+    /// # let config = langhub::ImageLLMConfig::new().seedream("your-api-key".to_string());
+    /// # let client = langhub::ImageLLMClient::new_with_config(langhub::image::ImageModelProvider::Seedream, &config)?;
+    /// let result = client.generate("A cat sitting on a windowsill").await?;
+    /// # Ok(())
+    /// # }
+    /// ```
+    pub async fn generate(&self, prompt: &str) -> Result<ImageLLMResult> {
+        match self {
+            ImageLLMClient::Seedream(m) => m.generate(prompt).await,
+            ImageLLMClient::WanImage(m) => m.generate(prompt).await,
+            ImageLLMClient::StabilityImage(m) => m.generate(prompt).await,
+            ImageLLMClient::Flux(m) => m.generate(prompt).await,
+            ImageLLMClient::Imagen(m) => m.generate(prompt).await,
+            ImageLLMClient::DallE(m) => m.generate(prompt).await,
+        }
+    }
+    /// Generates images with options
+    ///
+    /// # Arguments
+    /// * `prompt` - The input text prompt string
+    /// * `options` - Generation options such as n, resolution, aspect ratio
+    ///
+    /// # Returns
+    /// A `Result` containing the generated image result or an error
+    pub async fn generate_with_options(
+        &self,
+        prompt: &str,
+        options: ImageLLMOptions,
+    ) -> Result<ImageLLMResult> {
+        match self {
+            ImageLLMClient::Seedream(m) => m.generate_with_options(prompt, options).await,
+            ImageLLMClient::WanImage(m) => m.generate_with_options(prompt, options).await,
+            ImageLLMClient::StabilityImage(m) => m.generate_with_options(prompt, options).await,
+            ImageLLMClient::Flux(m) => m.generate_with_options(prompt, options).await,
+            ImageLLMClient::Imagen(m) => m.generate_with_options(prompt, options).await,
+            ImageLLMClient::DallE(m) => m.generate_with_options(prompt, options).await,
+        }
+    }
+    /// Submits an asynchronous image generation task
+    ///
+    /// # Arguments
+    /// * `prompt` - The input text prompt string
+    /// * `options` - Generation options
+    ///
+    /// # Returns
+    /// A `Result` containing an `ImageTask` handle for polling
+    pub async fn submit_task(&self, prompt: &str, options: ImageLLMOptions) -> Result<ImageTask> {
+        match self {
+            ImageLLMClient::Seedream(m) => m.submit_task(prompt, options).await,
+            ImageLLMClient::WanImage(m) => m.submit_task(prompt, options).await,
+            ImageLLMClient::StabilityImage(m) => m.submit_task(prompt, options).await,
+            ImageLLMClient::Flux(m) => m.submit_task(prompt, options).await,
+            ImageLLMClient::Imagen(m) => m.submit_task(prompt, options).await,
+            ImageLLMClient::DallE(m) => m.submit_task(prompt, options).await,
+        }
+    }
+    /// Polls an asynchronous image generation task
+    ///
+    /// # Arguments
+    /// * `task_id` - The task ID returned by `submit_task`
+    ///
+    /// # Returns
+    /// A `Result` containing the current `ImageTask` state
+    pub async fn poll_task(&self, task_id: &str) -> Result<ImageTask> {
+        match self {
+            ImageLLMClient::Seedream(m) => m.poll_task(task_id).await,
+            ImageLLMClient::WanImage(m) => m.poll_task(task_id).await,
+            ImageLLMClient::StabilityImage(m) => m.poll_task(task_id).await,
+            ImageLLMClient::Flux(m) => m.poll_task(task_id).await,
+            ImageLLMClient::Imagen(m) => m.poll_task(task_id).await,
+            ImageLLMClient::DallE(m) => m.poll_task(task_id).await,
+        }
+    }
+    /// Gets the provider enum for this client
+    ///
+    /// # Returns
+    /// The `ImageModelProvider` variant corresponding to this client
+    pub fn get_provider_enum(&self) -> ImageModelProvider {
+        match self {
+            ImageLLMClient::Seedream(_) => ImageModelProvider::Seedream,
+            ImageLLMClient::WanImage(_) => ImageModelProvider::WanImage,
+            ImageLLMClient::StabilityImage(_) => ImageModelProvider::StabilityImage,
+            ImageLLMClient::Flux(_) => ImageModelProvider::Flux,
+            ImageLLMClient::Imagen(_) => ImageModelProvider::Imagen,
+            ImageLLMClient::DallE(_) => ImageModelProvider::DallE,
+        }
+    }
+    /// Gets the vendor of this client's model
+    ///
+    /// # Returns
+    /// The `ImageVendor` variant corresponding to this client's provider
+    pub fn get_vendor(&self) -> ImageVendor {
         self.get_provider_enum().vendor()
     }
 }

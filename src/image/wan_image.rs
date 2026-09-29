@@ -1,86 +1,69 @@
+use crate::image::{ImageLLM, ImageLLMOptions, ImageLLMResult, ImageTask, ImageTaskStatus};
 use crate::types::{LangHubError, Result};
-use crate::video::{VideoLLM, VideoLLMOptions, VideoLLMResult, VideoTask, VideoTaskStatus};
 use serde_json::json;
 use std::future::Future;
 use std::pin::Pin;
 #[derive(Debug, Clone)]
-pub enum WanVideoModel {
-    Wan30,
-    Wan30Prime,
+pub enum WanImageModel {
+    Wan25,
+    Wan21Turbo,
     Custom(String),
 }
-impl WanVideoModel {
+impl WanImageModel {
     fn as_str(&self) -> String {
         match self {
-            WanVideoModel::Wan30 => "wan3.0-video".to_string(),
-            WanVideoModel::Wan30Prime => "wan3.0-video-prime".to_string(),
-            WanVideoModel::Custom(name) => name.clone(),
+            WanImageModel::Wan25 => "wan2.5-t2i-preview".to_string(),
+            WanImageModel::Wan21Turbo => "wanx2.1-t2i-turbo".to_string(),
+            WanImageModel::Custom(name) => name.clone(),
         }
     }
 }
-impl From<WanVideoModel> for String {
-    fn from(model: WanVideoModel) -> Self {
+impl From<WanImageModel> for String {
+    fn from(model: WanImageModel) -> Self {
         model.as_str()
     }
 }
 #[derive(Clone)]
-pub struct WanVideo {
+pub struct WanImage {
     api_key: String,
-    model: WanVideoModel,
+    model: WanImageModel,
     base_url: String,
     client: reqwest::Client,
-    default_options: VideoLLMOptions,
+    default_options: ImageLLMOptions,
 }
-impl WanVideo {
+impl WanImage {
     pub fn new(api_key: String) -> Self {
         Self {
             api_key,
-            model: WanVideoModel::Wan30,
+            model: WanImageModel::Wan25,
             base_url: "https://dashscope.aliyuncs.com/api/v1".to_string(),
             client: reqwest::Client::new(),
-            default_options: VideoLLMOptions::default(),
+            default_options: ImageLLMOptions::default(),
         }
     }
-    pub fn with_model(mut self, model: WanVideoModel) -> Self {
+    pub fn with_model(mut self, model: WanImageModel) -> Self {
         self.model = model;
         self
     }
-    pub fn wan30(self) -> Self {
-        self.with_model(WanVideoModel::Wan30)
+    pub fn wan25(self) -> Self {
+        self.with_model(WanImageModel::Wan25)
     }
-    pub fn wan30_prime(self) -> Self {
-        self.with_model(WanVideoModel::Wan30Prime)
+    pub fn wan21_turbo(self) -> Self {
+        self.with_model(WanImageModel::Wan21Turbo)
     }
     pub fn with_base_url(mut self, base_url: &str) -> Self {
         self.base_url = base_url.to_string();
         self
     }
-    pub fn with_options(mut self, options: VideoLLMOptions) -> Self {
+    pub fn with_options(mut self, options: ImageLLMOptions) -> Self {
         self.default_options = options;
         self
     }
-    fn build_request_body(&self, prompt: &str, options: &VideoLLMOptions) -> serde_json::Value {
+    fn build_request_body(&self, prompt: &str, options: &ImageLLMOptions) -> serde_json::Value {
         let model_name: String = self.model.clone().into();
         let mut input = json!({
             "prompt": prompt
         });
-        // Reference images for image-to-video or reference-to-video.
-        if let Some(images) = options
-            .reference_images
-            .as_ref()
-            .or(self.default_options.reference_images.as_ref())
-        {
-            input["img_urls"] = json!(images);
-        }
-        // Reference videos.
-        if let Some(videos) = options
-            .reference_videos
-            .as_ref()
-            .or(self.default_options.reference_videos.as_ref())
-        {
-            input["video_urls"] = json!(videos);
-        }
-        // Negative prompt.
         if let Some(neg) = options
             .negative_prompt
             .as_ref()
@@ -88,36 +71,26 @@ impl WanVideo {
         {
             input["negative_prompt"] = json!(neg);
         }
-        // Parameters block.
+        if let Some(images) = options
+            .reference_images
+            .as_ref()
+            .or(self.default_options.reference_images.as_ref())
+        {
+            input["ref_images_url"] = json!(images);
+        }
         let mut parameters = json!({});
+        if let Some(n) = options.n.or(self.default_options.n) {
+            parameters["n"] = json!(n);
+        }
         if let Some(resolution) = options
             .resolution
             .as_ref()
             .or(self.default_options.resolution.as_ref())
         {
-            parameters["resolution"] = json!(resolution);
-        }
-        if let Some(duration) = options.duration.or(self.default_options.duration) {
-            parameters["duration"] = json!(duration);
-        }
-        if let Some(ratio) = options
-            .aspect_ratio
-            .as_ref()
-            .or(self.default_options.aspect_ratio.as_ref())
-        {
-            parameters["ratio"] = json!(ratio);
+            parameters["size"] = json!(resolution);
         }
         if let Some(seed) = options.seed.or(self.default_options.seed) {
             parameters["seed"] = json!(seed);
-        }
-        if let Some(audio) = options
-            .generate_audio
-            .or(self.default_options.generate_audio)
-        {
-            parameters["audio"] = json!(audio);
-        }
-        if let Some(fps) = options.fps.or(self.default_options.fps) {
-            parameters["fps"] = json!(fps);
         }
         json!({
             "model": model_name,
@@ -128,13 +101,13 @@ impl WanVideo {
     async fn submit_request(
         &self,
         prompt: &str,
-        options: &VideoLLMOptions,
+        options: &ImageLLMOptions,
     ) -> Result<serde_json::Value> {
         let body = self.build_request_body(prompt, options);
         let response = self
             .client
             .post(format!(
-                "{}/services/aigc/video-generation/video-synthesis",
+                "{}/services/aigc/text2image/image-synthesis",
                 self.base_url
             ))
             .header("Authorization", format!("Bearer {}", self.api_key))
@@ -143,21 +116,42 @@ impl WanVideo {
             .json(&body)
             .send()
             .await
-            .map_err(|e| LangHubError::LLMError(format!("Wan request error: {}", e)))?;
+            .map_err(|e| LangHubError::LLMError(format!("Wan image request error: {}", e)))?;
         if !response.status().is_success() {
             let status = response.status();
             let error_text = response.text().await.unwrap_or_default();
             return Err(LangHubError::LLMError(format!(
-                "Wan API error ({}): {}",
+                "Wan image API error ({}): {}",
                 status, error_text
             )));
         }
         response
             .json()
             .await
-            .map_err(|e| LangHubError::LLMError(format!("Wan JSON parse error: {}", e)))
+            .map_err(|e| LangHubError::LLMError(format!("Wan image JSON parse error: {}", e)))
     }
-    async fn poll_until_done(&self, task_id: &str) -> Result<VideoLLMResult> {
+    fn raw_to_result(raw: &serde_json::Value) -> ImageLLMResult {
+        let mut image_urls = Vec::new();
+        if let Some(results) = raw["output"]["results"].as_array() {
+            for item in results {
+                if let Some(url) = item["url"].as_str() {
+                    image_urls.push(url.to_string());
+                }
+            }
+        }
+        if let Some(url) = raw["output"]["image_url"].as_str() {
+            image_urls.push(url.to_string());
+        }
+        let resolution = raw["output"]["size"].as_str().map(|s| s.to_string());
+        ImageLLMResult {
+            image_urls,
+            image_base64: None,
+            file_paths: None,
+            resolution,
+            raw_response: raw.clone(),
+        }
+    }
+    async fn poll_until_done(&self, task_id: &str) -> Result<ImageLLMResult> {
         let url = format!("{}/tasks/{}", self.base_url, task_id);
         for _ in 0..180 {
             let response = self
@@ -166,28 +160,17 @@ impl WanVideo {
                 .header("Authorization", format!("Bearer {}", self.api_key))
                 .send()
                 .await
-                .map_err(|e| LangHubError::LLMError(format!("Wan poll error: {}", e)))?;
-            let raw: serde_json::Value = response
-                .json()
-                .await
-                .map_err(|e| LangHubError::LLMError(format!("Wan JSON parse error: {}", e)))?;
+                .map_err(|e| LangHubError::LLMError(format!("Wan image poll error: {}", e)))?;
+            let raw: serde_json::Value = response.json().await.map_err(|e| {
+                LangHubError::LLMError(format!("Wan image JSON parse error: {}", e))
+            })?;
             let status = raw["output"]["task_status"].as_str().unwrap_or("");
             match status {
-                "SUCCEEDED" => {
-                    let video_url = raw["output"]["video_url"].as_str().map(|s| s.to_string());
-                    return Ok(VideoLLMResult {
-                        video_url,
-                        video_base64: None,
-                        file_path: None,
-                        duration_seconds: None,
-                        resolution: None,
-                        raw_response: raw,
-                    });
-                }
+                "SUCCEEDED" => return Ok(Self::raw_to_result(&raw)),
                 "FAILED" => {
                     let error = raw["output"]["message"]
                         .as_str()
-                        .unwrap_or("Wan task failed")
+                        .unwrap_or("Wan image task failed")
                         .to_string();
                     return Err(LangHubError::LLMError(error));
                 }
@@ -197,15 +180,15 @@ impl WanVideo {
             }
         }
         Err(LangHubError::LLMError(
-            "Wan task polling timeout".to_string(),
+            "Wan image task polling timeout".to_string(),
         ))
     }
 }
-impl VideoLLM for WanVideo {
+impl ImageLLM for WanImage {
     fn generate(
         &self,
         prompt: &str,
-    ) -> Pin<Box<dyn Future<Output = Result<VideoLLMResult>> + Send + '_>> {
+    ) -> Pin<Box<dyn Future<Output = Result<ImageLLMResult>> + Send + '_>> {
         let prompt = prompt.to_string();
         let options = self.default_options.clone();
         Box::pin(async move {
@@ -220,8 +203,8 @@ impl VideoLLM for WanVideo {
     fn generate_with_options(
         &self,
         prompt: &str,
-        options: VideoLLMOptions,
-    ) -> Pin<Box<dyn Future<Output = Result<VideoLLMResult>> + Send + '_>> {
+        options: ImageLLMOptions,
+    ) -> Pin<Box<dyn Future<Output = Result<ImageLLMResult>> + Send + '_>> {
         let prompt = prompt.to_string();
         Box::pin(async move {
             let raw = self.submit_request(&prompt, &options).await?;
@@ -235,8 +218,8 @@ impl VideoLLM for WanVideo {
     fn submit_task(
         &self,
         prompt: &str,
-        options: VideoLLMOptions,
-    ) -> Pin<Box<dyn Future<Output = Result<VideoTask>> + Send + '_>> {
+        options: ImageLLMOptions,
+    ) -> Pin<Box<dyn Future<Output = Result<ImageTask>> + Send + '_>> {
         let prompt = prompt.to_string();
         Box::pin(async move {
             let raw = self.submit_request(&prompt, &options).await?;
@@ -244,9 +227,9 @@ impl VideoLLM for WanVideo {
                 .as_str()
                 .ok_or_else(|| LangHubError::ParseError("Missing task id".to_string()))?
                 .to_string();
-            Ok(VideoTask {
+            Ok(ImageTask {
                 task_id,
-                status: VideoTaskStatus::Pending,
+                status: ImageTaskStatus::Pending,
                 result: None,
                 error: None,
             })
@@ -255,7 +238,7 @@ impl VideoLLM for WanVideo {
     fn poll_task(
         &self,
         task_id: &str,
-    ) -> Pin<Box<dyn Future<Output = Result<VideoTask>> + Send + '_>> {
+    ) -> Pin<Box<dyn Future<Output = Result<ImageTask>> + Send + '_>> {
         let task_id = task_id.to_string();
         Box::pin(async move {
             let url = format!("{}/tasks/{}", self.base_url, task_id);
@@ -265,43 +248,31 @@ impl VideoLLM for WanVideo {
                 .header("Authorization", format!("Bearer {}", self.api_key))
                 .send()
                 .await
-                .map_err(|e| LangHubError::LLMError(format!("Wan poll error: {}", e)))?;
-            let raw: serde_json::Value = response
-                .json()
-                .await
-                .map_err(|e| LangHubError::LLMError(format!("Wan JSON parse error: {}", e)))?;
+                .map_err(|e| LangHubError::LLMError(format!("Wan image poll error: {}", e)))?;
+            let raw: serde_json::Value = response.json().await.map_err(|e| {
+                LangHubError::LLMError(format!("Wan image JSON parse error: {}", e))
+            })?;
             let status_str = raw["output"]["task_status"].as_str().unwrap_or("");
             let (status, result, error) = match status_str {
-                "SUCCEEDED" => {
-                    let video_url = raw["output"]["video_url"].as_str().map(|s| s.to_string());
-                    (
-                        VideoTaskStatus::Succeeded,
-                        Some(VideoLLMResult {
-                            video_url,
-                            video_base64: None,
-                            file_path: None,
-                            duration_seconds: None,
-                            resolution: None,
-                            raw_response: raw.clone(),
-                        }),
-                        None,
-                    )
-                }
+                "SUCCEEDED" => (
+                    ImageTaskStatus::Succeeded,
+                    Some(Self::raw_to_result(&raw)),
+                    None,
+                ),
                 "FAILED" => (
-                    VideoTaskStatus::Failed,
+                    ImageTaskStatus::Failed,
                     None,
                     Some(
                         raw["output"]["message"]
                             .as_str()
-                            .unwrap_or("Wan task failed")
+                            .unwrap_or("Wan image task failed")
                             .to_string(),
                     ),
                 ),
-                "RUNNING" => (VideoTaskStatus::Processing, None, None),
-                "CANCELED" => (VideoTaskStatus::Cancelled, None, None),
-                _ => (VideoTaskStatus::Pending, None, None),
+                "RUNNING" => (ImageTaskStatus::Processing, None, None),
+                _ => (ImageTaskStatus::Pending, None, None),
             };
-            Ok(VideoTask {
+            Ok(ImageTask {
                 task_id,
                 status,
                 result,
@@ -313,18 +284,12 @@ impl VideoLLM for WanVideo {
         self.model.as_str()
     }
     fn get_provider_name(&self) -> String {
-        "Alibaba-Wan".to_string()
-    }
-    fn max_duration(&self) -> Option<f32> {
-        Some(30.0)
-    }
-    fn supports_audio(&self) -> bool {
-        true
+        "Alibaba-Wan-Image".to_string()
     }
     fn supports_reference_images(&self) -> bool {
         true
     }
-    fn supports_reference_videos(&self) -> bool {
+    fn supports_negative_prompt(&self) -> bool {
         true
     }
 }

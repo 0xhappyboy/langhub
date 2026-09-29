@@ -3,16 +3,12 @@ use crate::video::{VideoLLM, VideoLLMOptions, VideoLLMResult, VideoTask, VideoTa
 use serde_json::json;
 use std::future::Future;
 use std::pin::Pin;
-/// MiniMax H3 model variants.
 #[derive(Debug, Clone)]
 pub enum MiniMaxH3Model {
-    /// MiniMax-Hailuo-H3 (native audio)
     H3,
-    /// Custom model name
     Custom(String),
 }
 impl MiniMaxH3Model {
-    /// Returns the API model identifier.
     fn as_str(&self) -> String {
         match self {
             MiniMaxH3Model::H3 => "MiniMax-Hailuo-H3".to_string(),
@@ -25,7 +21,6 @@ impl From<MiniMaxH3Model> for String {
         model.as_str()
     }
 }
-/// MiniMax H3 video generation client.
 #[derive(Clone)]
 pub struct MiniMaxH3 {
     api_key: String,
@@ -36,7 +31,6 @@ pub struct MiniMaxH3 {
     default_options: VideoLLMOptions,
 }
 impl MiniMaxH3 {
-    /// Creates a new MiniMax H3 client with the given API key.
     pub fn new(api_key: String) -> Self {
         Self {
             api_key,
@@ -47,31 +41,25 @@ impl MiniMaxH3 {
             default_options: VideoLLMOptions::default(),
         }
     }
-    /// Sets the group ID (required by some MiniMax endpoints).
     pub fn with_group_id(mut self, group_id: String) -> Self {
         self.group_id = Some(group_id);
         self
     }
-    /// Sets the model variant.
     pub fn with_model(mut self, model: MiniMaxH3Model) -> Self {
         self.model = model;
         self
     }
-    /// Uses the H3 model.
     pub fn h3(self) -> Self {
         self.with_model(MiniMaxH3Model::H3)
     }
-    /// Sets a custom base URL.
     pub fn with_base_url(mut self, base_url: &str) -> Self {
         self.base_url = base_url.to_string();
         self
     }
-    /// Sets default generation options.
     pub fn with_options(mut self, options: VideoLLMOptions) -> Self {
         self.default_options = options;
         self
     }
-    /// Builds the JSON request body for the MiniMax video generation API.
     fn build_request_body(&self, prompt: &str, options: &VideoLLMOptions) -> serde_json::Value {
         let model_name: String = self.model.clone().into();
         let mut body = json!({
@@ -109,7 +97,6 @@ impl MiniMaxH3 {
         }
         body
     }
-    /// Submits the async generation request and returns the raw response.
     async fn submit_request(
         &self,
         prompt: &str,
@@ -143,7 +130,6 @@ impl MiniMaxH3 {
             .await
             .map_err(|e| LangHubError::LLMError(format!("MiniMax H3 JSON parse error: {}", e)))
     }
-    /// Polls the task until it succeeds or fails.
     async fn poll_until_done(&self, task_id: &str) -> Result<VideoLLMResult> {
         let url = format!(
             "{}/query/video_generation?task_id={}",

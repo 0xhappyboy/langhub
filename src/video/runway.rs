@@ -3,18 +3,13 @@ use crate::video::{VideoLLM, VideoLLMOptions, VideoLLMResult, VideoTask, VideoTa
 use serde_json::json;
 use std::future::Future;
 use std::pin::Pin;
-/// Runway model variants.
 #[derive(Debug, Clone)]
 pub enum RunwayVideoModel {
-    /// gen4.5 (balanced everyday video generation)
     Gen45,
-    /// aleph2.0 (precise video editing)
     Aleph20,
-    /// Custom model name
     Custom(String),
 }
 impl RunwayVideoModel {
-    /// Returns the API model identifier.
     fn as_str(&self) -> String {
         match self {
             RunwayVideoModel::Gen45 => "gen4.5".to_string(),
@@ -28,7 +23,6 @@ impl From<RunwayVideoModel> for String {
         model.as_str()
     }
 }
-/// Runway video generation client.
 #[derive(Clone)]
 pub struct RunwayVideo {
     api_key: String,
@@ -38,7 +32,6 @@ pub struct RunwayVideo {
     default_options: VideoLLMOptions,
 }
 impl RunwayVideo {
-    /// Creates a new Runway client with the given API key.
     pub fn new(api_key: String) -> Self {
         Self {
             api_key,
@@ -48,30 +41,24 @@ impl RunwayVideo {
             default_options: VideoLLMOptions::default(),
         }
     }
-    /// Sets the model variant.
     pub fn with_model(mut self, model: RunwayVideoModel) -> Self {
         self.model = model;
         self
     }
-    /// Uses the Gen-4.5 model.
     pub fn gen45(self) -> Self {
         self.with_model(RunwayVideoModel::Gen45)
     }
-    /// Uses the Aleph 2.0 model.
     pub fn aleph20(self) -> Self {
         self.with_model(RunwayVideoModel::Aleph20)
     }
-    /// Sets a custom base URL.
     pub fn with_base_url(mut self, base_url: &str) -> Self {
         self.base_url = base_url.to_string();
         self
     }
-    /// Sets default generation options.
     pub fn with_options(mut self, options: VideoLLMOptions) -> Self {
         self.default_options = options;
         self
     }
-    /// Builds the JSON request body for the Runway text-to-video API.
     fn build_request_body(&self, prompt: &str, options: &VideoLLMOptions) -> serde_json::Value {
         let model_name: String = self.model.clone().into();
         let mut body = json!({
@@ -106,7 +93,6 @@ impl RunwayVideo {
         }
         body
     }
-    /// Submits the async generation request and returns the raw response.
     async fn submit_request(
         &self,
         prompt: &str,
@@ -136,7 +122,6 @@ impl RunwayVideo {
             .await
             .map_err(|e| LangHubError::LLMError(format!("Runway JSON parse error: {}", e)))
     }
-    /// Polls the task until it succeeds or fails.
     async fn poll_until_done(&self, task_id: &str) -> Result<VideoLLMResult> {
         let url = format!("{}/tasks/{}", self.base_url, task_id);
         for _ in 0..180 {

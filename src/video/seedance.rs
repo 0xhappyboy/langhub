@@ -3,22 +3,15 @@ use crate::video::{VideoLLM, VideoLLMOptions, VideoLLMResult, VideoTask, VideoTa
 use serde_json::json;
 use std::future::Future;
 use std::pin::Pin;
-/// Seedance model variants.
 #[derive(Debug, Clone)]
 pub enum SeedanceModel {
-    /// Doubao-Seedance-2.5 (30s narrative, full-modal reference)
     Seedance25,
-    /// Doubao-Seedance-2.0 (standard)
     Seedance20,
-    /// Doubao-Seedance-2.0-fast (faster, lower cost)
     Seedance20Fast,
-    /// Doubao-Seedance-2.0-mini (cheapest)
     Seedance20Mini,
-    /// Custom model name
     Custom(String),
 }
 impl SeedanceModel {
-    /// Returns the API model identifier.
     fn as_str(&self) -> String {
         match self {
             SeedanceModel::Seedance25 => "doubao-seedance-2-5".to_string(),
@@ -34,7 +27,6 @@ impl From<SeedanceModel> for String {
         model.as_str()
     }
 }
-/// Seedance video generation client.
 #[derive(Clone)]
 pub struct Seedance {
     api_key: String,
@@ -44,7 +36,6 @@ pub struct Seedance {
     default_options: VideoLLMOptions,
 }
 impl Seedance {
-    /// Creates a new Seedance client with the given API key.
     pub fn new(api_key: String) -> Self {
         Self {
             api_key,
@@ -54,38 +45,30 @@ impl Seedance {
             default_options: VideoLLMOptions::default(),
         }
     }
-    /// Sets the model variant.
     pub fn with_model(mut self, model: SeedanceModel) -> Self {
         self.model = model;
         self
     }
-    /// Uses the Seedance 2.5 model.
     pub fn seedance25(self) -> Self {
         self.with_model(SeedanceModel::Seedance25)
     }
-    /// Uses the Seedance 2.0 model.
     pub fn seedance20(self) -> Self {
         self.with_model(SeedanceModel::Seedance20)
     }
-    /// Uses the Seedance 2.0-fast model.
     pub fn seedance20_fast(self) -> Self {
         self.with_model(SeedanceModel::Seedance20Fast)
     }
-    /// Uses the Seedance 2.0-mini model.
     pub fn seedance20_mini(self) -> Self {
         self.with_model(SeedanceModel::Seedance20Mini)
     }
-    /// Sets a custom base URL.
     pub fn with_base_url(mut self, base_url: &str) -> Self {
         self.base_url = base_url.to_string();
         self
     }
-    /// Sets default generation options.
     pub fn with_options(mut self, options: VideoLLMOptions) -> Self {
         self.default_options = options;
         self
     }
-    /// Builds the JSON request body for the Ark video generation API.
     fn build_request_body(&self, prompt: &str, options: &VideoLLMOptions) -> serde_json::Value {
         let model_name: String = self.model.clone().into();
         let mut body = json!({
@@ -166,7 +149,6 @@ impl Seedance {
         }
         body
     }
-    /// Submits the generation request and returns the raw response.
     async fn submit_request(
         &self,
         prompt: &str,
@@ -195,7 +177,6 @@ impl Seedance {
             .await
             .map_err(|e| LangHubError::LLMError(format!("Seedance JSON parse error: {}", e)))
     }
-    /// Polls the task until it succeeds or fails.
     async fn poll_until_done(&self, task_id: &str) -> Result<VideoLLMResult> {
         let url = format!("{}/contents/generations/tasks/{}", self.base_url, task_id);
         for _ in 0..120 {

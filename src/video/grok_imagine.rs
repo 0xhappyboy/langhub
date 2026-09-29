@@ -3,18 +3,13 @@ use crate::video::{VideoLLM, VideoLLMOptions, VideoLLMResult, VideoTask, VideoTa
 use serde_json::json;
 use std::future::Future;
 use std::pin::Pin;
-/// Grok Imagine model variants.
 #[derive(Debug, Clone)]
 pub enum GrokImagineModel {
-    /// grok-imagine-video-1.5
     GrokImagine15,
-    /// grok-imagine-video-1.0
     GrokImagine10,
-    /// Custom model name
     Custom(String),
 }
 impl GrokImagineModel {
-    /// Returns the API model identifier.
     fn as_str(&self) -> String {
         match self {
             GrokImagineModel::GrokImagine15 => "grok-imagine-video-1.5".to_string(),
@@ -28,7 +23,6 @@ impl From<GrokImagineModel> for String {
         model.as_str()
     }
 }
-/// Grok Imagine video generation client.
 #[derive(Clone)]
 pub struct GrokImagine {
     api_key: String,
@@ -38,7 +32,6 @@ pub struct GrokImagine {
     default_options: VideoLLMOptions,
 }
 impl GrokImagine {
-    /// Creates a new Grok Imagine client with the given API key.
     pub fn new(api_key: String) -> Self {
         Self {
             api_key,
@@ -48,30 +41,24 @@ impl GrokImagine {
             default_options: VideoLLMOptions::default(),
         }
     }
-    /// Sets the model variant.
     pub fn with_model(mut self, model: GrokImagineModel) -> Self {
         self.model = model;
         self
     }
-    /// Uses the Grok Imagine 1.5 model.
     pub fn grok_imagine15(self) -> Self {
         self.with_model(GrokImagineModel::GrokImagine15)
     }
-    /// Uses the Grok Imagine 1.0 model.
     pub fn grok_imagine10(self) -> Self {
         self.with_model(GrokImagineModel::GrokImagine10)
     }
-    /// Sets a custom base URL.
     pub fn with_base_url(mut self, base_url: &str) -> Self {
         self.base_url = base_url.to_string();
         self
     }
-    /// Sets default generation options.
     pub fn with_options(mut self, options: VideoLLMOptions) -> Self {
         self.default_options = options;
         self
     }
-    /// Builds the JSON request body for the xAI video generation API.
     fn build_request_body(&self, prompt: &str, options: &VideoLLMOptions) -> serde_json::Value {
         let model_name: String = self.model.clone().into();
         let mut body = json!({
@@ -109,7 +96,6 @@ impl GrokImagine {
         }
         body
     }
-    /// Submits the async generation request and returns the raw response.
     async fn submit_request(
         &self,
         prompt: &str,
@@ -138,7 +124,6 @@ impl GrokImagine {
             .await
             .map_err(|e| LangHubError::LLMError(format!("Grok Imagine JSON parse error: {}", e)))
     }
-    /// Polls the task until it succeeds or fails.
     async fn poll_until_done(&self, task_id: &str) -> Result<VideoLLMResult> {
         let url = format!("{}/video/generations/{}", self.base_url, task_id);
         for _ in 0..180 {

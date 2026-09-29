@@ -28,31 +28,21 @@ pub use wan::{WanVideo, WanVideoModel};
 /// Usage information from a video generation API response.
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct VideoUsage {
-    /// Number of seconds billed.
     pub billed_seconds: f32,
-    /// Number of tokens billed (for token-based providers such as Seedance).
     pub billed_tokens: Option<u64>,
-    /// Estimated cost in USD.
     pub estimated_cost_usd: Option<f32>,
 }
 /// Complete video generation API response.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct VideoLLMResult {
-    /// URL of the generated video (may expire).
     pub video_url: Option<String>,
-    /// Base64-encoded video data, if returned inline.
     pub video_base64: Option<String>,
-    /// Local file path, if the video was downloaded.
     pub file_path: Option<String>,
-    /// Duration of the generated video in seconds.
     pub duration_seconds: Option<f32>,
-    /// Resolution of the generated video, e.g. "1280x720".
     pub resolution: Option<String>,
-    /// Complete raw response from the provider API.
     pub raw_response: serde_json::Value,
 }
 impl VideoLLMResult {
-    /// Extracts usage information from the raw response.
     pub fn extract_usage(&self) -> Option<VideoUsage> {
         extract_video_usage_from_raw(&self.raw_response)
     }
@@ -96,23 +86,14 @@ pub fn extract_video_usage_from_raw(raw: &serde_json::Value) -> Option<VideoUsag
 /// Unified options for video generation.
 #[derive(Debug, Clone, Default)]
 pub struct VideoLLMOptions {
-    /// Video duration in seconds.
     pub duration: Option<f32>,
-    /// Resolution string, e.g. "720p", "1080p".
     pub resolution: Option<String>,
-    /// Aspect ratio, e.g. "16:9", "9:16", "1:1".
     pub aspect_ratio: Option<String>,
-    /// Random seed for reproducibility.
     pub seed: Option<u64>,
-    /// Whether to generate native audio.
     pub generate_audio: Option<bool>,
-    /// Reference image URLs for image-to-video.
     pub reference_images: Option<Vec<String>>,
-    /// Reference video URLs for video-to-video.
     pub reference_videos: Option<Vec<String>>,
-    /// Negative prompt.
     pub negative_prompt: Option<String>,
-    /// Frame rate.
     pub fps: Option<u32>,
 }
 /// Video generation task status.
@@ -134,45 +115,35 @@ pub struct VideoTask {
 }
 /// VideoLLM trait - unified interface for all text-to-video providers.
 pub trait VideoLLM: Send + Sync {
-    /// Generates a video from a text prompt.
     fn generate(
         &self,
         prompt: &str,
     ) -> Pin<Box<dyn Future<Output = Result<VideoLLMResult>> + Send + '_>>;
-    /// Generates a video with options.
     fn generate_with_options(
         &self,
         prompt: &str,
         options: VideoLLMOptions,
     ) -> Pin<Box<dyn Future<Output = Result<VideoLLMResult>> + Send + '_>>;
-    /// Submits an asynchronous generation task and returns a task handle.
     fn submit_task(
         &self,
         prompt: &str,
         options: VideoLLMOptions,
     ) -> Pin<Box<dyn Future<Output = Result<VideoTask>> + Send + '_>>;
-    /// Polls an asynchronous task by its ID.
     fn poll_task(
         &self,
         task_id: &str,
     ) -> Pin<Box<dyn Future<Output = Result<VideoTask>> + Send + '_>>;
-    /// Returns the model name.
     fn get_model_name(&self) -> String;
-    /// Returns the provider name.
     fn get_provider_name(&self) -> String;
-    /// Returns the maximum supported duration in seconds.
     fn max_duration(&self) -> Option<f32> {
         None
     }
-    /// Whether the provider supports native audio generation.
     fn supports_audio(&self) -> bool {
         false
     }
-    /// Whether the provider supports reference images.
     fn supports_reference_images(&self) -> bool {
         false
     }
-    /// Whether the provider supports reference videos.
     fn supports_reference_videos(&self) -> bool {
         false
     }
@@ -210,7 +181,6 @@ impl std::fmt::Display for VideoModelProvider {
     }
 }
 impl VideoModelProvider {
-    /// Returns all supported video model providers.
     pub fn all() -> Vec<VideoModelProvider> {
         vec![
             VideoModelProvider::Seedance,
@@ -226,7 +196,6 @@ impl VideoModelProvider {
             VideoModelProvider::GeminiOmniFlash,
         ]
     }
-    /// Returns the vendor of this video model provider.
     pub fn vendor(&self) -> crate::types::VideoVendor {
         match self {
             VideoModelProvider::Seedance => crate::types::VideoVendor::ByteDance,
@@ -242,7 +211,6 @@ impl VideoModelProvider {
             VideoModelProvider::GeminiOmniFlash => crate::types::VideoVendor::Google,
         }
     }
-    /// Whether the provider supports native audio generation.
     pub fn supports_audio(&self) -> bool {
         match self {
             VideoModelProvider::Seedance => true,
@@ -258,7 +226,6 @@ impl VideoModelProvider {
             VideoModelProvider::GeminiOmniFlash => true,
         }
     }
-    /// Whether the provider supports reference images.
     pub fn supports_reference_images(&self) -> bool {
         match self {
             VideoModelProvider::Seedance => true,
@@ -274,7 +241,6 @@ impl VideoModelProvider {
             VideoModelProvider::GeminiOmniFlash => true,
         }
     }
-    /// Whether the provider supports reference videos.
     pub fn supports_reference_videos(&self) -> bool {
         match self {
             VideoModelProvider::Seedance => true,
