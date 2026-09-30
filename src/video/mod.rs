@@ -211,6 +211,72 @@ impl VideoModelProvider {
             VideoModelProvider::GeminiOmniFlash => crate::types::VideoVendor::Google,
         }
     }
+    /// Returns a short human-readable description of this provider (English).
+    pub fn description(&self) -> &'static str {
+        match self {
+            VideoModelProvider::Seedance => {
+                "ByteDance Seedance: cinematic text-to-video with strong motion, native audio and multi-shot consistency"
+            }
+            VideoModelProvider::Wan => {
+                "Alibaba Wan: Tongyi Wanxiang video generation with rich style control and reference-to-video support"
+            }
+            VideoModelProvider::Kling => {
+                "Kuaishou Kling: high-fidelity text-to-video with native audio, image and video references"
+            }
+            VideoModelProvider::Veo => {
+                "Google Veo: state-of-the-art text-to-video with native audio, cinematic quality and long duration"
+            }
+            VideoModelProvider::Runway => {
+                "Runway: Gen-4.5 and Aleph video models for creative filmmaking and video-to-video editing"
+            }
+            VideoModelProvider::MiniMaxH3 => {
+                "MiniMax Hailuo H3: expressive text-to-video with native audio and image-to-video support"
+            }
+            VideoModelProvider::HappyHorse => {
+                "Alibaba HappyHorse: text-to-video with reference image support and fast generation"
+            }
+            VideoModelProvider::Ltx => {
+                "Lightricks LTX: efficient text-to-video with audio, fast and pro tiers for different quality needs"
+            }
+            VideoModelProvider::GrokImagine => {
+                "xAI Grok Imagine: creative text-to-video with reference image and video support"
+            }
+            VideoModelProvider::Pruna => {
+                "Pruna P-Video: optimized text-to-video for fast, cost-effective generation"
+            }
+            VideoModelProvider::GeminiOmniFlash => {
+                "Google Gemini Omni Flash: multimodal text-to-video with native audio and image/video references"
+            }
+        }
+    }
+    /// Returns a short human-readable description of this provider (Chinese).
+    pub fn description_zh(&self) -> &'static str {
+        match self {
+            VideoModelProvider::Seedance => {
+                "字节跳动 Seedance：电影级文生视频，动态强，原生音频，多镜头一致性好"
+            }
+            VideoModelProvider::Wan => "阿里云通义万相：文生视频，风格控制丰富，支持参考图生视频",
+            VideoModelProvider::Kling => "快手可灵：高保真文生视频，原生音频，支持图片和视频参考",
+            VideoModelProvider::Veo => "Google Veo：顶尖文生视频，原生音频，电影级画质，时长更长",
+            VideoModelProvider::Runway => {
+                "Runway：Gen-4.5 与 Aleph 视频模型，适合创意影视制作和视频到视频编辑"
+            }
+            VideoModelProvider::MiniMaxH3 => {
+                "MiniMax 海螺 H3：表现力强的文生视频，原生音频，支持图生视频"
+            }
+            VideoModelProvider::HappyHorse => "阿里云 HappyHorse：文生视频，支持参考图，生成速度快",
+            VideoModelProvider::Ltx => {
+                "Lightricks LTX：高效文生视频，支持音频，提供 Fast 和 Pro 两档画质"
+            }
+            VideoModelProvider::GrokImagine => {
+                "xAI Grok Imagine：创意文生视频，支持参考图和参考视频"
+            }
+            VideoModelProvider::Pruna => "Pruna P-Video：优化型文生视频，生成快、成本低",
+            VideoModelProvider::GeminiOmniFlash => {
+                "Google Gemini Omni Flash：多模态文生视频，原生音频，支持图片和视频参考"
+            }
+        }
+    }
     pub fn supports_audio(&self) -> bool {
         match self {
             VideoModelProvider::Seedance => true,

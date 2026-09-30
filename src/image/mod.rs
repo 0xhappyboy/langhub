@@ -173,6 +173,48 @@ impl ImageModelProvider {
             ImageModelProvider::DallE => crate::types::ImageVendor::OpenAI,
         }
     }
+    /// Returns a short human-readable description of this provider (English).
+    pub fn description(&self) -> &'static str {
+        match self {
+            ImageModelProvider::Seedream => {
+                "ByteDance Seedream: high-quality text-to-image with strong prompt adherence and Chinese scene understanding"
+            }
+            ImageModelProvider::WanImage => {
+                "Alibaba Wan Image: Tongyi Wanxiang text-to-image with reference image support and rich style control"
+            }
+            ImageModelProvider::StabilityImage => {
+                "Stability AI: Stable Image Ultra and Stable Diffusion 3.5 family for photorealistic and artistic output"
+            }
+            ImageModelProvider::Flux => {
+                "Black Forest Labs FLUX: state-of-the-art text-to-image with fine detail and typography rendering"
+            }
+            ImageModelProvider::Imagen => {
+                "Google Imagen: photorealistic text-to-image with strong prompt fidelity and negative prompt support"
+            }
+            ImageModelProvider::DallE => {
+                "OpenAI DALL·E: creative text-to-image with strong instruction following and vivid styles"
+            }
+        }
+    }
+    /// Returns a short human-readable description of this provider (Chinese).
+    pub fn description_zh(&self) -> &'static str {
+        match self {
+            ImageModelProvider::Seedream => {
+                "字节跳动 Seedream：高质量文生图，提示词遵循度强，中文场景理解好"
+            }
+            ImageModelProvider::WanImage => "阿里云通义万相：文生图，支持参考图和丰富的风格控制",
+            ImageModelProvider::StabilityImage => {
+                "Stability AI：Stable Image Ultra 与 Stable Diffusion 3.5 系列，写实与艺术风格兼备"
+            }
+            ImageModelProvider::Flux => {
+                "Black Forest Labs FLUX：顶尖文生图，细节与文字排版表现出色"
+            }
+            ImageModelProvider::Imagen => {
+                "Google Imagen：写实文生图，提示词还原度高，支持负面提示词"
+            }
+            ImageModelProvider::DallE => "OpenAI DALL·E：创意文生图，指令遵循强，风格鲜明",
+        }
+    }
     pub fn supports_reference_images(&self) -> bool {
         match self {
             ImageModelProvider::Seedream => true,
