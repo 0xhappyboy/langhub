@@ -1,6 +1,6 @@
 [package]
 name = "langhub"
-version = "0.4.0"
+version = "0.4.5"
 edition = "2024"
 authors = ["happyboy <superhappyboy1995@gmail.com>"]
 description = "An LLM application development framework based on Rust."
@@ -14,3 +14,4 @@ tokio = { version = "1", features = ["full"] }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 reqwest = { version = "0.11", features = ["json"] }
+base64 = "0.23.1"

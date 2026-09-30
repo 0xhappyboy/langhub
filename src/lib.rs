@@ -1,9 +1,11 @@
 //! LangHub - An LLM application development library.
+pub mod audio;
 pub mod chat;
 pub mod image;
 pub mod tools;
 pub mod types;
 pub mod video;
+use crate::audio::*;
 use crate::chat::*;
 use crate::image::*;
 use crate::types::ImageVendor;
@@ -1821,6 +1823,486 @@ impl ImageLLMClient {
     /// # Returns
     /// The `ImageVendor` variant corresponding to this client's provider
     pub fn get_vendor(&self) -> ImageVendor {
+        self.get_provider_enum().vendor()
+    }
+}
+/// Configuration for audio LLM client initialization
+///
+/// # Example
+/// ```
+/// use langhub::AudioLLMConfig;
+///
+/// let config = AudioLLMConfig::new()
+///     .qwen_tts("your-dashscope-api-key".to_string())
+///     .elevenlabs("your-elevenlabs-api-key".to_string());
+/// ```
+#[derive(Debug, Clone, Default)]
+pub struct AudioLLMConfig {
+    /// Alibaba Qwen-Audio TTS API key (DashScope)
+    pub qwen_tts_api_key: Option<String>,
+    /// Alibaba Qwen-Audio TTS custom base URL
+    pub qwen_tts_base_url: Option<String>,
+    /// ByteDance Seed Audio API key (Volcengine Ark)
+    pub seed_audio_api_key: Option<String>,
+    /// ByteDance Seed Audio custom base URL
+    pub seed_audio_base_url: Option<String>,
+    /// StepFun StepAudio API key
+    pub step_audio_api_key: Option<String>,
+    /// StepFun StepAudio custom base URL
+    pub step_audio_base_url: Option<String>,
+    /// Google Gemini TTS API key
+    pub gemini_tts_api_key: Option<String>,
+    /// Google Gemini TTS custom base URL
+    pub gemini_tts_base_url: Option<String>,
+    /// ElevenLabs API key
+    pub elevenlabs_api_key: Option<String>,
+    /// ElevenLabs custom base URL
+    pub elevenlabs_base_url: Option<String>,
+    /// Google Lyria API key
+    pub lyria_api_key: Option<String>,
+    /// Google Lyria custom base URL
+    pub lyria_base_url: Option<String>,
+    /// Suno API key
+    pub suno_api_key: Option<String>,
+    /// Suno custom base URL
+    pub suno_base_url: Option<String>,
+    /// Stability AI Stable Audio API key
+    pub stable_audio_api_key: Option<String>,
+    /// Stability AI Stable Audio custom base URL
+    pub stable_audio_base_url: Option<String>,
+}
+impl AudioLLMConfig {
+    /// Creates a new empty audio configuration
+    ///
+    /// # Example
+    /// ```
+    /// let config = AudioLLMConfig::new();
+    /// ```
+    pub fn new() -> Self {
+        Self::default()
+    }
+    /// Sets the Qwen-Audio TTS API key
+    ///
+    /// # Arguments
+    /// * `api_key` - Qwen-Audio TTS API key
+    pub fn qwen_tts(mut self, api_key: String) -> Self {
+        self.qwen_tts_api_key = Some(api_key);
+        self
+    }
+    /// Sets the Seed Audio API key
+    ///
+    /// # Arguments
+    /// * `api_key` - Seed Audio API key
+    pub fn seed_audio(mut self, api_key: String) -> Self {
+        self.seed_audio_api_key = Some(api_key);
+        self
+    }
+    /// Sets the StepAudio API key
+    ///
+    /// # Arguments
+    /// * `api_key` - StepAudio API key
+    pub fn step_audio(mut self, api_key: String) -> Self {
+        self.step_audio_api_key = Some(api_key);
+        self
+    }
+    /// Sets the Gemini TTS API key
+    ///
+    /// # Arguments
+    /// * `api_key` - Gemini TTS API key
+    pub fn gemini_tts(mut self, api_key: String) -> Self {
+        self.gemini_tts_api_key = Some(api_key);
+        self
+    }
+    /// Sets the ElevenLabs API key
+    ///
+    /// # Arguments
+    /// * `api_key` - ElevenLabs API key
+    pub fn elevenlabs(mut self, api_key: String) -> Self {
+        self.elevenlabs_api_key = Some(api_key);
+        self
+    }
+    /// Sets the Lyria API key
+    ///
+    /// # Arguments
+    /// * `api_key` - Lyria API key
+    pub fn lyria(mut self, api_key: String) -> Self {
+        self.lyria_api_key = Some(api_key);
+        self
+    }
+    /// Sets the Suno API key
+    ///
+    /// # Arguments
+    /// * `api_key` - Suno API key
+    pub fn suno(mut self, api_key: String) -> Self {
+        self.suno_api_key = Some(api_key);
+        self
+    }
+    /// Sets the Stable Audio API key
+    ///
+    /// # Arguments
+    /// * `api_key` - Stable Audio API key
+    pub fn stable_audio(mut self, api_key: String) -> Self {
+        self.stable_audio_api_key = Some(api_key);
+        self
+    }
+}
+/// Unified audio generation client for multiple providers
+///
+/// This is the audio counterpart of `LLMClient`. It represents a client for
+/// any supported audio provider (TTS, soundscape, or music).
+///
+/// # Example
+/// ```
+/// use langhub::{AudioLLMClient, AudioLLMConfig, AudioModelProvider};
+///
+/// # async fn example() -> Result<(), Box<dyn std::error::Error>> {
+/// let config = AudioLLMConfig::new().qwen_tts("your-api-key".to_string());
+/// let client = AudioLLMClient::new_with_config(AudioModelProvider::QwenTts, &config)?;
+/// let result = client.generate("Hello, world!").await?;
+/// # Ok(())
+/// # }
+/// ```
+#[derive(Clone)]
+pub enum AudioLLMClient {
+    QwenTts(QwenTts),
+    SeedAudio(SeedAudio),
+    StepAudio(StepAudio),
+    GeminiTts(GeminiTts),
+    ElevenLabs(ElevenLabs),
+    Lyria(Lyria),
+    Suno(Suno),
+    StableAudio(StableAudio),
+}
+impl AudioLLMClient {
+    /// Creates a new audio client with the given provider using optional API keys
+    ///
+    /// # Arguments
+    /// * `provider` - The audio model provider to use
+    /// * `api_key` - Optional API key for the provider
+    /// * `extra_keys` - Optional additional keys for providers that need them
+    ///
+    /// # Returns
+    /// A `Result` containing the audio client or an error if required keys are missing
+    ///
+    /// # Example
+    /// ```
+    /// use langhub::{AudioLLMClient, AudioModelProvider};
+    ///
+    /// let client = AudioLLMClient::new_with_key(
+    ///     AudioModelProvider::QwenTts,
+    ///     Some("your-api-key".to_string()),
+    ///     None,
+    /// ).unwrap();
+    /// ```
+    pub fn new_with_key(
+        provider: AudioModelProvider,
+        api_key: Option<String>,
+        extra_keys: Option<std::collections::HashMap<String, String>>,
+    ) -> Result<Self> {
+        let extra = extra_keys.unwrap_or_default();
+        match provider {
+            AudioModelProvider::QwenTts => {
+                let key = api_key.ok_or_else(|| {
+                    LangHubError::LLMError("Qwen TTS API key not provided".to_string())
+                })?;
+                let mut client = QwenTts::new(key);
+                if let Some(base) = extra.get("base_url") {
+                    client = client.with_base_url(base);
+                }
+                Ok(AudioLLMClient::QwenTts(client))
+            }
+            AudioModelProvider::SeedAudio => {
+                let key = api_key.ok_or_else(|| {
+                    LangHubError::LLMError("Seed Audio API key not provided".to_string())
+                })?;
+                let mut client = SeedAudio::new(key);
+                if let Some(base) = extra.get("base_url") {
+                    client = client.with_base_url(base);
+                }
+                Ok(AudioLLMClient::SeedAudio(client))
+            }
+            AudioModelProvider::StepAudio => {
+                let key = api_key.ok_or_else(|| {
+                    LangHubError::LLMError("StepAudio API key not provided".to_string())
+                })?;
+                let mut client = StepAudio::new(key);
+                if let Some(base) = extra.get("base_url") {
+                    client = client.with_base_url(base);
+                }
+                Ok(AudioLLMClient::StepAudio(client))
+            }
+            AudioModelProvider::GeminiTts => {
+                let key = api_key.ok_or_else(|| {
+                    LangHubError::LLMError("Gemini TTS API key not provided".to_string())
+                })?;
+                let mut client = GeminiTts::new(key);
+                if let Some(base) = extra.get("base_url") {
+                    client = client.with_base_url(base);
+                }
+                Ok(AudioLLMClient::GeminiTts(client))
+            }
+            AudioModelProvider::ElevenLabs => {
+                let key = api_key.ok_or_else(|| {
+                    LangHubError::LLMError("ElevenLabs API key not provided".to_string())
+                })?;
+                let mut client = ElevenLabs::new(key);
+                if let Some(base) = extra.get("base_url") {
+                    client = client.with_base_url(base);
+                }
+                Ok(AudioLLMClient::ElevenLabs(client))
+            }
+            AudioModelProvider::Lyria => {
+                let key = api_key.ok_or_else(|| {
+                    LangHubError::LLMError("Lyria API key not provided".to_string())
+                })?;
+                let mut client = Lyria::new(key);
+                if let Some(base) = extra.get("base_url") {
+                    client = client.with_base_url(base);
+                }
+                Ok(AudioLLMClient::Lyria(client))
+            }
+            AudioModelProvider::Suno => {
+                let key = api_key.ok_or_else(|| {
+                    LangHubError::LLMError("Suno API key not provided".to_string())
+                })?;
+                let mut client = Suno::new(key);
+                if let Some(base) = extra.get("base_url") {
+                    client = client.with_base_url(base);
+                }
+                Ok(AudioLLMClient::Suno(client))
+            }
+            AudioModelProvider::StableAudio => {
+                let key = api_key.ok_or_else(|| {
+                    LangHubError::LLMError("Stable Audio API key not provided".to_string())
+                })?;
+                let mut client = StableAudio::new(key);
+                if let Some(base) = extra.get("base_url") {
+                    client = client.with_base_url(base);
+                }
+                Ok(AudioLLMClient::StableAudio(client))
+            }
+        }
+    }
+    /// Creates a new audio client with the given provider and configuration
+    ///
+    /// # Arguments
+    /// * `provider` - The audio model provider to use
+    /// * `config` - Configuration containing API keys and credentials
+    ///
+    /// # Returns
+    /// A `Result` containing the audio client or an error if required keys are missing
+    ///
+    /// # Errors
+    /// Returns `LangHubError::LLMError` if the required API key for the provider is not provided
+    ///
+    /// # Example
+    /// ```
+    /// use langhub::{AudioLLMClient, AudioLLMConfig, AudioModelProvider};
+    ///
+    /// let config = AudioLLMConfig::new()
+    ///     .qwen_tts("your-dashscope-api-key".to_string())
+    ///     .elevenlabs("your-elevenlabs-api-key".to_string());
+    ///
+    /// let qwen_client = AudioLLMClient::new_with_config(AudioModelProvider::QwenTts, &config).unwrap();
+    /// let eleven_client = AudioLLMClient::new_with_config(AudioModelProvider::ElevenLabs, &config).unwrap();
+    /// ```
+    pub fn new_with_config(provider: AudioModelProvider, config: &AudioLLMConfig) -> Result<Self> {
+        match provider {
+            AudioModelProvider::QwenTts => {
+                let key = config.qwen_tts_api_key.as_ref().ok_or_else(|| {
+                    LangHubError::LLMError("Qwen TTS API key not provided".to_string())
+                })?;
+                let mut client = QwenTts::new(key.clone());
+                if let Some(base) = &config.qwen_tts_base_url {
+                    client = client.with_base_url(base);
+                }
+                Ok(AudioLLMClient::QwenTts(client))
+            }
+            AudioModelProvider::SeedAudio => {
+                let key = config.seed_audio_api_key.as_ref().ok_or_else(|| {
+                    LangHubError::LLMError("Seed Audio API key not provided".to_string())
+                })?;
+                let mut client = SeedAudio::new(key.clone());
+                if let Some(base) = &config.seed_audio_base_url {
+                    client = client.with_base_url(base);
+                }
+                Ok(AudioLLMClient::SeedAudio(client))
+            }
+            AudioModelProvider::StepAudio => {
+                let key = config.step_audio_api_key.as_ref().ok_or_else(|| {
+                    LangHubError::LLMError("StepAudio API key not provided".to_string())
+                })?;
+                let mut client = StepAudio::new(key.clone());
+                if let Some(base) = &config.step_audio_base_url {
+                    client = client.with_base_url(base);
+                }
+                Ok(AudioLLMClient::StepAudio(client))
+            }
+            AudioModelProvider::GeminiTts => {
+                let key = config.gemini_tts_api_key.as_ref().ok_or_else(|| {
+                    LangHubError::LLMError("Gemini TTS API key not provided".to_string())
+                })?;
+                let mut client = GeminiTts::new(key.clone());
+                if let Some(base) = &config.gemini_tts_base_url {
+                    client = client.with_base_url(base);
+                }
+                Ok(AudioLLMClient::GeminiTts(client))
+            }
+            AudioModelProvider::ElevenLabs => {
+                let key = config.elevenlabs_api_key.as_ref().ok_or_else(|| {
+                    LangHubError::LLMError("ElevenLabs API key not provided".to_string())
+                })?;
+                let mut client = ElevenLabs::new(key.clone());
+                if let Some(base) = &config.elevenlabs_base_url {
+                    client = client.with_base_url(base);
+                }
+                Ok(AudioLLMClient::ElevenLabs(client))
+            }
+            AudioModelProvider::Lyria => {
+                let key = config.lyria_api_key.as_ref().ok_or_else(|| {
+                    LangHubError::LLMError("Lyria API key not provided".to_string())
+                })?;
+                let mut client = Lyria::new(key.clone());
+                if let Some(base) = &config.lyria_base_url {
+                    client = client.with_base_url(base);
+                }
+                Ok(AudioLLMClient::Lyria(client))
+            }
+            AudioModelProvider::Suno => {
+                let key = config.suno_api_key.as_ref().ok_or_else(|| {
+                    LangHubError::LLMError("Suno API key not provided".to_string())
+                })?;
+                let mut client = Suno::new(key.clone());
+                if let Some(base) = &config.suno_base_url {
+                    client = client.with_base_url(base);
+                }
+                Ok(AudioLLMClient::Suno(client))
+            }
+            AudioModelProvider::StableAudio => {
+                let key = config.stable_audio_api_key.as_ref().ok_or_else(|| {
+                    LangHubError::LLMError("Stable Audio API key not provided".to_string())
+                })?;
+                let mut client = StableAudio::new(key.clone());
+                if let Some(base) = &config.stable_audio_base_url {
+                    client = client.with_base_url(base);
+                }
+                Ok(AudioLLMClient::StableAudio(client))
+            }
+        }
+    }
+    /// Generates audio from a text prompt
+    ///
+    /// # Arguments
+    /// * `prompt` - The input text prompt string
+    ///
+    /// # Returns
+    /// A `Result` containing the generated audio result or an error
+    ///
+    /// # Example
+    /// ```
+    /// # async fn example() -> Result<(), Box<dyn std::error::Error>> {
+    /// # let config = langhub::AudioLLMConfig::new().qwen_tts("your-api-key".to_string());
+    /// # let client = langhub::AudioLLMClient::new_with_config(langhub::audio::AudioModelProvider::QwenTts, &config)?;
+    /// let result = client.generate("Hello, world!").await?;
+    /// # Ok(())
+    /// # }
+    /// ```
+    pub async fn generate(&self, prompt: &str) -> Result<AudioLLMResult> {
+        match self {
+            AudioLLMClient::QwenTts(m) => m.generate(prompt).await,
+            AudioLLMClient::SeedAudio(m) => m.generate(prompt).await,
+            AudioLLMClient::StepAudio(m) => m.generate(prompt).await,
+            AudioLLMClient::GeminiTts(m) => m.generate(prompt).await,
+            AudioLLMClient::ElevenLabs(m) => m.generate(prompt).await,
+            AudioLLMClient::Lyria(m) => m.generate(prompt).await,
+            AudioLLMClient::Suno(m) => m.generate(prompt).await,
+            AudioLLMClient::StableAudio(m) => m.generate(prompt).await,
+        }
+    }
+    /// Generates audio with options
+    ///
+    /// # Arguments
+    /// * `prompt` - The input text prompt string
+    /// * `options` - Generation options such as voice, emotion, format, duration
+    ///
+    /// # Returns
+    /// A `Result` containing the generated audio result or an error
+    pub async fn generate_with_options(
+        &self,
+        prompt: &str,
+        options: AudioLLMOptions,
+    ) -> Result<AudioLLMResult> {
+        match self {
+            AudioLLMClient::QwenTts(m) => m.generate_with_options(prompt, options).await,
+            AudioLLMClient::SeedAudio(m) => m.generate_with_options(prompt, options).await,
+            AudioLLMClient::StepAudio(m) => m.generate_with_options(prompt, options).await,
+            AudioLLMClient::GeminiTts(m) => m.generate_with_options(prompt, options).await,
+            AudioLLMClient::ElevenLabs(m) => m.generate_with_options(prompt, options).await,
+            AudioLLMClient::Lyria(m) => m.generate_with_options(prompt, options).await,
+            AudioLLMClient::Suno(m) => m.generate_with_options(prompt, options).await,
+            AudioLLMClient::StableAudio(m) => m.generate_with_options(prompt, options).await,
+        }
+    }
+    /// Submits an asynchronous audio generation task
+    ///
+    /// # Arguments
+    /// * `prompt` - The input text prompt string
+    /// * `options` - Generation options
+    ///
+    /// # Returns
+    /// A `Result` containing an `AudioTask` handle for polling
+    pub async fn submit_task(&self, prompt: &str, options: AudioLLMOptions) -> Result<AudioTask> {
+        match self {
+            AudioLLMClient::QwenTts(m) => m.submit_task(prompt, options).await,
+            AudioLLMClient::SeedAudio(m) => m.submit_task(prompt, options).await,
+            AudioLLMClient::StepAudio(m) => m.submit_task(prompt, options).await,
+            AudioLLMClient::GeminiTts(m) => m.submit_task(prompt, options).await,
+            AudioLLMClient::ElevenLabs(m) => m.submit_task(prompt, options).await,
+            AudioLLMClient::Lyria(m) => m.submit_task(prompt, options).await,
+            AudioLLMClient::Suno(m) => m.submit_task(prompt, options).await,
+            AudioLLMClient::StableAudio(m) => m.submit_task(prompt, options).await,
+        }
+    }
+    /// Polls an asynchronous audio generation task
+    ///
+    /// # Arguments
+    /// * `task_id` - The task ID returned by `submit_task`
+    ///
+    /// # Returns
+    /// A `Result` containing the current `AudioTask` state
+    pub async fn poll_task(&self, task_id: &str) -> Result<AudioTask> {
+        match self {
+            AudioLLMClient::QwenTts(m) => m.poll_task(task_id).await,
+            AudioLLMClient::SeedAudio(m) => m.poll_task(task_id).await,
+            AudioLLMClient::StepAudio(m) => m.poll_task(task_id).await,
+            AudioLLMClient::GeminiTts(m) => m.poll_task(task_id).await,
+            AudioLLMClient::ElevenLabs(m) => m.poll_task(task_id).await,
+            AudioLLMClient::Lyria(m) => m.poll_task(task_id).await,
+            AudioLLMClient::Suno(m) => m.poll_task(task_id).await,
+            AudioLLMClient::StableAudio(m) => m.poll_task(task_id).await,
+        }
+    }
+    /// Gets the provider enum for this client
+    ///
+    /// # Returns
+    /// The `AudioModelProvider` variant corresponding to this client
+    pub fn get_provider_enum(&self) -> AudioModelProvider {
+        match self {
+            AudioLLMClient::QwenTts(_) => AudioModelProvider::QwenTts,
+            AudioLLMClient::SeedAudio(_) => AudioModelProvider::SeedAudio,
+            AudioLLMClient::StepAudio(_) => AudioModelProvider::StepAudio,
+            AudioLLMClient::GeminiTts(_) => AudioModelProvider::GeminiTts,
+            AudioLLMClient::ElevenLabs(_) => AudioModelProvider::ElevenLabs,
+            AudioLLMClient::Lyria(_) => AudioModelProvider::Lyria,
+            AudioLLMClient::Suno(_) => AudioModelProvider::Suno,
+            AudioLLMClient::StableAudio(_) => AudioModelProvider::StableAudio,
+        }
+    }
+    /// Gets the vendor of this client's model
+    ///
+    /// # Returns
+    /// The `AudioVendor` variant corresponding to this client's provider
+    pub fn get_vendor(&self) -> crate::types::AudioVendor {
         self.get_provider_enum().vendor()
     }
 }

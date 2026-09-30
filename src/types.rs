@@ -217,25 +217,15 @@ impl ModelProvider {
 /// Video model vendor/provider type.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum VideoVendor {
-    /// ByteDance (Seedance, Volcengine Ark)
     ByteDance,
-    /// Alibaba Cloud (Wan, HappyHorse)
     Alibaba,
-    /// Kuaishou (Kling)
     Kuaishou,
-    /// Google (Veo, Gemini Omni Flash)
     Google,
-    /// Runway
     Runway,
-    /// MiniMax (Hailuo / H3)
     MiniMax,
-    /// Lightricks (LTX)
     Lightricks,
-    /// xAI (Grok Imagine)
     Xai,
-    /// Pruna AI (P-Video)
     Pruna,
-    /// Custom / self-hosted vendor
     Custom,
 }
 impl fmt::Display for VideoVendor {
@@ -255,7 +245,6 @@ impl fmt::Display for VideoVendor {
     }
 }
 impl VideoVendor {
-    /// Returns all supported video vendors.
     pub fn all() -> Vec<VideoVendor> {
         vec![
             VideoVendor::ByteDance,
@@ -274,19 +263,12 @@ impl VideoVendor {
 /// Image model vendor/provider type.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum ImageVendor {
-    /// ByteDance (Seedream, Volcengine Ark)
     ByteDance,
-    /// Alibaba Cloud (Wan text-to-image, Bailian)
     Alibaba,
-    /// Stability AI (Stable Image, Stable Diffusion 3.5)
     StabilityAI,
-    /// Black Forest Labs (FLUX.2)
     BlackForestLabs,
-    /// Google (Imagen)
     Google,
-    /// OpenAI (DALL·E)
     OpenAI,
-    /// Custom / self-hosted vendor
     Custom,
 }
 impl fmt::Display for ImageVendor {
@@ -303,7 +285,6 @@ impl fmt::Display for ImageVendor {
     }
 }
 impl ImageVendor {
-    /// Returns all supported image vendors.
     pub fn all() -> Vec<ImageVendor> {
         vec![
             ImageVendor::ByteDance,
@@ -313,6 +294,46 @@ impl ImageVendor {
             ImageVendor::Google,
             ImageVendor::OpenAI,
             ImageVendor::Custom,
+        ]
+    }
+}
+/// Audio model vendor/provider type.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+pub enum AudioVendor {
+    Alibaba,
+    ByteDance,
+    StepFun,
+    Google,
+    ElevenLabs,
+    Suno,
+    StabilityAI,
+    Custom,
+}
+impl fmt::Display for AudioVendor {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            AudioVendor::Alibaba => write!(f, "Alibaba"),
+            AudioVendor::ByteDance => write!(f, "ByteDance"),
+            AudioVendor::StepFun => write!(f, "StepFun"),
+            AudioVendor::Google => write!(f, "Google"),
+            AudioVendor::ElevenLabs => write!(f, "ElevenLabs"),
+            AudioVendor::Suno => write!(f, "Suno"),
+            AudioVendor::StabilityAI => write!(f, "StabilityAI"),
+            AudioVendor::Custom => write!(f, "Custom"),
+        }
+    }
+}
+impl AudioVendor {
+    pub fn all() -> Vec<AudioVendor> {
+        vec![
+            AudioVendor::Alibaba,
+            AudioVendor::ByteDance,
+            AudioVendor::StepFun,
+            AudioVendor::Google,
+            AudioVendor::ElevenLabs,
+            AudioVendor::Suno,
+            AudioVendor::StabilityAI,
+            AudioVendor::Custom,
         ]
     }
 }
