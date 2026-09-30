@@ -318,4 +318,63 @@ impl ImageModelProvider {
             ],
         }
     }
+    /// Probes this provider with a real authenticated read-only request.
+    pub async fn probe(&self, api_key: &str, base_url: Option<&str>) -> Result<()> {
+        let key = api_key.to_string();
+        if key.is_empty() {
+            return Err(crate::types::LangHubError::LLMError(
+                "image key empty".to_string(),
+            ));
+        }
+        let base = match base_url {
+            Some(b) if !b.trim().is_empty() => b.trim().trim_end_matches('/').to_string(),
+            _ => self.default_base_url().trim_end_matches('/').to_string(),
+        };
+        let client = reqwest::Client::builder()
+            .timeout(std::time::Duration::from_secs(10))
+            .user_agent("langhub-healthcheck/1.0")
+            .build()
+            .map_err(|e| crate::types::LangHubError::LLMError(format!("build client: {}", e)))?;
+        let req = match self {
+            ImageModelProvider::Flux => client
+                .get(format!("{}/get_result", base))
+                .header("x-key", key),
+            ImageModelProvider::StabilityImage => client
+                .get(format!("{}/user/account", base))
+                .header("Authorization", format!("Bearer {}", key)),
+            ImageModelProvider::Imagen => client.get(format!("{}/models?key={}", base, key)),
+            _ => client
+                .get(format!("{}/models", base))
+                .header("Authorization", format!("Bearer {}", key)),
+        };
+        let response = req
+            .send()
+            .await
+            .map_err(|e| crate::types::LangHubError::LLMError(format!("probe request: {}", e)))?;
+        let status = response.status().as_u16();
+        if status == 401 || status == 403 {
+            return Err(crate::types::LangHubError::LLMError(format!(
+                "auth rejected HTTP {}",
+                status
+            )));
+        }
+        if status >= 500 {
+            return Err(crate::types::LangHubError::LLMError(format!(
+                "server error HTTP {}",
+                status
+            )));
+        }
+        Ok(())
+    }
+    /// Returns the default base URL for this provider.
+    fn default_base_url(&self) -> &'static str {
+        match self {
+            ImageModelProvider::Seedream => "https://ark.cn-beijing.volces.com/api/v3",
+            ImageModelProvider::WanImage => "https://dashscope.aliyuncs.com/api/v1",
+            ImageModelProvider::StabilityImage => "https://api.stability.ai/v1",
+            ImageModelProvider::Flux => "https://api.bfl.ai/v1",
+            ImageModelProvider::Imagen => "https://generativelanguage.googleapis.com/v1beta",
+            ImageModelProvider::DallE => "https://api.openai.com/v1",
+        }
+    }
 }

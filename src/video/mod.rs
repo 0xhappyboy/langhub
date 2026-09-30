@@ -427,4 +427,82 @@ impl VideoModelProvider {
             )],
         }
     }
+    /// Probes this provider with a real authenticated read-only request.
+    pub async fn probe(&self, api_key: &str, base_url: Option<&str>) -> Result<()> {
+        let key = api_key.to_string();
+        if key.is_empty() {
+            return Err(crate::types::LangHubError::LLMError(
+                "video key empty".to_string(),
+            ));
+        }
+        let base = match base_url {
+            Some(b) if !b.trim().is_empty() => b.trim().trim_end_matches('/').to_string(),
+            _ => self.default_base_url().trim_end_matches('/').to_string(),
+        };
+        let client = reqwest::Client::builder()
+            .timeout(std::time::Duration::from_secs(10))
+            .user_agent("langhub-healthcheck/1.0")
+            .build()
+            .map_err(|e| crate::types::LangHubError::LLMError(format!("build client: {}", e)))?;
+        let req = match self {
+            VideoModelProvider::Runway => client
+                .get(format!("{}/tasks", base))
+                .header("Authorization", format!("Bearer {}", key))
+                .header("X-Runway-Version", "2024-11-06"),
+            VideoModelProvider::Kling => client
+                .get(format!("{}/v1/videos/text2video", base))
+                .header("Authorization", format!("Bearer {}", key)),
+            VideoModelProvider::MiniMaxH3 => client
+                .get(format!("{}/query/video_generation", base))
+                .header("Authorization", format!("Bearer {}", key)),
+            VideoModelProvider::Ltx => client
+                .get(format!("{}/jobs", base))
+                .header("Authorization", format!("Bearer {}", key)),
+            VideoModelProvider::Pruna => client
+                .get(format!("{}/video/generations", base))
+                .header("Authorization", format!("Bearer {}", key)),
+            VideoModelProvider::Veo | VideoModelProvider::GeminiOmniFlash => {
+                client.get(format!("{}/models?key={}", base, key))
+            }
+            _ => client
+                .get(format!("{}/models", base))
+                .header("Authorization", format!("Bearer {}", key)),
+        };
+        let response = req
+            .send()
+            .await
+            .map_err(|e| crate::types::LangHubError::LLMError(format!("probe request: {}", e)))?;
+        let status = response.status().as_u16();
+        if status == 401 || status == 403 {
+            return Err(crate::types::LangHubError::LLMError(format!(
+                "auth rejected HTTP {}",
+                status
+            )));
+        }
+        if status >= 500 {
+            return Err(crate::types::LangHubError::LLMError(format!(
+                "server error HTTP {}",
+                status
+            )));
+        }
+        Ok(())
+    }
+    /// Returns the default base URL for this provider.
+    fn default_base_url(&self) -> &'static str {
+        match self {
+            VideoModelProvider::Seedance => "https://ark.cn-beijing.volces.com/api/v3",
+            VideoModelProvider::Wan => "https://dashscope.aliyuncs.com/api/v1",
+            VideoModelProvider::Kling => "https://api.klingai.com",
+            VideoModelProvider::Veo => "https://generativelanguage.googleapis.com/v1beta",
+            VideoModelProvider::Runway => "https://api.dev.runwayml.com/v1",
+            VideoModelProvider::MiniMaxH3 => "https://api.minimax.chat/v1",
+            VideoModelProvider::HappyHorse => "https://dashscope.aliyuncs.com/api/v1",
+            VideoModelProvider::Ltx => "https://api.ltx.video/v1",
+            VideoModelProvider::GrokImagine => "https://api.x.ai/v1",
+            VideoModelProvider::Pruna => "https://api.pruna.ai/v1",
+            VideoModelProvider::GeminiOmniFlash => {
+                "https://generativelanguage.googleapis.com/v1beta"
+            }
+        }
+    }
 }

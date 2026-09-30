@@ -451,4 +451,70 @@ impl AudioModelProvider {
             )],
         }
     }
+    /// Probes this provider with a real authenticated read-only request.
+    pub async fn probe(&self, api_key: &str, base_url: Option<&str>) -> Result<()> {
+        let key = api_key.to_string();
+        if key.is_empty() {
+            return Err(crate::types::LangHubError::LLMError(
+                "audio key empty".to_string(),
+            ));
+        }
+        let base = match base_url {
+            Some(b) if !b.trim().is_empty() => b.trim().trim_end_matches('/').to_string(),
+            _ => self.default_base_url().trim_end_matches('/').to_string(),
+        };
+        let client = reqwest::Client::builder()
+            .timeout(std::time::Duration::from_secs(10))
+            .user_agent("langhub-healthcheck/1.0")
+            .build()
+            .map_err(|e| crate::types::LangHubError::LLMError(format!("build client: {}", e)))?;
+        let req = match self {
+            AudioModelProvider::ElevenLabs => client
+                .get(format!("{}/user", base))
+                .header("xi-api-key", key),
+            AudioModelProvider::Suno => client
+                .get(format!("{}/music/generations", base))
+                .header("Authorization", format!("Bearer {}", key)),
+            AudioModelProvider::StableAudio => client
+                .get(format!("{}/user/account", base))
+                .header("Authorization", format!("Bearer {}", key)),
+            AudioModelProvider::GeminiTts | AudioModelProvider::Lyria => {
+                client.get(format!("{}/models?key={}", base, key))
+            }
+            _ => client
+                .get(format!("{}/models", base))
+                .header("Authorization", format!("Bearer {}", key)),
+        };
+        let response = req
+            .send()
+            .await
+            .map_err(|e| crate::types::LangHubError::LLMError(format!("probe request: {}", e)))?;
+        let status = response.status().as_u16();
+        if status == 401 || status == 403 {
+            return Err(crate::types::LangHubError::LLMError(format!(
+                "auth rejected HTTP {}",
+                status
+            )));
+        }
+        if status >= 500 {
+            return Err(crate::types::LangHubError::LLMError(format!(
+                "server error HTTP {}",
+                status
+            )));
+        }
+        Ok(())
+    }
+    /// Returns the default base URL for this provider.
+    fn default_base_url(&self) -> &'static str {
+        match self {
+            AudioModelProvider::QwenTts => "https://dashscope.aliyuncs.com/api/v1",
+            AudioModelProvider::SeedAudio => "https://ark.cn-beijing.volces.com/api/v3",
+            AudioModelProvider::StepAudio => "https://api.stepfun.com/v1",
+            AudioModelProvider::GeminiTts => "https://generativelanguage.googleapis.com/v1beta",
+            AudioModelProvider::ElevenLabs => "https://api.elevenlabs.io/v1",
+            AudioModelProvider::Lyria => "https://generativelanguage.googleapis.com/v1beta",
+            AudioModelProvider::Suno => "https://api.suno.ai/v1",
+            AudioModelProvider::StableAudio => "https://api.stability.ai/v1",
+        }
+    }
 }
