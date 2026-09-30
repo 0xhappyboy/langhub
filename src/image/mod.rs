@@ -193,4 +193,87 @@ impl ImageModelProvider {
             ImageModelProvider::DallE => false,
         }
     }
+    /// Returns all concrete models under this provider, as `(model_id, display_name, is_recommended)` tuples.
+    pub fn models(&self) -> Vec<(String, String, bool)> {
+        match self {
+            ImageModelProvider::Seedream => vec![
+                ("seedream-3-0".to_string(), "Seedream 3.0".to_string(), true),
+                (
+                    "doubao-seedream-4-5".to_string(),
+                    "Doubao-Seedream-4.5".to_string(),
+                    false,
+                ),
+                (
+                    "doubao-seedream-5-0-lite".to_string(),
+                    "Doubao-Seedream-5.0-lite".to_string(),
+                    false,
+                ),
+            ],
+            ImageModelProvider::WanImage => vec![
+                (
+                    "wan2.5-t2i-preview".to_string(),
+                    "Wan 2.5 T2I Preview".to_string(),
+                    true,
+                ),
+                (
+                    "wanx2.1-t2i-turbo".to_string(),
+                    "Wan 2.1 T2I Turbo".to_string(),
+                    false,
+                ),
+            ],
+            ImageModelProvider::StabilityImage => vec![
+                (
+                    "stable-image-ultra".to_string(),
+                    "Stable Image Ultra".to_string(),
+                    true,
+                ),
+                (
+                    "sd3.5-large".to_string(),
+                    "Stable Diffusion 3.5 Large".to_string(),
+                    false,
+                ),
+                (
+                    "sd3.5-large-turbo".to_string(),
+                    "Stable Diffusion 3.5 Large Turbo".to_string(),
+                    false,
+                ),
+                (
+                    "sd3.5-medium".to_string(),
+                    "Stable Diffusion 3.5 Medium".to_string(),
+                    false,
+                ),
+                (
+                    "sd3.5-flash".to_string(),
+                    "Stable Diffusion 3.5 Flash".to_string(),
+                    false,
+                ),
+            ],
+            ImageModelProvider::Flux => vec![
+                ("flux-2-max".to_string(), "FLUX.2 [max]".to_string(), true),
+                ("flux-2-pro".to_string(), "FLUX.2 [pro]".to_string(), false),
+                (
+                    "flux-2-klein".to_string(),
+                    "FLUX.2 [klein]".to_string(),
+                    false,
+                ),
+                ("flux-2-dev".to_string(), "FLUX.2 [dev]".to_string(), false),
+            ],
+            ImageModelProvider::Imagen => vec![
+                (
+                    "imagen-4.0-generate-001".to_string(),
+                    "Imagen 4.0".to_string(),
+                    true,
+                ),
+                (
+                    "imagen-4.0-ultra-generate-001".to_string(),
+                    "Imagen 4 Ultra".to_string(),
+                    false,
+                ),
+            ],
+            ImageModelProvider::DallE => vec![
+                ("dall-e-3".to_string(), "DALL·E 3".to_string(), true),
+                ("dall-e-2".to_string(), "DALL·E 2".to_string(), false),
+            ],
+        }
+    }
 }

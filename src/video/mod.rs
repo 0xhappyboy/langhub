@@ -256,4 +256,109 @@ impl VideoModelProvider {
             VideoModelProvider::GeminiOmniFlash => true,
         }
     }
+    /// Returns all concrete models under this provider, as `(model_id, display_name, is_recommended)` tuples.
+    pub fn models(&self) -> Vec<(String, String, bool)> {
+        match self {
+            VideoModelProvider::Seedance => vec![
+                (
+                    "doubao-seedance-2-5".to_string(),
+                    "Seedance 2.5".to_string(),
+                    true,
+                ),
+                (
+                    "doubao-seedance-2-0".to_string(),
+                    "Seedance 2.0".to_string(),
+                    false,
+                ),
+                (
+                    "doubao-seedance-2-0-fast".to_string(),
+                    "Seedance 2.0-fast".to_string(),
+                    false,
+                ),
+                (
+                    "doubao-seedance-2-0-mini".to_string(),
+                    "Seedance 2.0-mini".to_string(),
+                    false,
+                ),
+            ],
+            VideoModelProvider::Wan => vec![
+                ("wan3.0-video".to_string(), "Wan 3.0".to_string(), true),
+                (
+                    "wan3.0-video-prime".to_string(),
+                    "Wan 3.0 Prime".to_string(),
+                    false,
+                ),
+            ],
+            VideoModelProvider::Kling => vec![
+                ("kling-v3".to_string(), "Kling 3.0".to_string(), true),
+                (
+                    "kling-v3-omni".to_string(),
+                    "Kling 3.0 Omni".to_string(),
+                    false,
+                ),
+                ("kling-v4".to_string(), "Kling 4.0".to_string(), false),
+            ],
+            VideoModelProvider::Veo => vec![
+                (
+                    "veo-3.1-generate-preview".to_string(),
+                    "Veo 3.1".to_string(),
+                    true,
+                ),
+                (
+                    "veo-3.1-fast-generate-preview".to_string(),
+                    "Veo 3.1 Fast".to_string(),
+                    false,
+                ),
+                (
+                    "veo-3.1-lite-generate-preview".to_string(),
+                    "Veo 3.1 Lite".to_string(),
+                    false,
+                ),
+            ],
+            VideoModelProvider::Runway => vec![
+                ("gen4.5".to_string(), "Runway Gen-4.5".to_string(), true),
+                (
+                    "aleph2.0".to_string(),
+                    "Runway Aleph 2.0".to_string(),
+                    false,
+                ),
+            ],
+            VideoModelProvider::MiniMaxH3 => vec![(
+                "MiniMax-Hailuo-H3".to_string(),
+                "MiniMax H3".to_string(),
+                true,
+            )],
+            VideoModelProvider::HappyHorse => vec![(
+                "happyhorse-1.0".to_string(),
+                "HappyHorse 1.0".to_string(),
+                true,
+            )],
+            VideoModelProvider::Ltx => vec![
+                ("ltx-2.3-fast".to_string(), "LTX-2.3 Fast".to_string(), true),
+                ("ltx-2.3-pro".to_string(), "LTX-2.3 Pro".to_string(), false),
+            ],
+            VideoModelProvider::GrokImagine => vec![
+                (
+                    "grok-imagine-video-1.5".to_string(),
+                    "Grok Imagine 1.5".to_string(),
+                    true,
+                ),
+                (
+                    "grok-imagine-video-1.0".to_string(),
+                    "Grok Imagine 1.0".to_string(),
+                    false,
+                ),
+            ],
+            VideoModelProvider::Pruna => vec![(
+                "p-video-2-pro".to_string(),
+                "Pruna P-Video 2 Pro".to_string(),
+                true,
+            )],
+            VideoModelProvider::GeminiOmniFlash => vec![(
+                "gemini-omni-flash-1.1".to_string(),
+                "Gemini Omni Flash 1.1".to_string(),
+                true,
+            )],
+        }
+    }
 }
