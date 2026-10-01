@@ -78,12 +78,17 @@ impl Cohere {
         self.base_url = base_url.to_string();
         self
     }
+    /// Internal chat completion.
     async fn chat_completion(
         &self,
         messages: &[ChatMessage],
         options: &LLMOptions,
+        model_override: Option<&str>,
     ) -> Result<LLMResult> {
-        let model_name: String = self.model.clone().into();
+        let model_name: String = match model_override {
+            Some(m) => m.to_string(),
+            None => self.model.clone().into(),
+        };
         let chat_history: Vec<serde_json::Value> = messages
             .iter()
             .take(messages.len().saturating_sub(1))
@@ -155,7 +160,7 @@ impl LLM for Cohere {
         let options = self.default_options.clone();
         Box::pin(async move {
             let messages = vec![ChatMessage::user(&prompt)];
-            self.chat_completion(&messages, &options).await
+            self.chat_completion(&messages, &options, None).await
         })
     }
     fn generate_with_options(
@@ -166,15 +171,17 @@ impl LLM for Cohere {
         let prompt = prompt.to_string();
         Box::pin(async move {
             let messages = vec![ChatMessage::user(&prompt)];
-            self.chat_completion(&messages, &options).await
+            self.chat_completion(&messages, &options, None).await
         })
     }
     fn chat(
         &self,
         messages: Vec<ChatMessage>,
+        model: Option<&str>,
     ) -> Pin<Box<dyn Future<Output = Result<LLMResult>> + Send + '_>> {
+        let model_owned: Option<String> = model.map(|m| m.to_string());
         Box::pin(async move {
-            self.chat_completion(&messages, &LLMOptions::default())
+            self.chat_completion(&messages, &LLMOptions::default(), model_owned.as_deref())
                 .await
         })
     }

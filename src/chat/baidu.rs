@@ -111,12 +111,17 @@ impl BaiduWenxin {
         self.token_expiry = Some(now + expires_in);
         Ok(token)
     }
+    /// Internal chat completion.
     async fn chat_completion(
         &mut self,
         messages: &[ChatMessage],
         options: &LLMOptions,
+        model_override: Option<&str>,
     ) -> Result<LLMResult> {
-        let model_name: String = self.model.clone().into();
+        let model_name: String = match model_override {
+            Some(m) => m.to_string(),
+            None => self.model.clone().into(),
+        };
         let access_token = self.get_access_token().await?;
         let mut messages_json: Vec<serde_json::Value> = messages
             .iter()
@@ -200,7 +205,7 @@ impl LLM for BaiduWenxin {
         let mut self_clone = self.clone();
         Box::pin(async move {
             let messages = vec![ChatMessage::user(&prompt)];
-            self_clone.chat_completion(&messages, &options).await
+            self_clone.chat_completion(&messages, &options, None).await
         })
     }
     fn generate_with_options(
@@ -212,17 +217,19 @@ impl LLM for BaiduWenxin {
         let mut self_clone = self.clone();
         Box::pin(async move {
             let messages = vec![ChatMessage::user(&prompt)];
-            self_clone.chat_completion(&messages, &options).await
+            self_clone.chat_completion(&messages, &options, None).await
         })
     }
     fn chat(
         &self,
         messages: Vec<ChatMessage>,
+        model: Option<&str>,
     ) -> Pin<Box<dyn Future<Output = Result<LLMResult>> + Send + '_>> {
+        let model_owned: Option<String> = model.map(|m| m.to_string());
         let mut self_clone = self.clone();
         Box::pin(async move {
             self_clone
-                .chat_completion(&messages, &LLMOptions::default())
+                .chat_completion(&messages, &LLMOptions::default(), model_owned.as_deref())
                 .await
         })
     }

@@ -531,7 +531,9 @@ impl ChatLLMClient {
                 let api_key = config.openai_api_key.as_ref().ok_or_else(|| {
                     LangHubError::LLMError("OpenAI API key not provided".to_string())
                 })?;
-                Ok(ChatLLMClient::OpenAI(OpenAI::new(api_key.clone()).gpt4_turbo()))
+                Ok(ChatLLMClient::OpenAI(
+                    OpenAI::new(api_key.clone()).gpt4_turbo(),
+                ))
             }
             ChatModelProvider::Anthropic => {
                 let api_key = config.anthropic_api_key.as_ref().ok_or_else(|| {
@@ -561,7 +563,9 @@ impl ChatLLMClient {
                 let api_key = config.cohere_api_key.as_ref().ok_or_else(|| {
                     LangHubError::LLMError("Cohere API key not provided".to_string())
                 })?;
-                Ok(ChatLLMClient::Cohere(Cohere::new(api_key.clone()).command()))
+                Ok(ChatLLMClient::Cohere(
+                    Cohere::new(api_key.clone()).command(),
+                ))
             }
             ChatModelProvider::HuggingFace => {
                 let api_key = config.huggingface_api_key.as_ref().ok_or_else(|| {
@@ -591,7 +595,9 @@ impl ChatLLMClient {
                 let api_key = config.mistral_api_key.as_ref().ok_or_else(|| {
                     LangHubError::LLMError("Mistral API key not provided".to_string())
                 })?;
-                Ok(ChatLLMClient::Mistral(Mistral::new(api_key.clone()).small()))
+                Ok(ChatLLMClient::Mistral(
+                    Mistral::new(api_key.clone()).small(),
+                ))
             }
             ChatModelProvider::Groq => {
                 let api_key = config.groq_api_key.as_ref().ok_or_else(|| {
@@ -763,6 +769,8 @@ impl ChatLLMClient {
     ///
     /// # Arguments
     /// * `messages` - A vector of chat messages representing the conversation
+    /// * `model` - Optional model id override. When `None`, the provider's
+    ///   configured default model is used.
     ///
     /// # Returns
     /// A `Result` containing the llm's response or an error
@@ -779,35 +787,38 @@ impl ChatLLMClient {
     ///     ChatMessage::llm("I am an llm."),
     ///     ChatMessage::user("What can you do?"),
     /// ];
-    /// let response = client.chat(messages).await?;
+    /// // Use the provider's default model:
+    /// let response = client.chat(messages.clone(), None).await?;
+    /// // Or override the model for this call:
+    /// let response = client.chat(messages, Some("gpt-4o")).await?;
     /// println!("{}", response);
     /// # Ok(())
     /// # }
     /// ```
-    pub async fn chat(&self, messages: Vec<ChatMessage>) -> Result<LLMResult> {
+    pub async fn chat(&self, messages: Vec<ChatMessage>, model: Option<&str>) -> Result<LLMResult> {
         match self {
-            ChatLLMClient::OpenAI(m) => m.chat(messages).await,
-            ChatLLMClient::Anthropic(m) => m.chat(messages).await,
-            ChatLLMClient::DeepSeek(m) => m.chat(messages).await,
-            ChatLLMClient::Google(m) => m.chat(messages).await,
-            ChatLLMClient::Cohere(m) => m.chat(messages).await,
-            ChatLLMClient::HuggingFace(m) => m.chat(messages).await,
-            ChatLLMClient::Azure(m) => m.chat(messages).await,
-            ChatLLMClient::Mistral(m) => m.chat(messages).await,
-            ChatLLMClient::Groq(m) => m.chat(messages).await,
-            ChatLLMClient::Together(m) => m.chat(messages).await,
-            ChatLLMClient::Replicate(m) => m.chat(messages).await,
-            ChatLLMClient::Fireworks(m) => m.chat(messages).await,
-            ChatLLMClient::Perplexity(m) => m.chat(messages).await,
-            ChatLLMClient::Baidu(m) => m.chat(messages).await,
-            ChatLLMClient::Alibaba(m) => m.chat(messages).await,
-            ChatLLMClient::Tencent(m) => m.chat(messages).await,
-            ChatLLMClient::Zhipu(m) => m.chat(messages).await,
-            ChatLLMClient::MiniMax(m) => m.chat(messages).await,
-            ChatLLMClient::Moonshot(m) => m.chat(messages).await,
-            ChatLLMClient::Baichuan(m) => m.chat(messages).await,
-            ChatLLMClient::Yi(m) => m.chat(messages).await,
-            ChatLLMClient::Custom(m) => m.chat(messages).await,
+            ChatLLMClient::OpenAI(m) => m.chat(messages, model).await,
+            ChatLLMClient::Anthropic(m) => m.chat(messages, model).await,
+            ChatLLMClient::DeepSeek(m) => m.chat(messages, model).await,
+            ChatLLMClient::Google(m) => m.chat(messages, model).await,
+            ChatLLMClient::Cohere(m) => m.chat(messages, model).await,
+            ChatLLMClient::HuggingFace(m) => m.chat(messages, model).await,
+            ChatLLMClient::Azure(m) => m.chat(messages, model).await,
+            ChatLLMClient::Mistral(m) => m.chat(messages, model).await,
+            ChatLLMClient::Groq(m) => m.chat(messages, model).await,
+            ChatLLMClient::Together(m) => m.chat(messages, model).await,
+            ChatLLMClient::Replicate(m) => m.chat(messages, model).await,
+            ChatLLMClient::Fireworks(m) => m.chat(messages, model).await,
+            ChatLLMClient::Perplexity(m) => m.chat(messages, model).await,
+            ChatLLMClient::Baidu(m) => m.chat(messages, model).await,
+            ChatLLMClient::Alibaba(m) => m.chat(messages, model).await,
+            ChatLLMClient::Tencent(m) => m.chat(messages, model).await,
+            ChatLLMClient::Zhipu(m) => m.chat(messages, model).await,
+            ChatLLMClient::MiniMax(m) => m.chat(messages, model).await,
+            ChatLLMClient::Moonshot(m) => m.chat(messages, model).await,
+            ChatLLMClient::Baichuan(m) => m.chat(messages, model).await,
+            ChatLLMClient::Yi(m) => m.chat(messages, model).await,
+            ChatLLMClient::Custom(m) => m.chat(messages, model).await,
         }
     }
 }

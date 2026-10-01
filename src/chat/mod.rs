@@ -202,14 +202,16 @@ pub trait LLM: Send + Sync {
     fn chat(
         &self,
         messages: Vec<ChatMessage>,
+        model: Option<&str>,
     ) -> Pin<Box<dyn Future<Output = Result<LLMResult>> + Send + '_>>;
     /// Chat with options
-    fn chat_with_options(
-        &self,
+    fn chat_with_options<'a>(
+        &'a self,
         messages: Vec<ChatMessage>,
         options: LLMOptions,
-    ) -> Pin<Box<dyn Future<Output = Result<LLMResult>> + Send + '_>> {
-        Box::pin(async move { self.chat(messages).await })
+        model: Option<&'a str>,
+    ) -> Pin<Box<dyn Future<Output = Result<LLMResult>> + Send + 'a>> {
+        Box::pin(async move { self.chat(messages, model).await })
     }
     /// Get model name
     fn get_model_name(&self) -> String;
