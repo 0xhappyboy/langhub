@@ -304,10 +304,6 @@ impl ModelProvider {
         ]
     }
     /// Returns the vendor of this model provider.
-    ///
-    /// This mirrors the vendor concept used by `ImageModelProvider`,
-    /// `VideoModelProvider` and `AudioModelProvider`, so the frontend can
-    /// group providers by vendor consistently across all model families.
     pub fn vendor(&self) -> LLMVendor {
         match self {
             ModelProvider::OpenAI => LLMVendor::OpenAI,
@@ -483,6 +479,260 @@ impl ModelProvider {
             ModelProvider::Yi => true,
             ModelProvider::Custom => true,
             _ => false,
+        }
+    }
+    /// Returns a short emoji icon for this provider.
+    pub fn icon(&self) -> &'static str {
+        match self {
+            ModelProvider::OpenAI => "🔵",
+            ModelProvider::Anthropic => "🟣",
+            ModelProvider::Google => "🔴",
+            ModelProvider::DeepSeek => "🟢",
+            ModelProvider::Cohere => "📐",
+            ModelProvider::HuggingFace => "🤗",
+            ModelProvider::Azure => "☁️",
+            ModelProvider::Mistral => "🪶",
+            ModelProvider::Groq => "⚡",
+            ModelProvider::Together => "🤝",
+            ModelProvider::Replicate => "🔁",
+            ModelProvider::Fireworks => "🎆",
+            ModelProvider::Perplexity => "🔎",
+            ModelProvider::Baidu => "🔍",
+            ModelProvider::Alibaba => "☁️",
+            ModelProvider::Tencent => "🐧",
+            ModelProvider::Zhipu => "🧠",
+            ModelProvider::MiniMax => "🎯",
+            ModelProvider::Moonshot => "🌙",
+            ModelProvider::Baichuan => "🌊",
+            ModelProvider::Yi => "1️⃣",
+            ModelProvider::Custom => "🦛",
+        }
+    }
+    /// Whether this provider requires an API key.
+    pub fn requires_api_key(&self) -> bool {
+        true
+    }
+    /// Whether this provider needs additional config fields beyond the API key.
+    pub fn needs_extra_config(&self) -> bool {
+        matches!(
+            self,
+            ModelProvider::Azure
+                | ModelProvider::Baidu
+                | ModelProvider::Tencent
+                | ModelProvider::MiniMax
+                | ModelProvider::Custom
+        )
+    }
+    /// Returns the extra config fields required by this provider.
+    pub fn extra_config_fields(&self) -> Vec<(String, String, String, bool)> {
+        match self {
+            ModelProvider::Azure => vec![
+                (
+                    "endpoint".to_string(),
+                    "Endpoint URL".to_string(),
+                    "https://your-resource.openai.azure.com/".to_string(),
+                    true,
+                ),
+                (
+                    "deployment_name".to_string(),
+                    "Deployment Name".to_string(),
+                    "gpt-4".to_string(),
+                    true,
+                ),
+            ],
+            ModelProvider::Baidu => vec![(
+                "secret_key".to_string(),
+                "Secret Key".to_string(),
+                "your secret key".to_string(),
+                true,
+            )],
+            ModelProvider::Tencent => vec![
+                (
+                    "secret_id".to_string(),
+                    "Secret ID".to_string(),
+                    "your secret id".to_string(),
+                    true,
+                ),
+                (
+                    "secret_key".to_string(),
+                    "Secret Key".to_string(),
+                    "your secret key".to_string(),
+                    true,
+                ),
+            ],
+            ModelProvider::MiniMax => vec![(
+                "group_id".to_string(),
+                "Group ID".to_string(),
+                "your group id".to_string(),
+                true,
+            )],
+            ModelProvider::Custom => vec![(
+                "api_base".to_string(),
+                "API Base URL".to_string(),
+                "https://api.example.com/v1".to_string(),
+                true,
+            )],
+            _ => vec![],
+        }
+    }
+    pub fn models(&self) -> Vec<(String, String, bool)> {
+        match self {
+            ModelProvider::OpenAI => vec![
+                ("gpt-4".to_string(), "GPT-4".to_string(), true),
+                ("gpt-4o".to_string(), "GPT-4o".to_string(), true),
+                ("o1".to_string(), "o1".to_string(), false),
+                ("o3-mini".to_string(), "o3-mini".to_string(), false),
+            ],
+            ModelProvider::Anthropic => vec![
+                (
+                    "claude-3-opus".to_string(),
+                    "Claude 3 Opus".to_string(),
+                    true,
+                ),
+                (
+                    "claude-3-sonnet".to_string(),
+                    "Claude 3 Sonnet".to_string(),
+                    false,
+                ),
+                (
+                    "claude-3-haiku".to_string(),
+                    "Claude 3 Haiku".to_string(),
+                    false,
+                ),
+            ],
+            ModelProvider::DeepSeek => vec![
+                (
+                    "deepseek-chat".to_string(),
+                    "DeepSeek Chat".to_string(),
+                    true,
+                ),
+                (
+                    "deepseek-coder".to_string(),
+                    "DeepSeek Coder".to_string(),
+                    false,
+                ),
+                (
+                    "deepseek-reasoner".to_string(),
+                    "DeepSeek Reasoner".to_string(),
+                    false,
+                ),
+            ],
+            ModelProvider::Google => vec![
+                (
+                    "gemini-1.5-pro".to_string(),
+                    "Gemini 1.5 Pro".to_string(),
+                    true,
+                ),
+                (
+                    "gemini-1.5-flash".to_string(),
+                    "Gemini 1.5 Flash".to_string(),
+                    false,
+                ),
+            ],
+            ModelProvider::Cohere => vec![
+                ("command-r-plus".to_string(), "Command R+".to_string(), true),
+                ("command-r".to_string(), "Command R".to_string(), false),
+            ],
+            ModelProvider::HuggingFace => {
+                vec![("llama3-8b".to_string(), "Llama 3 8B".to_string(), true)]
+            }
+            ModelProvider::Azure => vec![
+                ("gpt-4".to_string(), "GPT-4 (Azure)".to_string(), true),
+                ("gpt-4o".to_string(), "GPT-4o (Azure)".to_string(), false),
+            ],
+            ModelProvider::Mistral => vec![
+                (
+                    "mistral-large".to_string(),
+                    "Mistral Large".to_string(),
+                    true,
+                ),
+                (
+                    "mistral-small".to_string(),
+                    "Mistral Small".to_string(),
+                    false,
+                ),
+            ],
+            ModelProvider::Groq => vec![
+                (
+                    "mixtral-8x7b-32k".to_string(),
+                    "Mixtral 8x7B".to_string(),
+                    true,
+                ),
+                (
+                    "llama-3.1-70b".to_string(),
+                    "Llama 3.1 70B".to_string(),
+                    false,
+                ),
+            ],
+            ModelProvider::Together => vec![
+                ("llama3-70b".to_string(), "Llama 3 70B".to_string(), true),
+                ("llama3-8b".to_string(), "Llama 3 8B".to_string(), false),
+            ],
+            ModelProvider::Replicate => {
+                vec![("mixtral-8x7b".to_string(), "Mixtral 8x7B".to_string(), true)]
+            }
+            ModelProvider::Fireworks => {
+                vec![("mixtral-8x7b".to_string(), "Mixtral 8x7B".to_string(), true)]
+            }
+            ModelProvider::Perplexity => {
+                vec![("sonar-medium".to_string(), "Sonar Medium".to_string(), true)]
+            }
+            ModelProvider::Baidu => vec![
+                ("ernie-4.0".to_string(), "ERNIE 4.0".to_string(), true),
+                ("ernie-3.5".to_string(), "ERNIE 3.5".to_string(), false),
+            ],
+            ModelProvider::Alibaba => vec![
+                ("qwen-plus".to_string(), "Qwen Plus".to_string(), true),
+                ("qwen-max".to_string(), "Qwen Max".to_string(), false),
+                ("qwen-turbo".to_string(), "Qwen Turbo".to_string(), false),
+            ],
+            ModelProvider::Tencent => vec![
+                ("hunyuan-pro".to_string(), "Hunyuan Pro".to_string(), true),
+                (
+                    "hunyuan-standard".to_string(),
+                    "Hunyuan Standard".to_string(),
+                    false,
+                ),
+            ],
+            ModelProvider::Zhipu => vec![
+                ("glm-4".to_string(), "GLM-4".to_string(), true),
+                ("glm-4-plus".to_string(), "GLM-4 Plus".to_string(), false),
+                ("glm-4-flash".to_string(), "GLM-4 Flash".to_string(), false),
+            ],
+            ModelProvider::MiniMax => vec![
+                ("abab6.5".to_string(), "abab6.5".to_string(), true),
+                ("abab6.5s".to_string(), "abab6.5s".to_string(), false),
+            ],
+            ModelProvider::Moonshot => vec![
+                (
+                    "moonshot-v1-128k".to_string(),
+                    "Moonshot V1 128K".to_string(),
+                    true,
+                ),
+                (
+                    "moonshot-v1-32k".to_string(),
+                    "Moonshot V1 32K".to_string(),
+                    false,
+                ),
+                (
+                    "moonshot-v1-8k".to_string(),
+                    "Moonshot V1 8K".to_string(),
+                    false,
+                ),
+            ],
+            ModelProvider::Baichuan => vec![
+                ("baichuan4".to_string(), "Baichuan 4".to_string(), true),
+                (
+                    "baichuan3-turbo".to_string(),
+                    "Baichuan 3 Turbo".to_string(),
+                    false,
+                ),
+            ],
+            ModelProvider::Yi => vec![
+                ("yi-34b-chat".to_string(), "Yi-34B-Chat".to_string(), true),
+                ("yi-large".to_string(), "Yi Large".to_string(), false),
+            ],
+            ModelProvider::Custom => vec![],
         }
     }
 }
