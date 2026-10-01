@@ -286,6 +286,33 @@ impl fmt::Display for ChatModelProvider {
     }
 }
 impl ChatModelProvider {
+    /// provider id .
+    pub fn id(&self) -> &'static str {
+        match self {
+            ChatModelProvider::OpenAI => "openai",
+            ChatModelProvider::Anthropic => "anthropic",
+            ChatModelProvider::Google => "google",
+            ChatModelProvider::DeepSeek => "deepseek",
+            ChatModelProvider::Cohere => "cohere",
+            ChatModelProvider::HuggingFace => "huggingface",
+            ChatModelProvider::Azure => "azure",
+            ChatModelProvider::Mistral => "mistral",
+            ChatModelProvider::Groq => "groq",
+            ChatModelProvider::Together => "together",
+            ChatModelProvider::Replicate => "replicate",
+            ChatModelProvider::Fireworks => "fireworks",
+            ChatModelProvider::Perplexity => "perplexity",
+            ChatModelProvider::Baidu => "baidu",
+            ChatModelProvider::Alibaba => "alibaba",
+            ChatModelProvider::Tencent => "tencent",
+            ChatModelProvider::Zhipu => "zhipu",
+            ChatModelProvider::MiniMax => "minimax",
+            ChatModelProvider::Moonshot => "moonshot",
+            ChatModelProvider::Baichuan => "baichuan",
+            ChatModelProvider::Yi => "yi",
+            ChatModelProvider::Custom => "custom",
+        }
+    }
     pub fn all() -> Vec<ChatModelProvider> {
         vec![
             ChatModelProvider::OpenAI,
@@ -417,13 +444,19 @@ impl ChatModelProvider {
             ChatModelProvider::Anthropic => {
                 "Anthropic Claude：长上下文、安全导向，推理与工具调用能力强"
             }
-            ChatModelProvider::Google => "Google Gemini：多模态模型，超长上下文，原生视觉与音频理解",
-            ChatModelProvider::DeepSeek => "DeepSeek：高性价比对话、代码与推理模型，数学和编程能力突出",
+            ChatModelProvider::Google => {
+                "Google Gemini：多模态模型，超长上下文，原生视觉与音频理解"
+            }
+            ChatModelProvider::DeepSeek => {
+                "DeepSeek：高性价比对话、代码与推理模型，数学和编程能力突出"
+            }
             ChatModelProvider::Cohere => "Cohere Command：面向企业 RAG 与工具调用的语言模型",
             ChatModelProvider::HuggingFace => {
                 "HuggingFace：通过 Inference API 托管开源模型，便于灵活实验"
             }
-            ChatModelProvider::Azure => "Azure OpenAI：微软托管的 OpenAI 模型，企业合规与区域化部署",
+            ChatModelProvider::Azure => {
+                "Azure OpenAI：微软托管的 OpenAI 模型，企业合规与区域化部署"
+            }
             ChatModelProvider::Mistral => {
                 "Mistral AI：高效的欧洲模型，覆盖 tiny 到 large，含 Codestral 代码模型"
             }
