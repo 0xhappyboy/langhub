@@ -1,4 +1,5 @@
 use super::{ChatMessage, LLM, LLMOptions, LLMResult};
+use crate::chat::ChatModelProvider;
 /// Tencent Hunyuan
 use crate::types::*;
 use serde_json::json;
@@ -172,8 +173,8 @@ impl LLM for TencentHunyuan {
             TencentModel::HunyuanLite => "Tencent-Hunyuan-Lite".to_string(),
         }
     }
-    fn get_provider_enum(&self) -> ModelProvider {
-        ModelProvider::Tencent
+    fn get_provider_enum(&self) -> ChatModelProvider {
+        ChatModelProvider::Tencent
     }
     fn supports_function_calling(&self) -> bool {
         true

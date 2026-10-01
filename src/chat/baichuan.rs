@@ -1,4 +1,5 @@
 use super::{ChatMessage, LLM, LLMOptions, LLMResult};
+use crate::chat::ChatModelProvider;
 /// baichuan AI
 use crate::types::*;
 use serde_json::json;
@@ -182,8 +183,8 @@ impl LLM for Baichuan {
             BaichuanModel::Baichuan2 => "Baichuan-2".to_string(),
         }
     }
-    fn get_provider_enum(&self) -> ModelProvider {
-        ModelProvider::Baichuan
+    fn get_provider_enum(&self) -> ChatModelProvider {
+        ChatModelProvider::Baichuan
     }
     fn supports_function_calling(&self) -> bool {
         true

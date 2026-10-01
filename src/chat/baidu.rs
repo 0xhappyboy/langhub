@@ -1,4 +1,5 @@
 use super::{ChatMessage, LLM, LLMOptions, LLMResult};
+use crate::chat::ChatModelProvider;
 /// Baidu ERNIE
 use crate::types::*;
 use serde_json::json;
@@ -243,8 +244,8 @@ impl LLM for BaiduWenxin {
             BaiduModel::ErnieTiny => "Baidu-ERNIE-Tiny".to_string(),
         }
     }
-    fn get_provider_enum(&self) -> ModelProvider {
-        ModelProvider::Baidu
+    fn get_provider_enum(&self) -> ChatModelProvider {
+        ChatModelProvider::Baidu
     }
     fn supports_function_calling(&self) -> bool {
         true

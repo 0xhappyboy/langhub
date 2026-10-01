@@ -1,4 +1,5 @@
 use super::{ChatMessage, LLM, LLMOptions, LLMResult};
+use crate::chat::ChatModelProvider;
 /// HuggingFace
 use crate::types::*;
 use serde_json::json;
@@ -230,8 +231,8 @@ impl LLM for HuggingFace {
             HuggingFaceModel::Custom(name) => format!("HuggingFace-{}", name).to_string(),
         }
     }
-    fn get_provider_enum(&self) -> ModelProvider {
-        ModelProvider::HuggingFace
+    fn get_provider_enum(&self) -> ChatModelProvider {
+        ChatModelProvider::HuggingFace
     }
     fn supports_function_calling(&self) -> bool {
         false

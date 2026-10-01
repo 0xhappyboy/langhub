@@ -1,4 +1,5 @@
 use super::{ChatMessage, LLM, LLMOptions, LLMResult};
+use crate::chat::ChatModelProvider;
 /// DeepSeek (DeepSeek-V3, R1)
 use crate::types::*;
 use serde_json::json;
@@ -186,8 +187,8 @@ impl LLM for DeepSeek {
             DeepSeekModel::Reasoner => "DeepSeek-R1".to_string(),
         }
     }
-    fn get_provider_enum(&self) -> ModelProvider {
-        ModelProvider::DeepSeek
+    fn get_provider_enum(&self) -> ChatModelProvider {
+        ChatModelProvider::DeepSeek
     }
     fn supports_function_calling(&self) -> bool {
         true

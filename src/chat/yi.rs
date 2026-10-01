@@ -1,4 +1,5 @@
 use super::{ChatMessage, LLM, LLMOptions, LLMResult};
+use crate::chat::ChatModelProvider;
 /// Yi AI
 use crate::types::*;
 use serde_json::json;
@@ -181,8 +182,8 @@ impl LLM for Yi {
             YiModel::Yi6B => "Yi-6B".to_string(),
         }
     }
-    fn get_provider_enum(&self) -> ModelProvider {
-        ModelProvider::Yi
+    fn get_provider_enum(&self) -> ChatModelProvider {
+        ChatModelProvider::Yi
     }
     fn supports_function_calling(&self) -> bool {
         true

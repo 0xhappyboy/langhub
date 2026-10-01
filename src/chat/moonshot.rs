@@ -1,4 +1,5 @@
 use super::{ChatMessage, LLM, LLMOptions, LLMResult};
+use crate::chat::ChatModelProvider;
 /// moonshot AI (Kimi)
 use crate::types::*;
 use serde_json::json;
@@ -174,8 +175,8 @@ impl LLM for Moonshot {
             MoonshotModel::Kimi128K => "Moonshot-Kimi-128K".to_string(),
         }
     }
-    fn get_provider_enum(&self) -> ModelProvider {
-        ModelProvider::Moonshot
+    fn get_provider_enum(&self) -> ChatModelProvider {
+        ChatModelProvider::Moonshot
     }
     fn supports_function_calling(&self) -> bool {
         true

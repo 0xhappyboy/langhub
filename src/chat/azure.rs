@@ -1,4 +1,5 @@
 use super::{ChatMessage, LLM, LLMOptions, LLMResult, ResponseFormat};
+use crate::chat::ChatModelProvider;
 /// Azure OpenAI
 use crate::types::*;
 use serde_json::json;
@@ -196,8 +197,8 @@ impl LLM for AzureOpenAI {
     fn get_provider_name(&self) -> String {
         "Azure-OpenAI".to_string()
     }
-    fn get_provider_enum(&self) -> ModelProvider {
-        ModelProvider::Azure
+    fn get_provider_enum(&self) -> ChatModelProvider {
+        ChatModelProvider::Azure
     }
     fn supports_function_calling(&self) -> bool {
         true

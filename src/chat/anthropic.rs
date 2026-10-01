@@ -1,4 +1,5 @@
 use super::{ChatMessage, LLM, LLMOptions, LLMResult};
+use crate::chat::ChatModelProvider;
 /// Anthropic (Claude 3)
 use crate::types::*;
 use serde_json::json;
@@ -198,8 +199,8 @@ impl LLM for Anthropic {
             AnthropicModel::Claude2 => "Anthropic-Claude2.0".to_string(),
         }
     }
-    fn get_provider_enum(&self) -> ModelProvider {
-        ModelProvider::Anthropic
+    fn get_provider_enum(&self) -> ChatModelProvider {
+        ChatModelProvider::Anthropic
     }
     fn supports_function_calling(&self) -> bool {
         true

@@ -1,4 +1,5 @@
 use super::{ChatMessage, LLM, LLMOptions, LLMResult};
+use crate::chat::ChatModelProvider;
 /// Google (Gemini)
 use crate::types::*;
 use serde_json::json;
@@ -196,8 +197,8 @@ impl LLM for GoogleAI {
             GoogleModel::GeminiUltra => "Google-Gemini-Ultra".to_string(),
         }
     }
-    fn get_provider_enum(&self) -> ModelProvider {
-        ModelProvider::Google
+    fn get_provider_enum(&self) -> ChatModelProvider {
+        ChatModelProvider::Google
     }
     fn supports_function_calling(&self) -> bool {
         true

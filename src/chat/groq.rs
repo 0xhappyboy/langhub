@@ -1,4 +1,5 @@
 use super::{ChatMessage, LLM, LLMOptions, LLMResult};
+use crate::chat::ChatModelProvider;
 /// Groq
 use crate::types::*;
 use serde_json::json;
@@ -181,8 +182,8 @@ impl LLM for Groq {
             GroqModel::Gemma_7b => "Groq-Gemma-7B".to_string(),
         }
     }
-    fn get_provider_enum(&self) -> ModelProvider {
-        ModelProvider::Groq
+    fn get_provider_enum(&self) -> ChatModelProvider {
+        ChatModelProvider::Groq
     }
     fn supports_function_calling(&self) -> bool {
         true

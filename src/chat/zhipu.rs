@@ -1,4 +1,5 @@
 use super::{ChatMessage, LLM, LLMOptions, LLMResult};
+use crate::chat::ChatModelProvider;
 /// Zhipu AI (ChatGLM)
 use crate::types::*;
 use serde_json::json;
@@ -182,8 +183,8 @@ impl LLM for ZhipuAI {
             ZhipuModel::GLM4V => "Zhipu-GLM-4V".to_string(),
         }
     }
-    fn get_provider_enum(&self) -> ModelProvider {
-        ModelProvider::Zhipu
+    fn get_provider_enum(&self) -> ChatModelProvider {
+        ChatModelProvider::Zhipu
     }
     fn supports_function_calling(&self) -> bool {
         true

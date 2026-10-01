@@ -1,4 +1,5 @@
 use super::{ChatMessage, LLM, LLMOptions, LLMResult};
+use crate::chat::ChatModelProvider;
 /// Replicate
 use crate::types::*;
 use serde_json::json;
@@ -217,8 +218,8 @@ impl LLM for Replicate {
             ReplicateModel::Custom(name) => format!("Replicate-{}", name).to_string(),
         }
     }
-    fn get_provider_enum(&self) -> ModelProvider {
-        ModelProvider::Replicate
+    fn get_provider_enum(&self) -> ChatModelProvider {
+        ChatModelProvider::Replicate
     }
     fn supports_function_calling(&self) -> bool {
         false

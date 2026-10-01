@@ -1,4 +1,5 @@
 use super::{ChatMessage, LLM, LLMOptions, LLMResult};
+use crate::chat::ChatModelProvider;
 /// Cohere (Command)
 use crate::types::*;
 use serde_json::json;
@@ -193,8 +194,8 @@ impl LLM for Cohere {
             CohereModel::CommandNightly => "Cohere-Command-Nightly".to_string(),
         }
     }
-    fn get_provider_enum(&self) -> ModelProvider {
-        ModelProvider::Cohere
+    fn get_provider_enum(&self) -> ChatModelProvider {
+        ChatModelProvider::Cohere
     }
     fn supports_function_calling(&self) -> bool {
         true

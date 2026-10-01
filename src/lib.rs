@@ -9,7 +9,7 @@ use crate::audio::*;
 use crate::chat::*;
 use crate::image::*;
 use crate::types::ImageVendor;
-use crate::types::{ChatMessage, LangHubError, ModelProvider, Result};
+use crate::types::{ChatMessage, LangHubError, Result};
 use crate::video::*;
 /// Configuration for LLM client initialization
 ///
@@ -339,53 +339,53 @@ impl LLMClient {
     /// let extra = std::collections::HashMap::from([
     ///     ("secret_key".to_string(), "your_secret_key".to_string())
     /// ]);
-    /// let client = LLMClient::new_with_key(ModelProvider::Baidu, Some("api_key".to_string()), Some(extra)).unwrap();
+    /// let client = LLMClient::new_with_key(ChatModelProvider::Baidu, Some("api_key".to_string()), Some(extra)).unwrap();
     /// ```
     pub fn new_with_key(
-        provider: ModelProvider,
+        provider: ChatModelProvider,
         api_key: Option<String>,
         extra_keys: Option<std::collections::HashMap<String, String>>,
     ) -> Result<Self> {
         let mut config = LLMConfig::new();
         let extra = extra_keys.unwrap_or_default();
         match provider {
-            ModelProvider::OpenAI => {
+            ChatModelProvider::OpenAI => {
                 let key = api_key.ok_or_else(|| {
                     LangHubError::LLMError("OpenAI API key not provided".to_string())
                 })?;
                 config = config.openai(key);
             }
-            ModelProvider::Anthropic => {
+            ChatModelProvider::Anthropic => {
                 let key = api_key.ok_or_else(|| {
                     LangHubError::LLMError("Anthropic API key not provided".to_string())
                 })?;
                 config = config.anthropic(key);
             }
-            ModelProvider::DeepSeek => {
+            ChatModelProvider::DeepSeek => {
                 let key = api_key.ok_or_else(|| {
                     LangHubError::LLMError("DeepSeek API key not provided".to_string())
                 })?;
                 config = config.deepseek(key);
             }
-            ModelProvider::Google => {
+            ChatModelProvider::Google => {
                 let key = api_key.ok_or_else(|| {
                     LangHubError::LLMError("Google API key not provided".to_string())
                 })?;
                 config = config.google(key);
             }
-            ModelProvider::Cohere => {
+            ChatModelProvider::Cohere => {
                 let key = api_key.ok_or_else(|| {
                     LangHubError::LLMError("Cohere API key not provided".to_string())
                 })?;
                 config = config.cohere(key);
             }
-            ModelProvider::HuggingFace => {
+            ChatModelProvider::HuggingFace => {
                 let key = api_key.ok_or_else(|| {
                     LangHubError::LLMError("HuggingFace API key not provided".to_string())
                 })?;
                 config = config.huggingface(key);
             }
-            ModelProvider::Azure => {
+            ChatModelProvider::Azure => {
                 let key = api_key.ok_or_else(|| {
                     LangHubError::LLMError("Azure API key not provided".to_string())
                 })?;
@@ -397,43 +397,43 @@ impl LLMClient {
                 })?;
                 config = config.azure(key, endpoint.clone(), deployment.clone());
             }
-            ModelProvider::Mistral => {
+            ChatModelProvider::Mistral => {
                 let key = api_key.ok_or_else(|| {
                     LangHubError::LLMError("Mistral API key not provided".to_string())
                 })?;
                 config = config.mistral(key);
             }
-            ModelProvider::Groq => {
+            ChatModelProvider::Groq => {
                 let key = api_key.ok_or_else(|| {
                     LangHubError::LLMError("Groq API key not provided".to_string())
                 })?;
                 config = config.groq(key);
             }
-            ModelProvider::Together => {
+            ChatModelProvider::Together => {
                 let key = api_key.ok_or_else(|| {
                     LangHubError::LLMError("Together API key not provided".to_string())
                 })?;
                 config = config.together(key);
             }
-            ModelProvider::Replicate => {
+            ChatModelProvider::Replicate => {
                 let key = api_key.ok_or_else(|| {
                     LangHubError::LLMError("Replicate API key not provided".to_string())
                 })?;
                 config = config.replicate(key);
             }
-            ModelProvider::Fireworks => {
+            ChatModelProvider::Fireworks => {
                 let key = api_key.ok_or_else(|| {
                     LangHubError::LLMError("Fireworks API key not provided".to_string())
                 })?;
                 config = config.fireworks(key);
             }
-            ModelProvider::Perplexity => {
+            ChatModelProvider::Perplexity => {
                 let key = api_key.ok_or_else(|| {
                     LangHubError::LLMError("Perplexity API key not provided".to_string())
                 })?;
                 config = config.perplexity(key);
             }
-            ModelProvider::Baidu => {
+            ChatModelProvider::Baidu => {
                 let key = api_key.ok_or_else(|| {
                     LangHubError::LLMError("Baidu API key not provided".to_string())
                 })?;
@@ -442,13 +442,13 @@ impl LLMClient {
                 })?;
                 config = config.baidu(key, secret.clone());
             }
-            ModelProvider::Alibaba => {
+            ChatModelProvider::Alibaba => {
                 let key = api_key.ok_or_else(|| {
                     LangHubError::LLMError("Alibaba API key not provided".to_string())
                 })?;
                 config = config.alibaba(key);
             }
-            ModelProvider::Tencent => {
+            ChatModelProvider::Tencent => {
                 let secret_id = extra.get("secret_id").ok_or_else(|| {
                     LangHubError::LLMError("Tencent secret ID not provided".to_string())
                 })?;
@@ -457,13 +457,13 @@ impl LLMClient {
                 })?;
                 config = config.tencent(secret_id.clone(), secret_key.clone());
             }
-            ModelProvider::Zhipu => {
+            ChatModelProvider::Zhipu => {
                 let key = api_key.ok_or_else(|| {
                     LangHubError::LLMError("Zhipu API key not provided".to_string())
                 })?;
                 config = config.zhipu(key);
             }
-            ModelProvider::MiniMax => {
+            ChatModelProvider::MiniMax => {
                 let key = api_key.ok_or_else(|| {
                     LangHubError::LLMError("MiniMax API key not provided".to_string())
                 })?;
@@ -472,24 +472,24 @@ impl LLMClient {
                 })?;
                 config = config.minimax(key, group_id.clone());
             }
-            ModelProvider::Moonshot => {
+            ChatModelProvider::Moonshot => {
                 let key = api_key.ok_or_else(|| {
                     LangHubError::LLMError("Moonshot API key not provided".to_string())
                 })?;
                 config = config.moonshot(key);
             }
-            ModelProvider::Baichuan => {
+            ChatModelProvider::Baichuan => {
                 let key = api_key.ok_or_else(|| {
                     LangHubError::LLMError("Baichuan API key not provided".to_string())
                 })?;
                 config = config.baichuan(key);
             }
-            ModelProvider::Yi => {
+            ChatModelProvider::Yi => {
                 let key = api_key
                     .ok_or_else(|| LangHubError::LLMError("Yi API key not provided".to_string()))?;
                 config = config.yi(key);
             }
-            ModelProvider::Custom => {
+            ChatModelProvider::Custom => {
                 let api_key = api_key.ok_or_else(|| {
                     LangHubError::LLMError("Custom model API key not provided".to_string())
                 })?;
@@ -516,24 +516,24 @@ impl LLMClient {
     ///
     /// # Example
     /// ```
-    /// use langhub::{LLMClient, LLMConfig, ModelProvider};
+    /// use langhub::{LLMClient, LLMConfig, ChatModelProvider};
     ///
     /// let config = LLMConfig::new()
     ///     .openai("sk-xxx".to_string())
     ///     .anthropic("anth-xxx".to_string());
     ///
-    /// let openai_client = LLMClient::new_with_config(ModelProvider::OpenAI, &config).unwrap();
-    /// let anthropic_client = LLMClient::new_with_config(ModelProvider::Anthropic, &config).unwrap();
+    /// let openai_client = LLMClient::new_with_config(ChatModelProvider::OpenAI, &config).unwrap();
+    /// let anthropic_client = LLMClient::new_with_config(ChatModelProvider::Anthropic, &config).unwrap();
     /// ```
-    pub fn new_with_config(provider: ModelProvider, config: &LLMConfig) -> Result<Self> {
+    pub fn new_with_config(provider: ChatModelProvider, config: &LLMConfig) -> Result<Self> {
         match provider {
-            ModelProvider::OpenAI => {
+            ChatModelProvider::OpenAI => {
                 let api_key = config.openai_api_key.as_ref().ok_or_else(|| {
                     LangHubError::LLMError("OpenAI API key not provided".to_string())
                 })?;
                 Ok(LLMClient::OpenAI(OpenAI::new(api_key.clone()).gpt4_turbo()))
             }
-            ModelProvider::Anthropic => {
+            ChatModelProvider::Anthropic => {
                 let api_key = config.anthropic_api_key.as_ref().ok_or_else(|| {
                     LangHubError::LLMError("Anthropic API key not provided".to_string())
                 })?;
@@ -541,7 +541,7 @@ impl LLMClient {
                     Anthropic::new(api_key.clone()).claude3_sonnet(),
                 ))
             }
-            ModelProvider::DeepSeek => {
+            ChatModelProvider::DeepSeek => {
                 let api_key = config.deepseek_api_key.as_ref().ok_or_else(|| {
                     LangHubError::LLMError("DeepSeek API key not provided".to_string())
                 })?;
@@ -549,7 +549,7 @@ impl LLMClient {
                     DeepSeek::new(api_key.clone()).chat_model(),
                 ))
             }
-            ModelProvider::Google => {
+            ChatModelProvider::Google => {
                 let api_key = config.google_api_key.as_ref().ok_or_else(|| {
                     LangHubError::LLMError("Google API key not provided".to_string())
                 })?;
@@ -557,13 +557,13 @@ impl LLMClient {
                     GoogleAI::new(api_key.clone()).gemini15_pro(),
                 ))
             }
-            ModelProvider::Cohere => {
+            ChatModelProvider::Cohere => {
                 let api_key = config.cohere_api_key.as_ref().ok_or_else(|| {
                     LangHubError::LLMError("Cohere API key not provided".to_string())
                 })?;
                 Ok(LLMClient::Cohere(Cohere::new(api_key.clone()).command()))
             }
-            ModelProvider::HuggingFace => {
+            ChatModelProvider::HuggingFace => {
                 let api_key = config.huggingface_api_key.as_ref().ok_or_else(|| {
                     LangHubError::LLMError("HuggingFace API key not provided".to_string())
                 })?;
@@ -571,7 +571,7 @@ impl LLMClient {
                     HuggingFace::new(api_key.clone()).llama3_8b(),
                 ))
             }
-            ModelProvider::Azure => {
+            ChatModelProvider::Azure => {
                 let api_key = config.azure_api_key.as_ref().ok_or_else(|| {
                     LangHubError::LLMError("Azure API key not provided".to_string())
                 })?;
@@ -587,19 +587,19 @@ impl LLMClient {
                     deployment.clone(),
                 )))
             }
-            ModelProvider::Mistral => {
+            ChatModelProvider::Mistral => {
                 let api_key = config.mistral_api_key.as_ref().ok_or_else(|| {
                     LangHubError::LLMError("Mistral API key not provided".to_string())
                 })?;
                 Ok(LLMClient::Mistral(Mistral::new(api_key.clone()).small()))
             }
-            ModelProvider::Groq => {
+            ChatModelProvider::Groq => {
                 let api_key = config.groq_api_key.as_ref().ok_or_else(|| {
                     LangHubError::LLMError("Groq API key not provided".to_string())
                 })?;
                 Ok(LLMClient::Groq(Groq::new(api_key.clone()).mixtral()))
             }
-            ModelProvider::Together => {
+            ChatModelProvider::Together => {
                 let api_key = config.together_api_key.as_ref().ok_or_else(|| {
                     LangHubError::LLMError("Together API key not provided".to_string())
                 })?;
@@ -607,7 +607,7 @@ impl LLMClient {
                     Together::new(api_key.clone()).mixtral(),
                 ))
             }
-            ModelProvider::Replicate => {
+            ChatModelProvider::Replicate => {
                 let api_key = config.replicate_api_key.as_ref().ok_or_else(|| {
                     LangHubError::LLMError("Replicate API key not provided".to_string())
                 })?;
@@ -615,7 +615,7 @@ impl LLMClient {
                     Replicate::new(api_key.clone()).mixtral(),
                 ))
             }
-            ModelProvider::Fireworks => {
+            ChatModelProvider::Fireworks => {
                 let api_key = config.fireworks_api_key.as_ref().ok_or_else(|| {
                     LangHubError::LLMError("Fireworks API key not provided".to_string())
                 })?;
@@ -623,7 +623,7 @@ impl LLMClient {
                     Fireworks::new(api_key.clone()).mixtral(),
                 ))
             }
-            ModelProvider::Perplexity => {
+            ChatModelProvider::Perplexity => {
                 let api_key = config.perplexity_api_key.as_ref().ok_or_else(|| {
                     LangHubError::LLMError("Perplexity API key not provided".to_string())
                 })?;
@@ -631,7 +631,7 @@ impl LLMClient {
                     Perplexity::new(api_key.clone()).sonar_medium(),
                 ))
             }
-            ModelProvider::Baidu => {
+            ChatModelProvider::Baidu => {
                 let api_key = config.baidu_api_key.as_ref().ok_or_else(|| {
                     LangHubError::LLMError("Baidu API key not provided".to_string())
                 })?;
@@ -642,7 +642,7 @@ impl LLMClient {
                     BaiduWenxin::new(api_key.clone(), secret_key.clone()).ernie4_0(),
                 ))
             }
-            ModelProvider::Alibaba => {
+            ChatModelProvider::Alibaba => {
                 let api_key = config.alibaba_api_key.as_ref().ok_or_else(|| {
                     LangHubError::LLMError("Alibaba API key not provided".to_string())
                 })?;
@@ -650,7 +650,7 @@ impl LLMClient {
                     AlibabaTongyi::new(api_key.clone()).qwen_plus(),
                 ))
             }
-            ModelProvider::Tencent => {
+            ChatModelProvider::Tencent => {
                 let secret_id = config.tencent_secret_id.as_ref().ok_or_else(|| {
                     LangHubError::LLMError("Tencent secret ID not provided".to_string())
                 })?;
@@ -661,13 +661,13 @@ impl LLMClient {
                     TencentHunyuan::new(secret_id.clone(), secret_key.clone()).hunyuan_pro(),
                 ))
             }
-            ModelProvider::Zhipu => {
+            ChatModelProvider::Zhipu => {
                 let api_key = config.zhipu_api_key.as_ref().ok_or_else(|| {
                     LangHubError::LLMError("Zhipu API key not provided".to_string())
                 })?;
                 Ok(LLMClient::Zhipu(ZhipuAI::new(api_key.clone()).glm4()))
             }
-            ModelProvider::MiniMax => {
+            ChatModelProvider::MiniMax => {
                 let api_key = config.minimax_api_key.as_ref().ok_or_else(|| {
                     LangHubError::LLMError("MiniMax API key not provided".to_string())
                 })?;
@@ -678,7 +678,7 @@ impl LLMClient {
                     MiniMax::new(api_key.clone(), group_id.clone()).abab6_5(),
                 ))
             }
-            ModelProvider::Moonshot => {
+            ChatModelProvider::Moonshot => {
                 let api_key = config.moonshot_api_key.as_ref().ok_or_else(|| {
                     LangHubError::LLMError("Moonshot API key not provided".to_string())
                 })?;
@@ -686,7 +686,7 @@ impl LLMClient {
                     Moonshot::new(api_key.clone()).kimi_128k(),
                 ))
             }
-            ModelProvider::Baichuan => {
+            ChatModelProvider::Baichuan => {
                 let api_key = config.baichuan_api_key.as_ref().ok_or_else(|| {
                     LangHubError::LLMError("Baichuan API key not provided".to_string())
                 })?;
@@ -694,14 +694,14 @@ impl LLMClient {
                     Baichuan::new(api_key.clone()).baichuan4(),
                 ))
             }
-            ModelProvider::Yi => {
+            ChatModelProvider::Yi => {
                 let api_key = config
                     .yi_api_key
                     .as_ref()
                     .ok_or_else(|| LangHubError::LLMError("Yi API key not provided".to_string()))?;
                 Ok(LLMClient::Yi(Yi::new(api_key.clone()).yi34b()))
             }
-            ModelProvider::Custom => {
+            ChatModelProvider::Custom => {
                 let api_key = config.openai_api_key.as_ref().ok_or_else(|| {
                     LangHubError::LLMError("Custom model API key not provided".to_string())
                 })?;

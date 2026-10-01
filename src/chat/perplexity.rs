@@ -1,4 +1,5 @@
 use super::{ChatMessage, LLM, LLMOptions, LLMResult};
+use crate::chat::ChatModelProvider;
 /// Perplexity AI
 use crate::types::*;
 use serde_json::json;
@@ -193,8 +194,8 @@ impl LLM for Perplexity {
             PerplexityModel::Mixtral_8x7b => "Perplexity-Mixtral-8x7B".to_string(),
         }
     }
-    fn get_provider_enum(&self) -> ModelProvider {
-        ModelProvider::Perplexity
+    fn get_provider_enum(&self) -> ChatModelProvider {
+        ChatModelProvider::Perplexity
     }
     fn supports_function_calling(&self) -> bool {
         true

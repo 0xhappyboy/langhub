@@ -1,4 +1,5 @@
 use super::{ChatMessage, LLM, LLMOptions, LLMResult};
+use crate::chat::ChatModelProvider;
 use crate::types::*;
 use serde_json::json;
 use std::future::Future;
@@ -169,8 +170,8 @@ impl LLM for CustomLLM {
             CustomModel::Custom(name) => format!("Custom-{}", name),
         }
     }
-    fn get_provider_enum(&self) -> ModelProvider {
-        ModelProvider::Custom
+    fn get_provider_enum(&self) -> ChatModelProvider {
+        ChatModelProvider::Custom
     }
     fn supports_function_calling(&self) -> bool {
         true

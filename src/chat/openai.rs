@@ -1,4 +1,5 @@
 use super::{ChatMessage, LLM, LLMOptions, LLMResult, ResponseFormat};
+use crate::chat::ChatModelProvider;
 /// OpenAI (GPT-4, GPT-3.5, O1)
 use crate::types::*;
 use serde_json::json;
@@ -234,8 +235,8 @@ impl LLM for OpenAI {
             OpenAIModel::O1Mini => "OpenAI-O1-Mini".to_string(),
         }
     }
-    fn get_provider_enum(&self) -> ModelProvider {
-        ModelProvider::OpenAI
+    fn get_provider_enum(&self) -> ChatModelProvider {
+        ChatModelProvider::OpenAI
     }
     fn supports_function_calling(&self) -> bool {
         true

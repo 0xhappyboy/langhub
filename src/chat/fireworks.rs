@@ -1,4 +1,5 @@
 use super::{ChatMessage, LLM, LLMOptions, LLMResult};
+use crate::chat::ChatModelProvider;
 /// Fireworks AI
 use crate::types::*;
 use serde_json::json;
@@ -201,8 +202,8 @@ impl LLM for Fireworks {
             FireworksModel::Custom(name) => format!("Fireworks-{}", name).to_string(),
         }
     }
-    fn get_provider_enum(&self) -> ModelProvider {
-        ModelProvider::Fireworks
+    fn get_provider_enum(&self) -> ChatModelProvider {
+        ChatModelProvider::Fireworks
     }
     fn supports_function_calling(&self) -> bool {
         true

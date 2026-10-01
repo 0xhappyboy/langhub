@@ -1,4 +1,5 @@
 use super::{ChatMessage, LLM, LLMOptions, LLMResult};
+use crate::chat::ChatModelProvider;
 /// Alibaba Qianwen
 use crate::types::*;
 use serde_json::json;
@@ -205,8 +206,8 @@ impl LLM for AlibabaTongyi {
             AlibabaModel::QwenVL => "Alibaba-Qwen-VL".to_string(),
         }
     }
-    fn get_provider_enum(&self) -> ModelProvider {
-        ModelProvider::Alibaba
+    fn get_provider_enum(&self) -> ChatModelProvider {
+        ChatModelProvider::Alibaba
     }
     fn supports_function_calling(&self) -> bool {
         true

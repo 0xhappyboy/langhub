@@ -1,4 +1,5 @@
 use super::{ChatMessage, LLM, LLMOptions, LLMResult};
+use crate::chat::ChatModelProvider;
 /// Mistral AI
 use crate::types::*;
 use serde_json::json;
@@ -192,8 +193,8 @@ impl LLM for Mistral {
             MistralModel::Embed => "Mistral-Embed".to_string(),
         }
     }
-    fn get_provider_enum(&self) -> ModelProvider {
-        ModelProvider::Mistral
+    fn get_provider_enum(&self) -> ChatModelProvider {
+        ChatModelProvider::Mistral
     }
     fn supports_function_calling(&self) -> bool {
         true

@@ -1,4 +1,5 @@
 use super::{ChatMessage, LLM, LLMOptions, LLMResult};
+use crate::chat::ChatModelProvider;
 /// MiniMax (Abab)
 use crate::types::*;
 use serde_json::json;
@@ -171,8 +172,8 @@ impl LLM for MiniMax {
             MiniMaxModel::Abab5_5S => "MiniMax-Abab5.5s".to_string(),
         }
     }
-    fn get_provider_enum(&self) -> ModelProvider {
-        ModelProvider::MiniMax
+    fn get_provider_enum(&self) -> ChatModelProvider {
+        ChatModelProvider::MiniMax
     }
     fn supports_function_calling(&self) -> bool {
         true

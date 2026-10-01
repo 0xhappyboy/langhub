@@ -1,4 +1,5 @@
 use super::{ChatMessage, LLM, LLMOptions, LLMResult};
+use crate::chat::ChatModelProvider;
 /// Together AI
 use crate::types::*;
 use serde_json::json;
@@ -211,8 +212,8 @@ impl LLM for Together {
             TogetherModel::Custom(name) => format!("Together-{}", name).to_string(),
         }
     }
-    fn get_provider_enum(&self) -> ModelProvider {
-        ModelProvider::Together
+    fn get_provider_enum(&self) -> ChatModelProvider {
+        ChatModelProvider::Together
     }
     fn supports_function_calling(&self) -> bool {
         true
