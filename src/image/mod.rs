@@ -64,7 +64,7 @@ pub fn extract_image_usage_from_raw(raw: &serde_json::Value) -> Option<ImageUsag
     None
 }
 /// Unified options for image generation.
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct ImageLLMOptions {
     /// Number of images to generate.
     pub n: Option<u32>,

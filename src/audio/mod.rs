@@ -103,7 +103,7 @@ pub fn extract_audio_usage_from_raw(raw: &serde_json::Value) -> Option<AudioUsag
 /// - `lyrics`: optional lyrics.
 /// - `instrumental`: whether to produce an instrumental track.
 /// - `duration_seconds`: target duration.
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct AudioLLMOptions {
     /// The primary text input. For TTS this is the text to read; for audio
     /// generation this is the scene / dialogue prompt; for music generation

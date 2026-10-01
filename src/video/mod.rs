@@ -84,7 +84,7 @@ pub fn extract_video_usage_from_raw(raw: &serde_json::Value) -> Option<VideoUsag
     None
 }
 /// Unified options for video generation.
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct VideoLLMOptions {
     pub duration: Option<f32>,
     pub resolution: Option<String>,
