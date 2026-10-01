@@ -1,38 +1,37 @@
 #[cfg(test)]
 mod tests {
-    use super::*;
     use langhub::chat::ChatModelProvider;
-use langhub::types::VideoVendor;
+    use langhub::types::VideoVendor;
     use langhub::video::VideoModelProvider;
-    use langhub::{LLMClient, LLMConfig};
+    use langhub::{ChatLLMClient, ChatLLMConfig};
     #[tokio::test]
     async fn test_openai_client_creation() {
-        let config = LLMConfig::new().openai("test-api-key".to_string());
-        let client = LLMClient::new_with_config(ChatModelProvider::OpenAI, &config);
+        let config = ChatLLMConfig::new().openai("test-api-key".to_string());
+        let client = ChatLLMClient::new_with_config(ChatModelProvider::OpenAI, &config);
         assert!(client.is_ok());
     }
     #[tokio::test]
     async fn test_deepseek_client_creation() {
-        let config = LLMConfig::new().deepseek("test-api-key".to_string());
-        let client = LLMClient::new_with_config(ChatModelProvider::DeepSeek, &config);
+        let config = ChatLLMConfig::new().deepseek("test-api-key".to_string());
+        let client = ChatLLMClient::new_with_config(ChatModelProvider::DeepSeek, &config);
         assert!(client.is_ok());
     }
     #[tokio::test]
     async fn test_anthropic_client_creation() {
-        let config = LLMConfig::new().anthropic("test-api-key".to_string());
-        let client = LLMClient::new_with_config(ChatModelProvider::Anthropic, &config);
+        let config = ChatLLMConfig::new().anthropic("test-api-key".to_string());
+        let client = ChatLLMClient::new_with_config(ChatModelProvider::Anthropic, &config);
         assert!(client.is_ok());
     }
     #[tokio::test]
     async fn test_google_client_creation() {
-        let config = LLMConfig::new().google("test-api-key".to_string());
-        let client = LLMClient::new_with_config(ChatModelProvider::Google, &config);
+        let config = ChatLLMConfig::new().google("test-api-key".to_string());
+        let client = ChatLLMClient::new_with_config(ChatModelProvider::Google, &config);
         assert!(client.is_ok());
     }
     #[tokio::test]
     async fn test_missing_api_key_error() {
-        let config = LLMConfig::new();
-        let client = LLMClient::new_with_config(ChatModelProvider::OpenAI, &config);
+        let config = ChatLLMConfig::new();
+        let client = ChatLLMClient::new_with_config(ChatModelProvider::OpenAI, &config);
         assert!(client.is_err());
     }
     // Video LLM client tests

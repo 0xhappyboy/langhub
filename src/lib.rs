@@ -15,14 +15,14 @@ use crate::video::*;
 ///
 /// # Example
 /// ```
-/// use langhub::LLMConfig;
+/// use langhub::ChatLLMConfig;
 ///
-/// let config = LLMConfig::new()
+/// let config = ChatLLMConfig::new()
 ///     .openai("sk-xxx".to_string())
 ///     .anthropic("anthropic-api-key".to_string());
 /// ```
 #[derive(Debug, Clone, Default)]
-pub struct LLMConfig {
+pub struct ChatLLMConfig {
     /// OpenAI API key
     pub openai_api_key: Option<String>,
     /// Anthropic API key
@@ -78,7 +78,7 @@ pub struct LLMConfig {
     /// Custom API base URL
     pub custom_api_base: Option<String>,
 }
-impl LLMConfig {
+impl ChatLLMConfig {
     /// Creates a new empty configuration
     ///
     /// # Example
@@ -293,7 +293,7 @@ impl LLMConfig {
 /// # }
 /// ```
 #[derive(Clone)]
-pub enum LLMClient {
+pub enum ChatLLMClient {
     OpenAI(OpenAI),
     Anthropic(Anthropic),
     DeepSeek(DeepSeek),
@@ -317,7 +317,7 @@ pub enum LLMClient {
     Yi(Yi),
     Custom(CustomLLM),
 }
-impl LLMClient {
+impl ChatLLMClient {
     /// Creates a new LLM client with the given provider using optional API keys
     ///
     /// # Arguments
@@ -330,23 +330,23 @@ impl LLMClient {
     ///
     /// # Example
     /// ```
-    /// use langhub::{LLMClient, ModelProvider};
+    /// use langhub::{ChatLLMClient, ModelProvider};
     ///
     /// // OpenAI with just API key
-    /// let client = LLMClient::new_with_key(ModelProvider::OpenAI, Some("sk-xxx".to_string()), None).unwrap();
+    /// let client = ChatLLMClient::new_with_key(ModelProvider::OpenAI, Some("sk-xxx".to_string()), None).unwrap();
     ///
     /// // Baidu with API key and secret key
     /// let extra = std::collections::HashMap::from([
     ///     ("secret_key".to_string(), "your_secret_key".to_string())
     /// ]);
-    /// let client = LLMClient::new_with_key(ChatModelProvider::Baidu, Some("api_key".to_string()), Some(extra)).unwrap();
+    /// let client = ChatLLMClient::new_with_key(ChatModelProvider::Baidu, Some("api_key".to_string()), Some(extra)).unwrap();
     /// ```
     pub fn new_with_key(
         provider: ChatModelProvider,
         api_key: Option<String>,
         extra_keys: Option<std::collections::HashMap<String, String>>,
     ) -> Result<Self> {
-        let mut config = LLMConfig::new();
+        let mut config = ChatLLMConfig::new();
         let extra = extra_keys.unwrap_or_default();
         match provider {
             ChatModelProvider::OpenAI => {
@@ -497,7 +497,7 @@ impl LLMClient {
                     LangHubError::LLMError("Custom model API base URL not provided".to_string())
                 })?;
                 let client = CustomLLM::new(api_key, api_base.clone());
-                return Ok(LLMClient::Custom(client));
+                return Ok(ChatLLMClient::Custom(client));
             }
         }
         Self::new_with_config(provider, &config)
@@ -516,28 +516,28 @@ impl LLMClient {
     ///
     /// # Example
     /// ```
-    /// use langhub::{LLMClient, LLMConfig, ChatModelProvider};
+    /// use langhub::{ChatLLMClient, ChatLLMConfig, ChatModelProvider};
     ///
-    /// let config = LLMConfig::new()
+    /// let config = ChatLLMConfig::new()
     ///     .openai("sk-xxx".to_string())
     ///     .anthropic("anth-xxx".to_string());
     ///
-    /// let openai_client = LLMClient::new_with_config(ChatModelProvider::OpenAI, &config).unwrap();
-    /// let anthropic_client = LLMClient::new_with_config(ChatModelProvider::Anthropic, &config).unwrap();
+    /// let openai_client = ChatLLMClient::new_with_config(ChatModelProvider::OpenAI, &config).unwrap();
+    /// let anthropic_client = ChatLLMClient::new_with_config(ChatModelProvider::Anthropic, &config).unwrap();
     /// ```
-    pub fn new_with_config(provider: ChatModelProvider, config: &LLMConfig) -> Result<Self> {
+    pub fn new_with_config(provider: ChatModelProvider, config: &ChatLLMConfig) -> Result<Self> {
         match provider {
             ChatModelProvider::OpenAI => {
                 let api_key = config.openai_api_key.as_ref().ok_or_else(|| {
                     LangHubError::LLMError("OpenAI API key not provided".to_string())
                 })?;
-                Ok(LLMClient::OpenAI(OpenAI::new(api_key.clone()).gpt4_turbo()))
+                Ok(ChatLLMClient::OpenAI(OpenAI::new(api_key.clone()).gpt4_turbo()))
             }
             ChatModelProvider::Anthropic => {
                 let api_key = config.anthropic_api_key.as_ref().ok_or_else(|| {
                     LangHubError::LLMError("Anthropic API key not provided".to_string())
                 })?;
-                Ok(LLMClient::Anthropic(
+                Ok(ChatLLMClient::Anthropic(
                     Anthropic::new(api_key.clone()).claude3_sonnet(),
                 ))
             }
@@ -545,7 +545,7 @@ impl LLMClient {
                 let api_key = config.deepseek_api_key.as_ref().ok_or_else(|| {
                     LangHubError::LLMError("DeepSeek API key not provided".to_string())
                 })?;
-                Ok(LLMClient::DeepSeek(
+                Ok(ChatLLMClient::DeepSeek(
                     DeepSeek::new(api_key.clone()).chat_model(),
                 ))
             }
@@ -553,7 +553,7 @@ impl LLMClient {
                 let api_key = config.google_api_key.as_ref().ok_or_else(|| {
                     LangHubError::LLMError("Google API key not provided".to_string())
                 })?;
-                Ok(LLMClient::Google(
+                Ok(ChatLLMClient::Google(
                     GoogleAI::new(api_key.clone()).gemini15_pro(),
                 ))
             }
@@ -561,13 +561,13 @@ impl LLMClient {
                 let api_key = config.cohere_api_key.as_ref().ok_or_else(|| {
                     LangHubError::LLMError("Cohere API key not provided".to_string())
                 })?;
-                Ok(LLMClient::Cohere(Cohere::new(api_key.clone()).command()))
+                Ok(ChatLLMClient::Cohere(Cohere::new(api_key.clone()).command()))
             }
             ChatModelProvider::HuggingFace => {
                 let api_key = config.huggingface_api_key.as_ref().ok_or_else(|| {
                     LangHubError::LLMError("HuggingFace API key not provided".to_string())
                 })?;
-                Ok(LLMClient::HuggingFace(
+                Ok(ChatLLMClient::HuggingFace(
                     HuggingFace::new(api_key.clone()).llama3_8b(),
                 ))
             }
@@ -581,7 +581,7 @@ impl LLMClient {
                 let deployment = config.azure_deployment_name.as_ref().ok_or_else(|| {
                     LangHubError::LLMError("Azure deployment name not provided".to_string())
                 })?;
-                Ok(LLMClient::Azure(AzureOpenAI::new(
+                Ok(ChatLLMClient::Azure(AzureOpenAI::new(
                     api_key.clone(),
                     endpoint.clone(),
                     deployment.clone(),
@@ -591,19 +591,19 @@ impl LLMClient {
                 let api_key = config.mistral_api_key.as_ref().ok_or_else(|| {
                     LangHubError::LLMError("Mistral API key not provided".to_string())
                 })?;
-                Ok(LLMClient::Mistral(Mistral::new(api_key.clone()).small()))
+                Ok(ChatLLMClient::Mistral(Mistral::new(api_key.clone()).small()))
             }
             ChatModelProvider::Groq => {
                 let api_key = config.groq_api_key.as_ref().ok_or_else(|| {
                     LangHubError::LLMError("Groq API key not provided".to_string())
                 })?;
-                Ok(LLMClient::Groq(Groq::new(api_key.clone()).mixtral()))
+                Ok(ChatLLMClient::Groq(Groq::new(api_key.clone()).mixtral()))
             }
             ChatModelProvider::Together => {
                 let api_key = config.together_api_key.as_ref().ok_or_else(|| {
                     LangHubError::LLMError("Together API key not provided".to_string())
                 })?;
-                Ok(LLMClient::Together(
+                Ok(ChatLLMClient::Together(
                     Together::new(api_key.clone()).mixtral(),
                 ))
             }
@@ -611,7 +611,7 @@ impl LLMClient {
                 let api_key = config.replicate_api_key.as_ref().ok_or_else(|| {
                     LangHubError::LLMError("Replicate API key not provided".to_string())
                 })?;
-                Ok(LLMClient::Replicate(
+                Ok(ChatLLMClient::Replicate(
                     Replicate::new(api_key.clone()).mixtral(),
                 ))
             }
@@ -619,7 +619,7 @@ impl LLMClient {
                 let api_key = config.fireworks_api_key.as_ref().ok_or_else(|| {
                     LangHubError::LLMError("Fireworks API key not provided".to_string())
                 })?;
-                Ok(LLMClient::Fireworks(
+                Ok(ChatLLMClient::Fireworks(
                     Fireworks::new(api_key.clone()).mixtral(),
                 ))
             }
@@ -627,7 +627,7 @@ impl LLMClient {
                 let api_key = config.perplexity_api_key.as_ref().ok_or_else(|| {
                     LangHubError::LLMError("Perplexity API key not provided".to_string())
                 })?;
-                Ok(LLMClient::Perplexity(
+                Ok(ChatLLMClient::Perplexity(
                     Perplexity::new(api_key.clone()).sonar_medium(),
                 ))
             }
@@ -638,7 +638,7 @@ impl LLMClient {
                 let secret_key = config.baidu_secret_key.as_ref().ok_or_else(|| {
                     LangHubError::LLMError("Baidu secret key not provided".to_string())
                 })?;
-                Ok(LLMClient::Baidu(
+                Ok(ChatLLMClient::Baidu(
                     BaiduWenxin::new(api_key.clone(), secret_key.clone()).ernie4_0(),
                 ))
             }
@@ -646,7 +646,7 @@ impl LLMClient {
                 let api_key = config.alibaba_api_key.as_ref().ok_or_else(|| {
                     LangHubError::LLMError("Alibaba API key not provided".to_string())
                 })?;
-                Ok(LLMClient::Alibaba(
+                Ok(ChatLLMClient::Alibaba(
                     AlibabaTongyi::new(api_key.clone()).qwen_plus(),
                 ))
             }
@@ -657,7 +657,7 @@ impl LLMClient {
                 let secret_key = config.tencent_secret_key.as_ref().ok_or_else(|| {
                     LangHubError::LLMError("Tencent secret key not provided".to_string())
                 })?;
-                Ok(LLMClient::Tencent(
+                Ok(ChatLLMClient::Tencent(
                     TencentHunyuan::new(secret_id.clone(), secret_key.clone()).hunyuan_pro(),
                 ))
             }
@@ -665,7 +665,7 @@ impl LLMClient {
                 let api_key = config.zhipu_api_key.as_ref().ok_or_else(|| {
                     LangHubError::LLMError("Zhipu API key not provided".to_string())
                 })?;
-                Ok(LLMClient::Zhipu(ZhipuAI::new(api_key.clone()).glm4()))
+                Ok(ChatLLMClient::Zhipu(ZhipuAI::new(api_key.clone()).glm4()))
             }
             ChatModelProvider::MiniMax => {
                 let api_key = config.minimax_api_key.as_ref().ok_or_else(|| {
@@ -674,7 +674,7 @@ impl LLMClient {
                 let group_id = config.minimax_group_id.as_ref().ok_or_else(|| {
                     LangHubError::LLMError("MiniMax group ID not provided".to_string())
                 })?;
-                Ok(LLMClient::MiniMax(
+                Ok(ChatLLMClient::MiniMax(
                     MiniMax::new(api_key.clone(), group_id.clone()).abab6_5(),
                 ))
             }
@@ -682,7 +682,7 @@ impl LLMClient {
                 let api_key = config.moonshot_api_key.as_ref().ok_or_else(|| {
                     LangHubError::LLMError("Moonshot API key not provided".to_string())
                 })?;
-                Ok(LLMClient::Moonshot(
+                Ok(ChatLLMClient::Moonshot(
                     Moonshot::new(api_key.clone()).kimi_128k(),
                 ))
             }
@@ -690,7 +690,7 @@ impl LLMClient {
                 let api_key = config.baichuan_api_key.as_ref().ok_or_else(|| {
                     LangHubError::LLMError("Baichuan API key not provided".to_string())
                 })?;
-                Ok(LLMClient::Baichuan(
+                Ok(ChatLLMClient::Baichuan(
                     Baichuan::new(api_key.clone()).baichuan4(),
                 ))
             }
@@ -699,7 +699,7 @@ impl LLMClient {
                     .yi_api_key
                     .as_ref()
                     .ok_or_else(|| LangHubError::LLMError("Yi API key not provided".to_string()))?;
-                Ok(LLMClient::Yi(Yi::new(api_key.clone()).yi34b()))
+                Ok(ChatLLMClient::Yi(Yi::new(api_key.clone()).yi34b()))
             }
             ChatModelProvider::Custom => {
                 let api_key = config.openai_api_key.as_ref().ok_or_else(|| {
@@ -708,7 +708,7 @@ impl LLMClient {
                 let api_base = config.custom_api_base.as_ref().ok_or_else(|| {
                     LangHubError::LLMError("Custom model API base URL not provided".to_string())
                 })?;
-                Ok(LLMClient::Custom(CustomLLM::new(
+                Ok(ChatLLMClient::Custom(CustomLLM::new(
                     api_key.clone(),
                     api_base.clone(),
                 )))
@@ -727,7 +727,7 @@ impl LLMClient {
     /// ```
     /// # async fn example() -> Result<(), Box<dyn std::error::Error>> {
     /// # let config = langhub::LLMConfig::new().openai("sk-xxx".to_string());
-    /// # let client = langhub::LLMClient::new_with_config(langhub::types::ModelProvider::OpenAI, &config)?;
+    /// # let client = langhub::ChatLLMClient::new_with_config(langhub::types::ModelProvider::OpenAI, &config)?;
     /// let response = client.generate("What is the capital of France?").await?;
     /// println!("{}", response); // "The capital of France is Paris."
     /// # Ok(())
@@ -735,28 +735,28 @@ impl LLMClient {
     /// ```
     pub async fn generate(&self, prompt: &str) -> Result<LLMResult> {
         match self {
-            LLMClient::OpenAI(m) => m.generate(prompt).await,
-            LLMClient::Anthropic(m) => m.generate(prompt).await,
-            LLMClient::DeepSeek(m) => m.generate(prompt).await,
-            LLMClient::Google(m) => m.generate(prompt).await,
-            LLMClient::Cohere(m) => m.generate(prompt).await,
-            LLMClient::HuggingFace(m) => m.generate(prompt).await,
-            LLMClient::Azure(m) => m.generate(prompt).await,
-            LLMClient::Mistral(m) => m.generate(prompt).await,
-            LLMClient::Groq(m) => m.generate(prompt).await,
-            LLMClient::Together(m) => m.generate(prompt).await,
-            LLMClient::Replicate(m) => m.generate(prompt).await,
-            LLMClient::Fireworks(m) => m.generate(prompt).await,
-            LLMClient::Perplexity(m) => m.generate(prompt).await,
-            LLMClient::Baidu(m) => m.generate(prompt).await,
-            LLMClient::Alibaba(m) => m.generate(prompt).await,
-            LLMClient::Tencent(m) => m.generate(prompt).await,
-            LLMClient::Zhipu(m) => m.generate(prompt).await,
-            LLMClient::MiniMax(m) => m.generate(prompt).await,
-            LLMClient::Moonshot(m) => m.generate(prompt).await,
-            LLMClient::Baichuan(m) => m.generate(prompt).await,
-            LLMClient::Yi(m) => m.generate(prompt).await,
-            LLMClient::Custom(m) => m.generate(prompt).await,
+            ChatLLMClient::OpenAI(m) => m.generate(prompt).await,
+            ChatLLMClient::Anthropic(m) => m.generate(prompt).await,
+            ChatLLMClient::DeepSeek(m) => m.generate(prompt).await,
+            ChatLLMClient::Google(m) => m.generate(prompt).await,
+            ChatLLMClient::Cohere(m) => m.generate(prompt).await,
+            ChatLLMClient::HuggingFace(m) => m.generate(prompt).await,
+            ChatLLMClient::Azure(m) => m.generate(prompt).await,
+            ChatLLMClient::Mistral(m) => m.generate(prompt).await,
+            ChatLLMClient::Groq(m) => m.generate(prompt).await,
+            ChatLLMClient::Together(m) => m.generate(prompt).await,
+            ChatLLMClient::Replicate(m) => m.generate(prompt).await,
+            ChatLLMClient::Fireworks(m) => m.generate(prompt).await,
+            ChatLLMClient::Perplexity(m) => m.generate(prompt).await,
+            ChatLLMClient::Baidu(m) => m.generate(prompt).await,
+            ChatLLMClient::Alibaba(m) => m.generate(prompt).await,
+            ChatLLMClient::Tencent(m) => m.generate(prompt).await,
+            ChatLLMClient::Zhipu(m) => m.generate(prompt).await,
+            ChatLLMClient::MiniMax(m) => m.generate(prompt).await,
+            ChatLLMClient::Moonshot(m) => m.generate(prompt).await,
+            ChatLLMClient::Baichuan(m) => m.generate(prompt).await,
+            ChatLLMClient::Yi(m) => m.generate(prompt).await,
+            ChatLLMClient::Custom(m) => m.generate(prompt).await,
         }
     }
     /// Generates a chat completion from a conversation history
@@ -786,28 +786,28 @@ impl LLMClient {
     /// ```
     pub async fn chat(&self, messages: Vec<ChatMessage>) -> Result<LLMResult> {
         match self {
-            LLMClient::OpenAI(m) => m.chat(messages).await,
-            LLMClient::Anthropic(m) => m.chat(messages).await,
-            LLMClient::DeepSeek(m) => m.chat(messages).await,
-            LLMClient::Google(m) => m.chat(messages).await,
-            LLMClient::Cohere(m) => m.chat(messages).await,
-            LLMClient::HuggingFace(m) => m.chat(messages).await,
-            LLMClient::Azure(m) => m.chat(messages).await,
-            LLMClient::Mistral(m) => m.chat(messages).await,
-            LLMClient::Groq(m) => m.chat(messages).await,
-            LLMClient::Together(m) => m.chat(messages).await,
-            LLMClient::Replicate(m) => m.chat(messages).await,
-            LLMClient::Fireworks(m) => m.chat(messages).await,
-            LLMClient::Perplexity(m) => m.chat(messages).await,
-            LLMClient::Baidu(m) => m.chat(messages).await,
-            LLMClient::Alibaba(m) => m.chat(messages).await,
-            LLMClient::Tencent(m) => m.chat(messages).await,
-            LLMClient::Zhipu(m) => m.chat(messages).await,
-            LLMClient::MiniMax(m) => m.chat(messages).await,
-            LLMClient::Moonshot(m) => m.chat(messages).await,
-            LLMClient::Baichuan(m) => m.chat(messages).await,
-            LLMClient::Yi(m) => m.chat(messages).await,
-            LLMClient::Custom(m) => m.chat(messages).await,
+            ChatLLMClient::OpenAI(m) => m.chat(messages).await,
+            ChatLLMClient::Anthropic(m) => m.chat(messages).await,
+            ChatLLMClient::DeepSeek(m) => m.chat(messages).await,
+            ChatLLMClient::Google(m) => m.chat(messages).await,
+            ChatLLMClient::Cohere(m) => m.chat(messages).await,
+            ChatLLMClient::HuggingFace(m) => m.chat(messages).await,
+            ChatLLMClient::Azure(m) => m.chat(messages).await,
+            ChatLLMClient::Mistral(m) => m.chat(messages).await,
+            ChatLLMClient::Groq(m) => m.chat(messages).await,
+            ChatLLMClient::Together(m) => m.chat(messages).await,
+            ChatLLMClient::Replicate(m) => m.chat(messages).await,
+            ChatLLMClient::Fireworks(m) => m.chat(messages).await,
+            ChatLLMClient::Perplexity(m) => m.chat(messages).await,
+            ChatLLMClient::Baidu(m) => m.chat(messages).await,
+            ChatLLMClient::Alibaba(m) => m.chat(messages).await,
+            ChatLLMClient::Tencent(m) => m.chat(messages).await,
+            ChatLLMClient::Zhipu(m) => m.chat(messages).await,
+            ChatLLMClient::MiniMax(m) => m.chat(messages).await,
+            ChatLLMClient::Moonshot(m) => m.chat(messages).await,
+            ChatLLMClient::Baichuan(m) => m.chat(messages).await,
+            ChatLLMClient::Yi(m) => m.chat(messages).await,
+            ChatLLMClient::Custom(m) => m.chat(messages).await,
         }
     }
 }
