@@ -69,6 +69,14 @@ impl FluxImage {
         self.default_options = options;
         self
     }
+    /// Resolve the effective model id: caller override wins over the
+    /// configured default.
+    fn resolve_model(&self, model_override: Option<&str>) -> String {
+        match model_override {
+            Some(m) => m.to_string(),
+            None => self.model.clone().into(),
+        }
+    }
     fn build_request_body(&self, prompt: &str, options: &ImageLLMOptions) -> serde_json::Value {
         let mut body = json!({
             "prompt": prompt,
@@ -114,9 +122,10 @@ impl FluxImage {
         &self,
         prompt: &str,
         options: &ImageLLMOptions,
+        model_override: Option<&str>,
     ) -> Result<serde_json::Value> {
         let body = self.build_request_body(prompt, options);
-        let model_name: String = self.model.clone().into();
+        let model_name: String = self.resolve_model(model_override);
         let response = self
             .client
             .post(format!("{}/{}", self.base_url, model_name))
@@ -197,11 +206,15 @@ impl ImageLLM for FluxImage {
     fn generate(
         &self,
         prompt: &str,
+        model: Option<&str>,
     ) -> Pin<Box<dyn Future<Output = Result<ImageLLMResult>> + Send + '_>> {
         let prompt = prompt.to_string();
         let options = self.default_options.clone();
+        let model_owned: Option<String> = model.map(|m| m.to_string());
         Box::pin(async move {
-            let raw = self.submit_request(&prompt, &options).await?;
+            let raw = self
+                .submit_request(&prompt, &options, model_owned.as_deref())
+                .await?;
             let task_id = raw["id"]
                 .as_str()
                 .ok_or_else(|| LangHubError::ParseError("Missing task id".to_string()))?
@@ -213,10 +226,14 @@ impl ImageLLM for FluxImage {
         &self,
         prompt: &str,
         options: ImageLLMOptions,
+        model: Option<&str>,
     ) -> Pin<Box<dyn Future<Output = Result<ImageLLMResult>> + Send + '_>> {
         let prompt = prompt.to_string();
+        let model_owned: Option<String> = model.map(|m| m.to_string());
         Box::pin(async move {
-            let raw = self.submit_request(&prompt, &options).await?;
+            let raw = self
+                .submit_request(&prompt, &options, model_owned.as_deref())
+                .await?;
             let task_id = raw["id"]
                 .as_str()
                 .ok_or_else(|| LangHubError::ParseError("Missing task id".to_string()))?
@@ -228,10 +245,14 @@ impl ImageLLM for FluxImage {
         &self,
         prompt: &str,
         options: ImageLLMOptions,
+        model: Option<&str>,
     ) -> Pin<Box<dyn Future<Output = Result<ImageTask>> + Send + '_>> {
         let prompt = prompt.to_string();
+        let model_owned: Option<String> = model.map(|m| m.to_string());
         Box::pin(async move {
-            let raw = self.submit_request(&prompt, &options).await?;
+            let raw = self
+                .submit_request(&prompt, &options, model_owned.as_deref())
+                .await?;
             let task_id = raw["id"]
                 .as_str()
                 .ok_or_else(|| LangHubError::ParseError("Missing task id".to_string()))?

@@ -1322,19 +1322,19 @@ impl VideoLLMClient {
     /// # Ok(())
     /// # }
     /// ```
-    pub async fn generate(&self, prompt: &str) -> Result<VideoLLMResult> {
+    pub async fn generate(&self, prompt: &str, model: Option<&str>) -> Result<VideoLLMResult> {
         match self {
-            VideoLLMClient::Seedance(m) => m.generate(prompt).await,
-            VideoLLMClient::Wan(m) => m.generate(prompt).await,
-            VideoLLMClient::Kling(m) => m.generate(prompt).await,
-            VideoLLMClient::Veo(m) => m.generate(prompt).await,
-            VideoLLMClient::Runway(m) => m.generate(prompt).await,
-            VideoLLMClient::MiniMaxH3(m) => m.generate(prompt).await,
-            VideoLLMClient::HappyHorse(m) => m.generate(prompt).await,
-            VideoLLMClient::Ltx(m) => m.generate(prompt).await,
-            VideoLLMClient::GrokImagine(m) => m.generate(prompt).await,
-            VideoLLMClient::Pruna(m) => m.generate(prompt).await,
-            VideoLLMClient::GeminiOmniFlash(m) => m.generate(prompt).await,
+            VideoLLMClient::Seedance(m) => m.generate(prompt, model).await,
+            VideoLLMClient::Wan(m) => m.generate(prompt, model).await,
+            VideoLLMClient::Kling(m) => m.generate(prompt, model).await,
+            VideoLLMClient::Veo(m) => m.generate(prompt, model).await,
+            VideoLLMClient::Runway(m) => m.generate(prompt, model).await,
+            VideoLLMClient::MiniMaxH3(m) => m.generate(prompt, model).await,
+            VideoLLMClient::HappyHorse(m) => m.generate(prompt, model).await,
+            VideoLLMClient::Ltx(m) => m.generate(prompt, model).await,
+            VideoLLMClient::GrokImagine(m) => m.generate(prompt, model).await,
+            VideoLLMClient::Pruna(m) => m.generate(prompt, model).await,
+            VideoLLMClient::GeminiOmniFlash(m) => m.generate(prompt, model).await,
         }
     }
     /// Generates a video with options
@@ -1349,19 +1349,22 @@ impl VideoLLMClient {
         &self,
         prompt: &str,
         options: VideoLLMOptions,
+        model: Option<&str>,
     ) -> Result<VideoLLMResult> {
         match self {
-            VideoLLMClient::Seedance(m) => m.generate_with_options(prompt, options).await,
-            VideoLLMClient::Wan(m) => m.generate_with_options(prompt, options).await,
-            VideoLLMClient::Kling(m) => m.generate_with_options(prompt, options).await,
-            VideoLLMClient::Veo(m) => m.generate_with_options(prompt, options).await,
-            VideoLLMClient::Runway(m) => m.generate_with_options(prompt, options).await,
-            VideoLLMClient::MiniMaxH3(m) => m.generate_with_options(prompt, options).await,
-            VideoLLMClient::HappyHorse(m) => m.generate_with_options(prompt, options).await,
-            VideoLLMClient::Ltx(m) => m.generate_with_options(prompt, options).await,
-            VideoLLMClient::GrokImagine(m) => m.generate_with_options(prompt, options).await,
-            VideoLLMClient::Pruna(m) => m.generate_with_options(prompt, options).await,
-            VideoLLMClient::GeminiOmniFlash(m) => m.generate_with_options(prompt, options).await,
+            VideoLLMClient::Seedance(m) => m.generate_with_options(prompt, options, model).await,
+            VideoLLMClient::Wan(m) => m.generate_with_options(prompt, options, model).await,
+            VideoLLMClient::Kling(m) => m.generate_with_options(prompt, options, model).await,
+            VideoLLMClient::Veo(m) => m.generate_with_options(prompt, options, model).await,
+            VideoLLMClient::Runway(m) => m.generate_with_options(prompt, options, model).await,
+            VideoLLMClient::MiniMaxH3(m) => m.generate_with_options(prompt, options, model).await,
+            VideoLLMClient::HappyHorse(m) => m.generate_with_options(prompt, options, model).await,
+            VideoLLMClient::Ltx(m) => m.generate_with_options(prompt, options, model).await,
+            VideoLLMClient::GrokImagine(m) => m.generate_with_options(prompt, options, model).await,
+            VideoLLMClient::Pruna(m) => m.generate_with_options(prompt, options, model).await,
+            VideoLLMClient::GeminiOmniFlash(m) => {
+                m.generate_with_options(prompt, options, model).await
+            }
         }
     }
     /// Submits an asynchronous video generation task
@@ -1372,19 +1375,24 @@ impl VideoLLMClient {
     ///
     /// # Returns
     /// A `Result` containing a `VideoTask` handle for polling
-    pub async fn submit_task(&self, prompt: &str, options: VideoLLMOptions) -> Result<VideoTask> {
+    pub async fn submit_task(
+        &self,
+        prompt: &str,
+        options: VideoLLMOptions,
+        model: Option<&str>,
+    ) -> Result<VideoTask> {
         match self {
-            VideoLLMClient::Seedance(m) => m.submit_task(prompt, options).await,
-            VideoLLMClient::Wan(m) => m.submit_task(prompt, options).await,
-            VideoLLMClient::Kling(m) => m.submit_task(prompt, options).await,
-            VideoLLMClient::Veo(m) => m.submit_task(prompt, options).await,
-            VideoLLMClient::Runway(m) => m.submit_task(prompt, options).await,
-            VideoLLMClient::MiniMaxH3(m) => m.submit_task(prompt, options).await,
-            VideoLLMClient::HappyHorse(m) => m.submit_task(prompt, options).await,
-            VideoLLMClient::Ltx(m) => m.submit_task(prompt, options).await,
-            VideoLLMClient::GrokImagine(m) => m.submit_task(prompt, options).await,
-            VideoLLMClient::Pruna(m) => m.submit_task(prompt, options).await,
-            VideoLLMClient::GeminiOmniFlash(m) => m.submit_task(prompt, options).await,
+            VideoLLMClient::Seedance(m) => m.submit_task(prompt, options, model).await,
+            VideoLLMClient::Wan(m) => m.submit_task(prompt, options, model).await,
+            VideoLLMClient::Kling(m) => m.submit_task(prompt, options, model).await,
+            VideoLLMClient::Veo(m) => m.submit_task(prompt, options, model).await,
+            VideoLLMClient::Runway(m) => m.submit_task(prompt, options, model).await,
+            VideoLLMClient::MiniMaxH3(m) => m.submit_task(prompt, options, model).await,
+            VideoLLMClient::HappyHorse(m) => m.submit_task(prompt, options, model).await,
+            VideoLLMClient::Ltx(m) => m.submit_task(prompt, options, model).await,
+            VideoLLMClient::GrokImagine(m) => m.submit_task(prompt, options, model).await,
+            VideoLLMClient::Pruna(m) => m.submit_task(prompt, options, model).await,
+            VideoLLMClient::GeminiOmniFlash(m) => m.submit_task(prompt, options, model).await,
         }
     }
     /// Polls an asynchronous video generation task
@@ -1735,6 +1743,8 @@ impl ImageLLMClient {
     ///
     /// # Arguments
     /// * `prompt` - The input text prompt string
+    /// * `model` - Optional model id override. When `None`, the provider's
+    ///   configured default model is used.
     ///
     /// # Returns
     /// A `Result` containing the generated image result or an error
@@ -1744,18 +1754,21 @@ impl ImageLLMClient {
     /// # async fn example() -> Result<(), Box<dyn std::error::Error>> {
     /// # let config = langhub::ImageLLMConfig::new().seedream("your-api-key".to_string());
     /// # let client = langhub::ImageLLMClient::new_with_config(langhub::image::ImageModelProvider::Seedream, &config)?;
-    /// let result = client.generate("A cat sitting on a windowsill").await?;
+    /// // Use the provider's default model:
+    /// let result = client.generate("A cat sitting on a windowsill", None).await?;
+    /// // Or override the model for this call:
+    /// let result = client.generate("A cat sitting on a windowsill", Some("doubao-seedream-4-5")).await?;
     /// # Ok(())
     /// # }
     /// ```
-    pub async fn generate(&self, prompt: &str) -> Result<ImageLLMResult> {
+    pub async fn generate(&self, prompt: &str, model: Option<&str>) -> Result<ImageLLMResult> {
         match self {
-            ImageLLMClient::Seedream(m) => m.generate(prompt).await,
-            ImageLLMClient::WanImage(m) => m.generate(prompt).await,
-            ImageLLMClient::StabilityImage(m) => m.generate(prompt).await,
-            ImageLLMClient::Flux(m) => m.generate(prompt).await,
-            ImageLLMClient::Imagen(m) => m.generate(prompt).await,
-            ImageLLMClient::DallE(m) => m.generate(prompt).await,
+            ImageLLMClient::Seedream(m) => m.generate(prompt, model).await,
+            ImageLLMClient::WanImage(m) => m.generate(prompt, model).await,
+            ImageLLMClient::StabilityImage(m) => m.generate(prompt, model).await,
+            ImageLLMClient::Flux(m) => m.generate(prompt, model).await,
+            ImageLLMClient::Imagen(m) => m.generate(prompt, model).await,
+            ImageLLMClient::DallE(m) => m.generate(prompt, model).await,
         }
     }
     /// Generates images with options
@@ -1763,6 +1776,8 @@ impl ImageLLMClient {
     /// # Arguments
     /// * `prompt` - The input text prompt string
     /// * `options` - Generation options such as n, resolution, aspect ratio
+    /// * `model` - Optional model id override. When `None`, the provider's
+    ///   configured default model is used.
     ///
     /// # Returns
     /// A `Result` containing the generated image result or an error
@@ -1770,14 +1785,17 @@ impl ImageLLMClient {
         &self,
         prompt: &str,
         options: ImageLLMOptions,
+        model: Option<&str>,
     ) -> Result<ImageLLMResult> {
         match self {
-            ImageLLMClient::Seedream(m) => m.generate_with_options(prompt, options).await,
-            ImageLLMClient::WanImage(m) => m.generate_with_options(prompt, options).await,
-            ImageLLMClient::StabilityImage(m) => m.generate_with_options(prompt, options).await,
-            ImageLLMClient::Flux(m) => m.generate_with_options(prompt, options).await,
-            ImageLLMClient::Imagen(m) => m.generate_with_options(prompt, options).await,
-            ImageLLMClient::DallE(m) => m.generate_with_options(prompt, options).await,
+            ImageLLMClient::Seedream(m) => m.generate_with_options(prompt, options, model).await,
+            ImageLLMClient::WanImage(m) => m.generate_with_options(prompt, options, model).await,
+            ImageLLMClient::StabilityImage(m) => {
+                m.generate_with_options(prompt, options, model).await
+            }
+            ImageLLMClient::Flux(m) => m.generate_with_options(prompt, options, model).await,
+            ImageLLMClient::Imagen(m) => m.generate_with_options(prompt, options, model).await,
+            ImageLLMClient::DallE(m) => m.generate_with_options(prompt, options, model).await,
         }
     }
     /// Submits an asynchronous image generation task
@@ -1785,17 +1803,24 @@ impl ImageLLMClient {
     /// # Arguments
     /// * `prompt` - The input text prompt string
     /// * `options` - Generation options
+    /// * `model` - Optional model id override. When `None`, the provider's
+    ///   configured default model is used.
     ///
     /// # Returns
     /// A `Result` containing an `ImageTask` handle for polling
-    pub async fn submit_task(&self, prompt: &str, options: ImageLLMOptions) -> Result<ImageTask> {
+    pub async fn submit_task(
+        &self,
+        prompt: &str,
+        options: ImageLLMOptions,
+        model: Option<&str>,
+    ) -> Result<ImageTask> {
         match self {
-            ImageLLMClient::Seedream(m) => m.submit_task(prompt, options).await,
-            ImageLLMClient::WanImage(m) => m.submit_task(prompt, options).await,
-            ImageLLMClient::StabilityImage(m) => m.submit_task(prompt, options).await,
-            ImageLLMClient::Flux(m) => m.submit_task(prompt, options).await,
-            ImageLLMClient::Imagen(m) => m.submit_task(prompt, options).await,
-            ImageLLMClient::DallE(m) => m.submit_task(prompt, options).await,
+            ImageLLMClient::Seedream(m) => m.submit_task(prompt, options, model).await,
+            ImageLLMClient::WanImage(m) => m.submit_task(prompt, options, model).await,
+            ImageLLMClient::StabilityImage(m) => m.submit_task(prompt, options, model).await,
+            ImageLLMClient::Flux(m) => m.submit_task(prompt, options, model).await,
+            ImageLLMClient::Imagen(m) => m.submit_task(prompt, options, model).await,
+            ImageLLMClient::DallE(m) => m.submit_task(prompt, options, model).await,
         }
     }
     /// Polls an asynchronous image generation task
@@ -2218,16 +2243,16 @@ impl AudioLLMClient {
     /// # Ok(())
     /// # }
     /// ```
-    pub async fn generate(&self, prompt: &str) -> Result<AudioLLMResult> {
+    pub async fn generate(&self, prompt: &str, model: Option<&str>) -> Result<AudioLLMResult> {
         match self {
-            AudioLLMClient::QwenTts(m) => m.generate(prompt).await,
-            AudioLLMClient::SeedAudio(m) => m.generate(prompt).await,
-            AudioLLMClient::StepAudio(m) => m.generate(prompt).await,
-            AudioLLMClient::GeminiTts(m) => m.generate(prompt).await,
-            AudioLLMClient::ElevenLabs(m) => m.generate(prompt).await,
-            AudioLLMClient::Lyria(m) => m.generate(prompt).await,
-            AudioLLMClient::Suno(m) => m.generate(prompt).await,
-            AudioLLMClient::StableAudio(m) => m.generate(prompt).await,
+            AudioLLMClient::QwenTts(m) => m.generate(prompt, model).await,
+            AudioLLMClient::SeedAudio(m) => m.generate(prompt, model).await,
+            AudioLLMClient::StepAudio(m) => m.generate(prompt, model).await,
+            AudioLLMClient::GeminiTts(m) => m.generate(prompt, model).await,
+            AudioLLMClient::ElevenLabs(m) => m.generate(prompt, model).await,
+            AudioLLMClient::Lyria(m) => m.generate(prompt, model).await,
+            AudioLLMClient::Suno(m) => m.generate(prompt, model).await,
+            AudioLLMClient::StableAudio(m) => m.generate(prompt, model).await,
         }
     }
     /// Generates audio with options
@@ -2242,16 +2267,17 @@ impl AudioLLMClient {
         &self,
         prompt: &str,
         options: AudioLLMOptions,
+        model: Option<&str>,
     ) -> Result<AudioLLMResult> {
         match self {
-            AudioLLMClient::QwenTts(m) => m.generate_with_options(prompt, options).await,
-            AudioLLMClient::SeedAudio(m) => m.generate_with_options(prompt, options).await,
-            AudioLLMClient::StepAudio(m) => m.generate_with_options(prompt, options).await,
-            AudioLLMClient::GeminiTts(m) => m.generate_with_options(prompt, options).await,
-            AudioLLMClient::ElevenLabs(m) => m.generate_with_options(prompt, options).await,
-            AudioLLMClient::Lyria(m) => m.generate_with_options(prompt, options).await,
-            AudioLLMClient::Suno(m) => m.generate_with_options(prompt, options).await,
-            AudioLLMClient::StableAudio(m) => m.generate_with_options(prompt, options).await,
+            AudioLLMClient::QwenTts(m) => m.generate_with_options(prompt, options, model).await,
+            AudioLLMClient::SeedAudio(m) => m.generate_with_options(prompt, options, model).await,
+            AudioLLMClient::StepAudio(m) => m.generate_with_options(prompt, options, model).await,
+            AudioLLMClient::GeminiTts(m) => m.generate_with_options(prompt, options, model).await,
+            AudioLLMClient::ElevenLabs(m) => m.generate_with_options(prompt, options, model).await,
+            AudioLLMClient::Lyria(m) => m.generate_with_options(prompt, options, model).await,
+            AudioLLMClient::Suno(m) => m.generate_with_options(prompt, options, model).await,
+            AudioLLMClient::StableAudio(m) => m.generate_with_options(prompt, options, model).await,
         }
     }
     /// Submits an asynchronous audio generation task
@@ -2262,16 +2288,21 @@ impl AudioLLMClient {
     ///
     /// # Returns
     /// A `Result` containing an `AudioTask` handle for polling
-    pub async fn submit_task(&self, prompt: &str, options: AudioLLMOptions) -> Result<AudioTask> {
+    pub async fn submit_task(
+        &self,
+        prompt: &str,
+        options: AudioLLMOptions,
+        model: Option<&str>,
+    ) -> Result<AudioTask> {
         match self {
-            AudioLLMClient::QwenTts(m) => m.submit_task(prompt, options).await,
-            AudioLLMClient::SeedAudio(m) => m.submit_task(prompt, options).await,
-            AudioLLMClient::StepAudio(m) => m.submit_task(prompt, options).await,
-            AudioLLMClient::GeminiTts(m) => m.submit_task(prompt, options).await,
-            AudioLLMClient::ElevenLabs(m) => m.submit_task(prompt, options).await,
-            AudioLLMClient::Lyria(m) => m.submit_task(prompt, options).await,
-            AudioLLMClient::Suno(m) => m.submit_task(prompt, options).await,
-            AudioLLMClient::StableAudio(m) => m.submit_task(prompt, options).await,
+            AudioLLMClient::QwenTts(m) => m.submit_task(prompt, options, model).await,
+            AudioLLMClient::SeedAudio(m) => m.submit_task(prompt, options, model).await,
+            AudioLLMClient::StepAudio(m) => m.submit_task(prompt, options, model).await,
+            AudioLLMClient::GeminiTts(m) => m.submit_task(prompt, options, model).await,
+            AudioLLMClient::ElevenLabs(m) => m.submit_task(prompt, options, model).await,
+            AudioLLMClient::Lyria(m) => m.submit_task(prompt, options, model).await,
+            AudioLLMClient::Suno(m) => m.submit_task(prompt, options, model).await,
+            AudioLLMClient::StableAudio(m) => m.submit_task(prompt, options, model).await,
         }
     }
     /// Polls an asynchronous audio generation task

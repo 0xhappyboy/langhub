@@ -147,29 +147,41 @@ pub struct AudioTask {
 }
 /// AudioLLM trait - unified interface for all audio providers.
 pub trait AudioLLM: Send + Sync {
-    /// Generates audio from a text prompt.
+    /// Generates audio from a text prompt using the configured default model.
+    ///
+    /// `model` - Optional model id override. When `None`, the configured
+    /// default model is used.
     fn generate(
         &self,
         prompt: &str,
+        model: Option<&str>,
     ) -> Pin<Box<dyn Future<Output = Result<AudioLLMResult>> + Send + '_>>;
     /// Generates audio with options.
+    ///
+    /// `model` - Optional model id override. When `None`, the configured
+    /// default model is used.
     fn generate_with_options(
         &self,
         prompt: &str,
         options: AudioLLMOptions,
+        model: Option<&str>,
     ) -> Pin<Box<dyn Future<Output = Result<AudioLLMResult>> + Send + '_>>;
     /// Submits an asynchronous generation task and returns a task handle.
+    ///
+    /// `model` - Optional model id override. When `None`, the configured
+    /// default model is used.
     fn submit_task(
         &self,
         prompt: &str,
         options: AudioLLMOptions,
+        model: Option<&str>,
     ) -> Pin<Box<dyn Future<Output = Result<AudioTask>> + Send + '_>>;
     /// Polls an asynchronous task by its ID.
     fn poll_task(
         &self,
         task_id: &str,
     ) -> Pin<Box<dyn Future<Output = Result<AudioTask>> + Send + '_>>;
-    /// Returns the model name.
+    /// Returns the configured default model name.
     fn get_model_name(&self) -> String;
     /// Returns the provider name.
     fn get_provider_name(&self) -> String;

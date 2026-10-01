@@ -60,8 +60,21 @@ impl DallE {
         self.default_options = options;
         self
     }
-    fn build_request_body(&self, prompt: &str, options: &ImageLLMOptions) -> serde_json::Value {
-        let model_name: String = self.model.clone().into();
+    /// Resolve the effective model id: caller override wins over the
+    /// configured default.
+    fn resolve_model(&self, model_override: Option<&str>) -> String {
+        match model_override {
+            Some(m) => m.to_string(),
+            None => self.model.clone().into(),
+        }
+    }
+    fn build_request_body(
+        &self,
+        prompt: &str,
+        options: &ImageLLMOptions,
+        model_override: Option<&str>,
+    ) -> serde_json::Value {
+        let model_name: String = self.resolve_model(model_override);
         let mut body = json!({
             "model": model_name,
             "prompt": prompt,
@@ -103,8 +116,9 @@ impl DallE {
         &self,
         prompt: &str,
         options: &ImageLLMOptions,
+        model_override: Option<&str>,
     ) -> Result<serde_json::Value> {
-        let body = self.build_request_body(prompt, options);
+        let body = self.build_request_body(prompt, options, model_override);
         let response = self
             .client
             .post(format!("{}/images/generations", self.base_url))
@@ -157,11 +171,15 @@ impl ImageLLM for DallE {
     fn generate(
         &self,
         prompt: &str,
+        model: Option<&str>,
     ) -> Pin<Box<dyn Future<Output = Result<ImageLLMResult>> + Send + '_>> {
         let prompt = prompt.to_string();
         let options = self.default_options.clone();
+        let model_owned: Option<String> = model.map(|m| m.to_string());
         Box::pin(async move {
-            let raw = self.submit_request(&prompt, &options).await?;
+            let raw = self
+                .submit_request(&prompt, &options, model_owned.as_deref())
+                .await?;
             Ok(Self::raw_to_result(&raw))
         })
     }
@@ -169,10 +187,14 @@ impl ImageLLM for DallE {
         &self,
         prompt: &str,
         options: ImageLLMOptions,
+        model: Option<&str>,
     ) -> Pin<Box<dyn Future<Output = Result<ImageLLMResult>> + Send + '_>> {
         let prompt = prompt.to_string();
+        let model_owned: Option<String> = model.map(|m| m.to_string());
         Box::pin(async move {
-            let raw = self.submit_request(&prompt, &options).await?;
+            let raw = self
+                .submit_request(&prompt, &options, model_owned.as_deref())
+                .await?;
             Ok(Self::raw_to_result(&raw))
         })
     }
@@ -180,10 +202,14 @@ impl ImageLLM for DallE {
         &self,
         prompt: &str,
         options: ImageLLMOptions,
+        model: Option<&str>,
     ) -> Pin<Box<dyn Future<Output = Result<ImageTask>> + Send + '_>> {
         let prompt = prompt.to_string();
+        let model_owned: Option<String> = model.map(|m| m.to_string());
         Box::pin(async move {
-            let raw = self.submit_request(&prompt, &options).await?;
+            let raw = self
+                .submit_request(&prompt, &options, model_owned.as_deref())
+                .await?;
             let task_id = raw["id"].as_str().unwrap_or("dalle-sync-task").to_string();
             Ok(ImageTask {
                 task_id,

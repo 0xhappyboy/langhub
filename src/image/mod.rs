@@ -104,25 +104,43 @@ pub struct ImageTask {
 }
 /// ImageLLM trait - unified interface for all text-to-image providers.
 pub trait ImageLLM: Send + Sync {
+    /// Generate images from a prompt using the configured default model.
+    ///
+    /// `model` - Optional model id override. When `None`, the configured
+    /// default model is used.
     fn generate(
         &self,
         prompt: &str,
+        model: Option<&str>,
     ) -> Pin<Box<dyn Future<Output = Result<ImageLLMResult>> + Send + '_>>;
+    /// Generate images with explicit options.
+    ///
+    /// `model` - Optional model id override. When `None`, the configured
+    /// default model is used.
     fn generate_with_options(
         &self,
         prompt: &str,
         options: ImageLLMOptions,
+        model: Option<&str>,
     ) -> Pin<Box<dyn Future<Output = Result<ImageLLMResult>> + Send + '_>>;
+    /// Submit an asynchronous generation task.
+    ///
+    /// `model` - Optional model id override. When `None`, the configured
+    /// default model is used.
     fn submit_task(
         &self,
         prompt: &str,
         options: ImageLLMOptions,
+        model: Option<&str>,
     ) -> Pin<Box<dyn Future<Output = Result<ImageTask>> + Send + '_>>;
+    /// Poll an asynchronous generation task by id.
     fn poll_task(
         &self,
         task_id: &str,
     ) -> Pin<Box<dyn Future<Output = Result<ImageTask>> + Send + '_>>;
+    /// Get the configured default model name.
     fn get_model_name(&self) -> String;
+    /// Get provider name.
     fn get_provider_name(&self) -> String;
     fn supports_reference_images(&self) -> bool {
         false

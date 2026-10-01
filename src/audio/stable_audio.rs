@@ -83,8 +83,15 @@ impl StableAudio {
         &self,
         prompt: &str,
         options: &AudioLLMOptions,
+        model_override: Option<&str>,
     ) -> Result<serde_json::Value> {
         let body = self.build_request_body(prompt, options);
+        // Resolve the effective model id; Stable Audio only has one real
+        // endpoint today, so the override is currently informational.
+        let _model_name: String = match model_override {
+            Some(m) => m.to_string(),
+            None => self.model.clone().into(),
+        };
         let response = self
             .client
             .post(format!("{}/audio/generate", self.base_url))
@@ -136,11 +143,15 @@ impl AudioLLM for StableAudio {
     fn generate(
         &self,
         prompt: &str,
+        model: Option<&str>,
     ) -> Pin<Box<dyn Future<Output = Result<AudioLLMResult>> + Send + '_>> {
         let prompt = prompt.to_string();
         let options = self.default_options.clone();
+        let model_owned: Option<String> = model.map(|m| m.to_string());
         Box::pin(async move {
-            let raw = self.submit_request(&prompt, &options).await?;
+            let raw = self
+                .submit_request(&prompt, &options, model_owned.as_deref())
+                .await?;
             Ok(Self::raw_to_result(&raw))
         })
     }
@@ -148,10 +159,14 @@ impl AudioLLM for StableAudio {
         &self,
         prompt: &str,
         options: AudioLLMOptions,
+        model: Option<&str>,
     ) -> Pin<Box<dyn Future<Output = Result<AudioLLMResult>> + Send + '_>> {
         let prompt = prompt.to_string();
+        let model_owned: Option<String> = model.map(|m| m.to_string());
         Box::pin(async move {
-            let raw = self.submit_request(&prompt, &options).await?;
+            let raw = self
+                .submit_request(&prompt, &options, model_owned.as_deref())
+                .await?;
             Ok(Self::raw_to_result(&raw))
         })
     }
@@ -159,10 +174,14 @@ impl AudioLLM for StableAudio {
         &self,
         prompt: &str,
         options: AudioLLMOptions,
+        model: Option<&str>,
     ) -> Pin<Box<dyn Future<Output = Result<AudioTask>> + Send + '_>> {
         let prompt = prompt.to_string();
+        let model_owned: Option<String> = model.map(|m| m.to_string());
         Box::pin(async move {
-            let raw = self.submit_request(&prompt, &options).await?;
+            let raw = self
+                .submit_request(&prompt, &options, model_owned.as_deref())
+                .await?;
             let task_id = "stable-audio-sync-task".to_string();
             Ok(AudioTask {
                 task_id,
