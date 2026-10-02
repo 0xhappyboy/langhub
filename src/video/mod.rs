@@ -345,23 +345,38 @@ impl VideoModelProvider {
         match self {
             VideoModelProvider::Seedance => vec![
                 (
-                    "doubao-seedance-2-5".to_string(),
-                    "Seedance 2.5".to_string(),
+                    "doubao-seedance-1-0-pro-250528".to_string(),
+                    "Seedance 1.0 Pro".to_string(),
+                    false,
+                ),
+                (
+                    "doubao-seedance-1-0-pro-fast-251015".to_string(),
+                    "Seedance 1.0 Pro Fast".to_string(),
                     true,
                 ),
                 (
-                    "doubao-seedance-2-0".to_string(),
+                    "doubao-seedance-1-5-pro-251215".to_string(),
+                    "Seedance 1.5 Pro".to_string(),
+                    false,
+                ),
+                (
+                    "doubao-seedance-2-0-260128".to_string(),
                     "Seedance 2.0".to_string(),
                     false,
                 ),
                 (
-                    "doubao-seedance-2-0-fast".to_string(),
-                    "Seedance 2.0-fast".to_string(),
+                    "doubao-seedance-2-0-fast-260128".to_string(),
+                    "Seedance 2.0 Fast".to_string(),
                     false,
                 ),
                 (
-                    "doubao-seedance-2-0-mini".to_string(),
-                    "Seedance 2.0-mini".to_string(),
+                    "doubao-seedance-2-0-mini-260615".to_string(),
+                    "Seedance 2.0 Mini".to_string(),
+                    false,
+                ),
+                (
+                    "doubao-seedance-2-5".to_string(),
+                    "Seedance 2.5".to_string(),
                     false,
                 ),
             ],
