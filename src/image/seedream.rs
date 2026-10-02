@@ -3,20 +3,56 @@ use crate::types::{LangHubError, Result};
 use serde_json::json;
 use std::future::Future;
 use std::pin::Pin;
+/// ByteDance Seedream text-to-image model enum.
+///
+/// All model ids follow the official Volcengine Ark naming scheme:
+/// - `doubao-seedream-3-0-t2i-*`   (Seedream 3.0, text-to-image only)
+/// - `doubao-seedream-4-0-*`       (Seedream 4.0, text-to-image + image-to-image)
+/// - `doubao-seedream-4-5`         (Seedream 4.5, text-to-image + image-to-image)
+/// - `doubao-seedream-5-0-*`       (Seedream 5.0 family)
+///
+/// `Custom` allows passing a raw Ark endpoint id (e.g. `ep-2024xxxx-xxxxx`)
+/// or any future model id without a code change.
 #[derive(Debug, Clone)]
 pub enum SeedreamModel {
+    /// Seedream 3.0 (text-to-image).
     Seedream30,
+    /// Seedream 4.0 (text-to-image + image-to-image).
+    Seedream40,
+    /// Seedream 4.5 (text-to-image + image-to-image).
     Seedream45,
+    /// Seedream 5.0 Lite.
     Seedream50Lite,
+    /// Seedream 5.0 Flash.
+    Seedream50Flash,
+    /// Seedream 5.0 Pro.
+    Seedream50Pro,
+    /// Caller-supplied model id (raw Ark endpoint id or a future model).
     Custom(String),
 }
 impl SeedreamModel {
-    fn as_str(&self) -> String {
+    /// Returns the official Ark model id string.
+    pub fn as_str(&self) -> String {
         match self {
-            SeedreamModel::Seedream30 => "seedream-3-0".to_string(),
-            SeedreamModel::Seedream45 => "doubao-seedream-4-5".to_string(),
-            SeedreamModel::Seedream50Lite => "doubao-seedream-5-0-lite".to_string(),
+            SeedreamModel::Seedream30 => "doubao-seedream-3-0-t2i-250415".to_string(),
+            SeedreamModel::Seedream40 => "doubao-seedream-4-0-20260415".to_string(),
+            SeedreamModel::Seedream45 => "doubao-seedream-4-5-251128".to_string(),
+            SeedreamModel::Seedream50Lite => "doubao-seedream-5-0-260128".to_string(),
+            SeedreamModel::Seedream50Flash => "doubao-seedream-5-0-flash-260915".to_string(),
+            SeedreamModel::Seedream50Pro => "doubao-seedream-5-0-pro-260628".to_string(),
             SeedreamModel::Custom(name) => name.clone(),
+        }
+    }
+    /// Whether this model supports image-to-image (reference images).
+    pub fn supports_reference_images(&self) -> bool {
+        match self {
+            SeedreamModel::Seedream30 => false,
+            SeedreamModel::Seedream40
+            | SeedreamModel::Seedream45
+            | SeedreamModel::Seedream50Lite
+            | SeedreamModel::Seedream50Flash
+            | SeedreamModel::Seedream50Pro => true,
+            SeedreamModel::Custom(_) => true,
         }
     }
 }
@@ -34,10 +70,12 @@ pub struct Seedream {
     default_options: ImageLLMOptions,
 }
 impl Seedream {
+    /// Create a new Seedream client. Default model is Seedream 4.5, which is
+    /// the currently recommended general-purpose text-to-image model.
     pub fn new(api_key: String) -> Self {
         Self {
             api_key,
-            model: SeedreamModel::Seedream30,
+            model: SeedreamModel::Seedream45,
             base_url: "https://ark.cn-beijing.volces.com/api/v3".to_string(),
             client: reqwest::Client::new(),
             default_options: ImageLLMOptions::default(),
@@ -50,11 +88,20 @@ impl Seedream {
     pub fn seedream30(self) -> Self {
         self.with_model(SeedreamModel::Seedream30)
     }
+    pub fn seedream40(self) -> Self {
+        self.with_model(SeedreamModel::Seedream40)
+    }
     pub fn seedream45(self) -> Self {
         self.with_model(SeedreamModel::Seedream45)
     }
     pub fn seedream50_lite(self) -> Self {
         self.with_model(SeedreamModel::Seedream50Lite)
+    }
+    pub fn seedream50_flash(self) -> Self {
+        self.with_model(SeedreamModel::Seedream50Flash)
+    }
+    pub fn seedream50_pro(self) -> Self {
+        self.with_model(SeedreamModel::Seedream50Pro)
     }
     pub fn with_base_url(mut self, base_url: &str) -> Self {
         self.base_url = base_url.to_string();
@@ -125,6 +172,7 @@ impl Seedream {
         options: &ImageLLMOptions,
         model_override: Option<&str>,
     ) -> Result<serde_json::Value> {
+        let body = self.build_request_body(prompt, options, model_override);
         let body = self.build_request_body(prompt, options, model_override);
         let response = self
             .client
@@ -283,7 +331,7 @@ impl ImageLLM for Seedream {
         "ByteDance-Seedream".to_string()
     }
     fn supports_reference_images(&self) -> bool {
-        true
+        self.model.supports_reference_images()
     }
     fn supports_negative_prompt(&self) -> bool {
         true

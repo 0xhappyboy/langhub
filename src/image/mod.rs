@@ -257,15 +257,34 @@ impl ImageModelProvider {
     pub fn models(&self) -> Vec<(String, String, bool)> {
         match self {
             ImageModelProvider::Seedream => vec![
-                ("seedream-3-0".to_string(), "Seedream 3.0".to_string(), true),
                 (
-                    "doubao-seedream-4-5".to_string(),
-                    "Doubao-Seedream-4.5".to_string(),
+                    "doubao-seedream-3-0-t2i-250415".to_string(),
+                    "Seedream 3.0".to_string(),
                     false,
                 ),
                 (
-                    "doubao-seedream-5-0-lite".to_string(),
-                    "Doubao-Seedream-5.0-lite".to_string(),
+                    "doubao-seedream-4-0-20260415".to_string(),
+                    "Seedream 4.0".to_string(),
+                    false,
+                ),
+                (
+                    "doubao-seedream-4-5-251128".to_string(),
+                    "Seedream 4.5".to_string(),
+                    true,
+                ),
+                (
+                    "doubao-seedream-5-0-260128".to_string(),
+                    "Seedream 5.0 Lite".to_string(),
+                    false,
+                ),
+                (
+                    "doubao-seedream-5-0-flash-260915".to_string(),
+                    "Seedream 5.0 Flash".to_string(),
+                    false,
+                ),
+                (
+                    "doubao-seedream-5-0-pro-260628".to_string(),
+                    "Seedream 5.0 Pro".to_string(),
                     false,
                 ),
             ],
