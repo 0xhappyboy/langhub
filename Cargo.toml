@@ -1,9 +1,9 @@
 [package]
 name = "langhub"
-version = "0.4.5"
+version = "0.5.0"
 edition = "2024"
 authors = ["happyboy <superhappyboy1995@gmail.com>"]
-description = "An LLM application development framework based on Rust."
+description = "A unified LLM abstraction layer framework built in Rust."
 keywords = ["ai", "llm", "llms", "langchain"]
 license = "Apache-2.0"
 readme = "README.md"
