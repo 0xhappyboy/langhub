@@ -225,6 +225,35 @@ impl Seedance {
             .map_err(|e| LangHubError::LLMError(format!("Seedance parse json error: {}", e)))?;
         Ok(json_val)
     }
+    /// Extract the produced video url from a raw Ark response.
+    fn extract_video_url(raw: &serde_json::Value) -> Option<String> {
+        raw["content"]["video_url"]
+            .as_str()
+            .or_else(|| raw["output"][0]["video_url"].as_str())
+            .or_else(|| raw["output"]["video_url"].as_str())
+            .or_else(|| raw["video_url"].as_str())
+            .or_else(|| raw["data"]["video_url"].as_str())
+            .or_else(|| raw["data"]["content"]["video_url"].as_str())
+            .map(|s| s.to_string())
+    }
+    /// Extract duration (seconds) from a raw Ark response.
+    fn extract_duration(raw: &serde_json::Value) -> Option<f32> {
+        raw["content"]["duration"]
+            .as_f64()
+            .or_else(|| raw["output"][0]["duration"].as_f64())
+            .or_else(|| raw["output"]["duration"].as_f64())
+            .or_else(|| raw["duration"].as_f64())
+            .map(|v| v as f32)
+    }
+    /// Extract resolution string from a raw Ark response.
+    fn extract_resolution(raw: &serde_json::Value) -> Option<String> {
+        raw["content"]["resolution"]
+            .as_str()
+            .or_else(|| raw["output"][0]["resolution"].as_str())
+            .or_else(|| raw["output"]["resolution"].as_str())
+            .or_else(|| raw["resolution"].as_str())
+            .map(|s| s.to_string())
+    }
     /// Poll task status until finished, parse video result
     async fn poll_until_done(&self, task_id: &str) -> Result<VideoLLMResult> {
         let url = format!("{}/contents/generations/tasks/{}", self.base_url, task_id);
@@ -251,13 +280,10 @@ impl Seedance {
                 .map_err(|e| LangHubError::LLMError(format!("Poll json parse error: {}", e)))?;
             let status = raw["status"].as_str().unwrap_or("");
             match status {
-                "success" => {
-                    // Ark output format: output array, take first video
-                    let video_url = raw["output"][0]["video_url"]
-                        .as_str()
-                        .map(|s| s.to_string());
-                    let duration = raw["duration"].as_f64().map(|v| v as f32);
-                    let resolution = raw["resolution"].as_str().map(|s| s.to_string());
+                "success" | "succeeded" => {
+                    let video_url = Self::extract_video_url(&raw);
+                    let duration = Self::extract_duration(&raw);
+                    let resolution = Self::extract_resolution(&raw);
                     return Ok(VideoLLMResult {
                         video_url,
                         video_base64: None,
@@ -278,7 +304,7 @@ impl Seedance {
                     )));
                 }
                 _ => {
-                    // pending / running, wait
+                    // pending / running / queued / anything else -> keep waiting
                     tokio::time::sleep(tokio::time::Duration::from_secs(2)).await;
                 }
             }
@@ -380,20 +406,20 @@ impl VideoLLM for Seedance {
                 .await
                 .map_err(|e| LangHubError::LLMError(format!("Poll json parse error: {}", e)))?;
             let status_str = raw["status"].as_str().unwrap_or("");
+            // Map the provider status string to our unified task status.
             let task_status = match status_str {
-                "success" => VideoTaskStatus::Succeeded,
+                "success" | "succeeded" => VideoTaskStatus::Succeeded,
                 "failed" => VideoTaskStatus::Failed,
-                "cancelled" => VideoTaskStatus::Cancelled,
+                "cancelled" | "canceled" => VideoTaskStatus::Cancelled,
+                // "queued" / "running" / anything else -> still in progress
                 _ => VideoTaskStatus::Processing,
             };
             let mut result: Option<VideoLLMResult> = None;
             let mut error_msg: Option<String> = None;
             if task_status == VideoTaskStatus::Succeeded {
-                let video_url = raw["output"][0]["video_url"]
-                    .as_str()
-                    .map(|s| s.to_string());
-                let duration = raw["duration"].as_f64().map(|v| v as f32);
-                let resolution = raw["resolution"].as_str().map(|s| s.to_string());
+                let video_url = Seedance::extract_video_url(&raw);
+                let duration = Seedance::extract_duration(&raw);
+                let resolution = Seedance::extract_resolution(&raw);
                 result = Some(VideoLLMResult {
                     video_url,
                     video_base64: None,
