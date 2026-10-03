@@ -105,9 +105,7 @@ pub fn extract_audio_usage_from_raw(raw: &serde_json::Value) -> Option<AudioUsag
 /// - `duration_seconds`: target duration.
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct AudioLLMOptions {
-    /// The primary text input. For TTS this is the text to read; for audio
-    /// generation this is the scene / dialogue prompt; for music generation
-    /// this is the style / mood prompt.
+    /// The primary text input. For TTS this is the text to read;
     pub text: Option<String>,
     /// Voice identifier (TTS only).
     pub voice: Option<String>,
@@ -298,7 +296,7 @@ impl AudioModelProvider {
                 "Alibaba Qwen-Audio TTS: flagship text-to-speech with emotion, dialect and multi-language control"
             }
             AudioModelProvider::SeedAudio => {
-                "ByteDance Seed Audio: one prompt generates a full audio track with dialogue, SFX and ambience"
+                "ByteDance Seed Audio 1.0 (Doubao Audio Generation): one text prompt directs a full audio track with dialogue, SFX, ambience and background music"
             }
             AudioModelProvider::StepAudio => {
                 "StepFun StepAudio3Gen: natural-language orchestration of dialogue, SFX, ambience and music"
@@ -326,7 +324,7 @@ impl AudioModelProvider {
                 "阿里云 Qwen-Audio TTS：旗舰文本转语音，支持情绪、方言和多语种控制"
             }
             AudioModelProvider::SeedAudio => {
-                "字节跳动 Seed Audio：一条提示词生成含对白、音效、环境声的完整音轨"
+                "字节跳动 Seed Audio 1.0（Doubao 音频生成）：一条提示词生成含对白、音效、环境声与配乐的完整音轨，适用于广播剧、有声书、播客"
             }
             AudioModelProvider::StepAudio => {
                 "阶跃星辰 StepAudio3Gen：用自然语言编排对白、音效、环境声和音乐"
@@ -409,8 +407,9 @@ impl AudioModelProvider {
                     false,
                 ),
             ],
+            // Seed Audio 1.0 uses the OpenSpeech model id `seed-audio-1.0`.
             AudioModelProvider::SeedAudio => vec![(
-                "seed-audio-1-0".to_string(),
+                "seed-audio-1.0".to_string(),
                 "Seed Audio 1.0".to_string(),
                 true,
             )],
@@ -493,6 +492,15 @@ impl AudioModelProvider {
             AudioModelProvider::GeminiTts | AudioModelProvider::Lyria => {
                 client.get(format!("{}/models?key={}", base, key))
             }
+            AudioModelProvider::SeedAudio => client
+                .post(format!("{}/tts/create", base))
+                .header("X-Api-Key", key)
+                .header("Content-Type", "application/json")
+                .json(&serde_json::json!({
+                    "model": "seed-audio-1.0",
+                    "text_prompt": "ping",
+                    "watermark": {}
+                })),
             _ => client
                 .get(format!("{}/models", base))
                 .header("Authorization", format!("Bearer {}", key)),
@@ -520,7 +528,7 @@ impl AudioModelProvider {
     fn default_base_url(&self) -> &'static str {
         match self {
             AudioModelProvider::QwenTts => "https://dashscope.aliyuncs.com/api/v1",
-            AudioModelProvider::SeedAudio => "https://ark.cn-beijing.volces.com/api/v3",
+            AudioModelProvider::SeedAudio => "https://openspeech.bytedance.com/api/v3",
             AudioModelProvider::StepAudio => "https://api.stepfun.com/v1",
             AudioModelProvider::GeminiTts => "https://generativelanguage.googleapis.com/v1beta",
             AudioModelProvider::ElevenLabs => "https://api.elevenlabs.io/v1",
