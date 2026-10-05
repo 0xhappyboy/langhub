@@ -1,6 +1,6 @@
 [package]
 name = "langhub"
-version = "0.5.1"
+version = "0.5.2"
 edition = "2024"
 authors = ["happyboy <superhappyboy1995@gmail.com>"]
 description = "A unified LLM abstraction layer framework built in Rust."
