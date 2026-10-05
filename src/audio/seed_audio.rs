@@ -1,5 +1,5 @@
 use crate::audio::{AudioLLM, AudioLLMOptions, AudioLLMResult, AudioTask, AudioTaskStatus};
-use crate::types::{LangHubError, Result};
+use crate::types::{LangHubError, LangHubResult};
 use serde_json::json;
 use std::future::Future;
 use std::pin::Pin;
@@ -155,7 +155,7 @@ impl SeedAudio {
         prompt: &str,
         options: &AudioLLMOptions,
         model_override: Option<&str>,
-    ) -> Result<serde_json::Value> {
+    ) -> LangHubResult<serde_json::Value> {
         let body = self.build_request_body(prompt, options, model_override);
         let mut body = body;
         if let Some(refs) = body.get("references").and_then(|v| v.as_array()) {
@@ -245,7 +245,7 @@ impl AudioLLM for SeedAudio {
         &self,
         prompt: &str,
         model: Option<&str>,
-    ) -> Pin<Box<dyn Future<Output = Result<AudioLLMResult>> + Send + '_>> {
+    ) -> Pin<Box<dyn Future<Output = LangHubResult<AudioLLMResult>> + Send + '_>> {
         let prompt = prompt.to_string();
         let options = self.default_options.clone();
         let model_owned: Option<String> = model.map(|m| m.to_string());
@@ -261,7 +261,7 @@ impl AudioLLM for SeedAudio {
         prompt: &str,
         options: AudioLLMOptions,
         model: Option<&str>,
-    ) -> Pin<Box<dyn Future<Output = Result<AudioLLMResult>> + Send + '_>> {
+    ) -> Pin<Box<dyn Future<Output = LangHubResult<AudioLLMResult>> + Send + '_>> {
         let prompt = prompt.to_string();
         let model_owned: Option<String> = model.map(|m| m.to_string());
         Box::pin(async move {
@@ -276,7 +276,7 @@ impl AudioLLM for SeedAudio {
         prompt: &str,
         options: AudioLLMOptions,
         model: Option<&str>,
-    ) -> Pin<Box<dyn Future<Output = Result<AudioTask>> + Send + '_>> {
+    ) -> Pin<Box<dyn Future<Output = LangHubResult<AudioTask>> + Send + '_>> {
         let prompt = prompt.to_string();
         let model_owned: Option<String> = model.map(|m| m.to_string());
         Box::pin(async move {
@@ -299,7 +299,7 @@ impl AudioLLM for SeedAudio {
     fn poll_task(
         &self,
         task_id: &str,
-    ) -> Pin<Box<dyn Future<Output = Result<AudioTask>> + Send + '_>> {
+    ) -> Pin<Box<dyn Future<Output = LangHubResult<AudioTask>> + Send + '_>> {
         let task_id = task_id.to_string();
         Box::pin(async move {
             Ok(AudioTask {

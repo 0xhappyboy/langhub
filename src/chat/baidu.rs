@@ -77,7 +77,7 @@ impl BaiduWenxin {
         self.default_options.top_p = Some(top_p);
         self
     }
-    async fn get_access_token(&mut self) -> Result<String> {
+    async fn get_access_token(&mut self) -> LangHubResult<String> {
         let now = SystemTime::now()
             .duration_since(UNIX_EPOCH)
             .unwrap()
@@ -117,7 +117,7 @@ impl BaiduWenxin {
         messages: &[ChatMessage],
         options: &LLMOptions,
         model_override: Option<&str>,
-    ) -> Result<LLMResult> {
+    ) -> LangHubResult<LLMResult> {
         let model_name: String = match model_override {
             Some(m) => m.to_string(),
             None => self.model.clone().into(),
@@ -199,7 +199,7 @@ impl LLM for BaiduWenxin {
     fn generate(
         &self,
         prompt: &str,
-    ) -> Pin<Box<dyn Future<Output = Result<LLMResult>> + Send + '_>> {
+    ) -> Pin<Box<dyn Future<Output = LangHubResult<LLMResult>> + Send + '_>> {
         let prompt = prompt.to_string();
         let options = self.default_options.clone();
         let mut self_clone = self.clone();
@@ -212,7 +212,7 @@ impl LLM for BaiduWenxin {
         &self,
         prompt: &str,
         options: LLMOptions,
-    ) -> Pin<Box<dyn Future<Output = Result<LLMResult>> + Send + '_>> {
+    ) -> Pin<Box<dyn Future<Output = LangHubResult<LLMResult>> + Send + '_>> {
         let prompt = prompt.to_string();
         let mut self_clone = self.clone();
         Box::pin(async move {
@@ -224,7 +224,7 @@ impl LLM for BaiduWenxin {
         &self,
         messages: Vec<ChatMessage>,
         model: Option<&str>,
-    ) -> Pin<Box<dyn Future<Output = Result<LLMResult>> + Send + '_>> {
+    ) -> Pin<Box<dyn Future<Output = LangHubResult<LLMResult>> + Send + '_>> {
         let model_owned: Option<String> = model.map(|m| m.to_string());
         let mut self_clone = self.clone();
         Box::pin(async move {

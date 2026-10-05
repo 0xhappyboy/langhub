@@ -1,4 +1,4 @@
-use crate::types::{LangHubError, Result};
+use crate::types::{LangHubError, LangHubResult};
 use crate::video::{VideoLLM, VideoLLMOptions, VideoLLMResult, VideoTask, VideoTaskStatus};
 use serde_json::json;
 use std::future::Future;
@@ -134,7 +134,7 @@ impl Veo {
         prompt: &str,
         options: &VideoLLMOptions,
         model_override: Option<&str>,
-    ) -> Result<serde_json::Value> {
+    ) -> LangHubResult<serde_json::Value> {
         let body = self.build_request_body(prompt, options);
         let model_name: String = self.resolve_model(model_override);
         let url = format!(
@@ -162,7 +162,7 @@ impl Veo {
             .await
             .map_err(|e| LangHubError::LLMError(format!("Veo JSON parse error: {}", e)))
     }
-    async fn poll_until_done(&self, operation_name: &str) -> Result<VideoLLMResult> {
+    async fn poll_until_done(&self, operation_name: &str) -> LangHubResult<VideoLLMResult> {
         let url = format!("{}/{}?key={}", self.base_url, operation_name, self.api_key);
         for _ in 0..180 {
             let response = self
@@ -209,7 +209,7 @@ impl VideoLLM for Veo {
         &self,
         prompt: &str,
         model: Option<&str>,
-    ) -> Pin<Box<dyn Future<Output = Result<VideoLLMResult>> + Send + '_>> {
+    ) -> Pin<Box<dyn Future<Output = LangHubResult<VideoLLMResult>> + Send + '_>> {
         let prompt = prompt.to_string();
         let options = self.default_options.clone();
         let model_owned: Option<String> = model.map(|m| m.to_string());
@@ -229,7 +229,7 @@ impl VideoLLM for Veo {
         prompt: &str,
         options: VideoLLMOptions,
         model: Option<&str>,
-    ) -> Pin<Box<dyn Future<Output = Result<VideoLLMResult>> + Send + '_>> {
+    ) -> Pin<Box<dyn Future<Output = LangHubResult<VideoLLMResult>> + Send + '_>> {
         let prompt = prompt.to_string();
         let model_owned: Option<String> = model.map(|m| m.to_string());
         Box::pin(async move {
@@ -248,7 +248,7 @@ impl VideoLLM for Veo {
         prompt: &str,
         options: VideoLLMOptions,
         model: Option<&str>,
-    ) -> Pin<Box<dyn Future<Output = Result<VideoTask>> + Send + '_>> {
+    ) -> Pin<Box<dyn Future<Output = LangHubResult<VideoTask>> + Send + '_>> {
         let prompt = prompt.to_string();
         let model_owned: Option<String> = model.map(|m| m.to_string());
         Box::pin(async move {
@@ -270,7 +270,7 @@ impl VideoLLM for Veo {
     fn poll_task(
         &self,
         task_id: &str,
-    ) -> Pin<Box<dyn Future<Output = Result<VideoTask>> + Send + '_>> {
+    ) -> Pin<Box<dyn Future<Output = LangHubResult<VideoTask>> + Send + '_>> {
         let task_id = task_id.to_string();
         Box::pin(async move {
             let url = format!("{}/{}?key={}", self.base_url, task_id, self.api_key);

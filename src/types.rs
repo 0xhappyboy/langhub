@@ -83,7 +83,7 @@ impl From<&str> for LangHubError {
         LangHubError::LLMError(msg.to_string())
     }
 }
-pub type Result<T> = std::result::Result<T, LangHubError>;
+pub type LangHubResult<T> = std::result::Result<T, LangHubError>;
 use crate::chat::ToolCall;
 use serde::{Deserialize, Serialize};
 /// LLM model vendor/provider type.

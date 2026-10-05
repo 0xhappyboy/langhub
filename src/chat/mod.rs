@@ -21,7 +21,7 @@ mod tencent;
 mod together;
 mod yi;
 mod zhipu;
-use crate::types::{ChatMessage, LLMVendor, LangHubError, Result};
+use crate::types::{ChatMessage, LLMVendor, LangHubError, LangHubResult};
 pub use alibaba::{AlibabaModel, AlibabaTongyi};
 pub use anthropic::{Anthropic, AnthropicModel};
 pub use azure::{AzureModel, AzureOpenAI};
@@ -191,26 +191,26 @@ pub trait LLM: Send + Sync {
     fn generate(
         &self,
         prompt: &str,
-    ) -> Pin<Box<dyn Future<Output = Result<LLMResult>> + Send + '_>>;
+    ) -> Pin<Box<dyn Future<Output = LangHubResult<LLMResult>> + Send + '_>>;
     /// Generate text with options
     fn generate_with_options(
         &self,
         prompt: &str,
         options: LLMOptions,
-    ) -> Pin<Box<dyn Future<Output = Result<LLMResult>> + Send + '_>>;
+    ) -> Pin<Box<dyn Future<Output = LangHubResult<LLMResult>> + Send + '_>>;
     /// Chat with message history
     fn chat(
         &self,
         messages: Vec<ChatMessage>,
         model: Option<&str>,
-    ) -> Pin<Box<dyn Future<Output = Result<LLMResult>> + Send + '_>>;
+    ) -> Pin<Box<dyn Future<Output = LangHubResult<LLMResult>> + Send + '_>>;
     /// Chat with options
     fn chat_with_options<'a>(
         &'a self,
         messages: Vec<ChatMessage>,
         options: LLMOptions,
         model: Option<&'a str>,
-    ) -> Pin<Box<dyn Future<Output = Result<LLMResult>> + Send + 'a>> {
+    ) -> Pin<Box<dyn Future<Output = LangHubResult<LLMResult>> + Send + 'a>> {
         Box::pin(async move { self.chat(messages, model).await })
     }
     /// Get model name
@@ -288,6 +288,37 @@ impl fmt::Display for ChatModelProvider {
     }
 }
 impl ChatModelProvider {
+    /// Parse a frontend provider string to `ChatModelProvider`.
+    pub fn parse_chat_provider(name: &str) -> LangHubResult<ChatModelProvider> {
+        match name.to_lowercase().as_str() {
+            "openai" => Ok(ChatModelProvider::OpenAI),
+            "anthropic" => Ok(ChatModelProvider::Anthropic),
+            "google" => Ok(ChatModelProvider::Google),
+            "deepseek" => Ok(ChatModelProvider::DeepSeek),
+            "cohere" => Ok(ChatModelProvider::Cohere),
+            "huggingface" | "hugging_face" => Ok(ChatModelProvider::HuggingFace),
+            "azure" => Ok(ChatModelProvider::Azure),
+            "mistral" => Ok(ChatModelProvider::Mistral),
+            "groq" => Ok(ChatModelProvider::Groq),
+            "together" => Ok(ChatModelProvider::Together),
+            "replicate" => Ok(ChatModelProvider::Replicate),
+            "fireworks" => Ok(ChatModelProvider::Fireworks),
+            "perplexity" => Ok(ChatModelProvider::Perplexity),
+            "baidu" => Ok(ChatModelProvider::Baidu),
+            "alibaba" => Ok(ChatModelProvider::Alibaba),
+            "tencent" => Ok(ChatModelProvider::Tencent),
+            "zhipu" => Ok(ChatModelProvider::Zhipu),
+            "minimax" => Ok(ChatModelProvider::MiniMax),
+            "moonshot" => Ok(ChatModelProvider::Moonshot),
+            "baichuan" => Ok(ChatModelProvider::Baichuan),
+            "yi" => Ok(ChatModelProvider::Yi),
+            "custom" => Ok(ChatModelProvider::Custom),
+            other => Err(LangHubError::LLMError(format!(
+                "Unknown chat provider: {}",
+                other
+            ))),
+        }
+    }
     /// provider id .
     pub fn id(&self) -> &'static str {
         match self {

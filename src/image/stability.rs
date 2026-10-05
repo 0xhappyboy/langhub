@@ -1,5 +1,5 @@
 use crate::image::{ImageLLM, ImageLLMOptions, ImageLLMResult, ImageTask, ImageTaskStatus};
-use crate::types::{LangHubError, Result};
+use crate::types::{LangHubError, LangHubResult};
 use serde_json::json;
 use std::future::Future;
 use std::pin::Pin;
@@ -116,7 +116,7 @@ impl StabilityImage {
         prompt: &str,
         options: &ImageLLMOptions,
         model_override: Option<&str>,
-    ) -> Result<serde_json::Value> {
+    ) -> LangHubResult<serde_json::Value> {
         let body = self.build_request_body(prompt, options);
         let model_name: String = self.resolve_model(model_override);
         // Determine the endpoint from the effective model id so that a
@@ -181,7 +181,7 @@ impl ImageLLM for StabilityImage {
         &self,
         prompt: &str,
         model: Option<&str>,
-    ) -> Pin<Box<dyn Future<Output = Result<ImageLLMResult>> + Send + '_>> {
+    ) -> Pin<Box<dyn Future<Output = LangHubResult<ImageLLMResult>> + Send + '_>> {
         let prompt = prompt.to_string();
         let options = self.default_options.clone();
         let model_owned: Option<String> = model.map(|m| m.to_string());
@@ -197,7 +197,7 @@ impl ImageLLM for StabilityImage {
         prompt: &str,
         options: ImageLLMOptions,
         model: Option<&str>,
-    ) -> Pin<Box<dyn Future<Output = Result<ImageLLMResult>> + Send + '_>> {
+    ) -> Pin<Box<dyn Future<Output = LangHubResult<ImageLLMResult>> + Send + '_>> {
         let prompt = prompt.to_string();
         let model_owned: Option<String> = model.map(|m| m.to_string());
         Box::pin(async move {
@@ -212,7 +212,7 @@ impl ImageLLM for StabilityImage {
         prompt: &str,
         options: ImageLLMOptions,
         model: Option<&str>,
-    ) -> Pin<Box<dyn Future<Output = Result<ImageTask>> + Send + '_>> {
+    ) -> Pin<Box<dyn Future<Output = LangHubResult<ImageTask>> + Send + '_>> {
         let prompt = prompt.to_string();
         let model_owned: Option<String> = model.map(|m| m.to_string());
         Box::pin(async move {
@@ -234,7 +234,7 @@ impl ImageLLM for StabilityImage {
     fn poll_task(
         &self,
         task_id: &str,
-    ) -> Pin<Box<dyn Future<Output = Result<ImageTask>> + Send + '_>> {
+    ) -> Pin<Box<dyn Future<Output = LangHubResult<ImageTask>> + Send + '_>> {
         let task_id = task_id.to_string();
         Box::pin(async move {
             Ok(ImageTask {

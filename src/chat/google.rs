@@ -88,7 +88,7 @@ impl GoogleAI {
         messages: &[ChatMessage],
         options: &LLMOptions,
         model_override: Option<&str>,
-    ) -> Result<LLMResult> {
+    ) -> LangHubResult<LLMResult> {
         // Resolve the effective model id: caller override wins over the
         // configured default.
         let model_name: String = match model_override {
@@ -156,7 +156,7 @@ impl LLM for GoogleAI {
     fn generate(
         &self,
         prompt: &str,
-    ) -> Pin<Box<dyn Future<Output = Result<LLMResult>> + Send + '_>> {
+    ) -> Pin<Box<dyn Future<Output = LangHubResult<LLMResult>> + Send + '_>> {
         let prompt = prompt.to_string();
         let options = self.default_options.clone();
         Box::pin(async move {
@@ -168,7 +168,7 @@ impl LLM for GoogleAI {
         &self,
         prompt: &str,
         options: LLMOptions,
-    ) -> Pin<Box<dyn Future<Output = Result<LLMResult>> + Send + '_>> {
+    ) -> Pin<Box<dyn Future<Output = LangHubResult<LLMResult>> + Send + '_>> {
         let prompt = prompt.to_string();
         Box::pin(async move {
             let messages = vec![ChatMessage::user(&prompt)];
@@ -179,7 +179,7 @@ impl LLM for GoogleAI {
         &self,
         messages: Vec<ChatMessage>,
         model: Option<&str>,
-    ) -> Pin<Box<dyn Future<Output = Result<LLMResult>> + Send + '_>> {
+    ) -> Pin<Box<dyn Future<Output = LangHubResult<LLMResult>> + Send + '_>> {
         // Clone the caller-provided override into an owned String so it can
         // be moved into the async block.
         let model_owned: Option<String> = model.map(|m| m.to_string());

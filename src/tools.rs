@@ -1,8 +1,7 @@
-use crate::types::LangHubError;
-use crate::types::Result;
+use crate::types::{LangHubError, LangHubResult};
 pub struct TextTool;
 impl TextTool {
-    pub fn extract_json(text: &str) -> Result<String> {
+    pub fn extract_json(text: &str) -> LangHubResult<String> {
         let text = text.trim();
         let json_start = text.find('{');
         let json_end = text.rfind('}');

@@ -1,4 +1,4 @@
-use crate::types::{LangHubError, Result};
+use crate::types::{LangHubError, LangHubResult};
 use crate::video::{VideoLLM, VideoLLMOptions, VideoLLMResult, VideoTask, VideoTaskStatus};
 use serde_json::json;
 use std::future::Future;
@@ -107,7 +107,7 @@ impl PrunaVideo {
         prompt: &str,
         options: &VideoLLMOptions,
         model_override: Option<&str>,
-    ) -> Result<serde_json::Value> {
+    ) -> LangHubResult<serde_json::Value> {
         let body = self.build_request_body(prompt, options, model_override);
         let response = self
             .client
@@ -150,7 +150,7 @@ impl VideoLLM for PrunaVideo {
         &self,
         prompt: &str,
         model: Option<&str>,
-    ) -> Pin<Box<dyn Future<Output = Result<VideoLLMResult>> + Send + '_>> {
+    ) -> Pin<Box<dyn Future<Output = LangHubResult<VideoLLMResult>> + Send + '_>> {
         let prompt = prompt.to_string();
         let options = self.default_options.clone();
         let model_owned: Option<String> = model.map(|m| m.to_string());
@@ -166,7 +166,7 @@ impl VideoLLM for PrunaVideo {
         prompt: &str,
         options: VideoLLMOptions,
         model: Option<&str>,
-    ) -> Pin<Box<dyn Future<Output = Result<VideoLLMResult>> + Send + '_>> {
+    ) -> Pin<Box<dyn Future<Output = LangHubResult<VideoLLMResult>> + Send + '_>> {
         let prompt = prompt.to_string();
         let model_owned: Option<String> = model.map(|m| m.to_string());
         Box::pin(async move {
@@ -181,7 +181,7 @@ impl VideoLLM for PrunaVideo {
         prompt: &str,
         options: VideoLLMOptions,
         model: Option<&str>,
-    ) -> Pin<Box<dyn Future<Output = Result<VideoTask>> + Send + '_>> {
+    ) -> Pin<Box<dyn Future<Output = LangHubResult<VideoTask>> + Send + '_>> {
         let prompt = prompt.to_string();
         let model_owned: Option<String> = model.map(|m| m.to_string());
         Box::pin(async move {
@@ -200,7 +200,7 @@ impl VideoLLM for PrunaVideo {
     fn poll_task(
         &self,
         task_id: &str,
-    ) -> Pin<Box<dyn Future<Output = Result<VideoTask>> + Send + '_>> {
+    ) -> Pin<Box<dyn Future<Output = LangHubResult<VideoTask>> + Send + '_>> {
         let task_id = task_id.to_string();
         Box::pin(async move {
             let url = format!("{}/video/generations/{}", self.base_url, task_id);

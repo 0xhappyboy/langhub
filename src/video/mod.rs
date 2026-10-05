@@ -10,7 +10,7 @@ mod runway;
 mod seedance;
 mod veo;
 mod wan;
-use crate::types::Result;
+use crate::types::{LangHubError, LangHubResult};
 pub use gemini_omni::{GeminiOmniFlash, GeminiOmniFlashModel};
 pub use grok_imagine::{GrokImagine, GrokImagineModel};
 pub use happyhorse::{HappyHorse, HappyHorseModel};
@@ -123,7 +123,7 @@ pub trait VideoLLM: Send + Sync {
         &self,
         prompt: &str,
         model: Option<&str>,
-    ) -> Pin<Box<dyn Future<Output = Result<VideoLLMResult>> + Send + '_>>;
+    ) -> Pin<Box<dyn Future<Output = LangHubResult<VideoLLMResult>> + Send + '_>>;
     /// Generate a video from a prompt with explicit options.
     ///
     /// `model` - Optional model id override. When `None`, the configured
@@ -133,7 +133,7 @@ pub trait VideoLLM: Send + Sync {
         prompt: &str,
         options: VideoLLMOptions,
         model: Option<&str>,
-    ) -> Pin<Box<dyn Future<Output = Result<VideoLLMResult>> + Send + '_>>;
+    ) -> Pin<Box<dyn Future<Output = LangHubResult<VideoLLMResult>> + Send + '_>>;
     /// Submit an asynchronous generation task.
     ///
     /// `model` - Optional model id override. When `None`, the configured
@@ -143,12 +143,12 @@ pub trait VideoLLM: Send + Sync {
         prompt: &str,
         options: VideoLLMOptions,
         model: Option<&str>,
-    ) -> Pin<Box<dyn Future<Output = Result<VideoTask>> + Send + '_>>;
+    ) -> Pin<Box<dyn Future<Output = LangHubResult<VideoTask>> + Send + '_>>;
     /// Poll an asynchronous generation task by id.
     fn poll_task(
         &self,
         task_id: &str,
-    ) -> Pin<Box<dyn Future<Output = Result<VideoTask>> + Send + '_>>;
+    ) -> Pin<Box<dyn Future<Output = LangHubResult<VideoTask>> + Send + '_>>;
     /// Get the configured default model name.
     fn get_model_name(&self) -> String;
     /// Get provider name.
@@ -199,6 +199,26 @@ impl std::fmt::Display for VideoModelProvider {
     }
 }
 impl VideoModelProvider {
+    /// Parse a frontend provider string to `VideoModelProvider`.
+    pub fn parse_video_provider(name: &str) -> LangHubResult<VideoModelProvider> {
+        match name.to_lowercase().as_str() {
+            "seedance" => Ok(VideoModelProvider::Seedance),
+            "wan" => Ok(VideoModelProvider::Wan),
+            "kling" => Ok(VideoModelProvider::Kling),
+            "veo" => Ok(VideoModelProvider::Veo),
+            "runway" => Ok(VideoModelProvider::Runway),
+            "minimax_h3" | "minimaxh3" => Ok(VideoModelProvider::MiniMaxH3),
+            "happyhorse" => Ok(VideoModelProvider::HappyHorse),
+            "ltx" => Ok(VideoModelProvider::Ltx),
+            "grok" | "grok_imagine" => Ok(VideoModelProvider::GrokImagine),
+            "pruna" => Ok(VideoModelProvider::Pruna),
+            "gemini" | "gemini_omni_flash" => Ok(VideoModelProvider::GeminiOmniFlash),
+            other => Err(LangHubError::LLMError(format!(
+                "Unknown video provider: {}",
+                other
+            ))),
+        }
+    }
     pub fn all() -> Vec<VideoModelProvider> {
         vec![
             VideoModelProvider::Seedance,
@@ -461,7 +481,7 @@ impl VideoModelProvider {
         }
     }
     /// Probes this provider with a real authenticated read-only request.
-    pub async fn probe(&self, api_key: &str, base_url: Option<&str>) -> Result<()> {
+    pub async fn probe(&self, api_key: &str, base_url: Option<&str>) -> LangHubResult<()> {
         let key = api_key.to_string();
         if key.is_empty() {
             return Err(crate::types::LangHubError::LLMError(

@@ -7,7 +7,7 @@ mod seed_audio;
 mod stable_audio;
 mod step_audio;
 mod suno;
-use crate::types::Result;
+use crate::types::{LangHubError, LangHubResult};
 pub use elevenlabs::{ElevenLabs, ElevenLabsModel};
 pub use gemini_tts::{GeminiTts, GeminiTtsModel};
 pub use lyria::{Lyria, LyriaModel};
@@ -153,7 +153,7 @@ pub trait AudioLLM: Send + Sync {
         &self,
         prompt: &str,
         model: Option<&str>,
-    ) -> Pin<Box<dyn Future<Output = Result<AudioLLMResult>> + Send + '_>>;
+    ) -> Pin<Box<dyn Future<Output = LangHubResult<AudioLLMResult>> + Send + '_>>;
     /// Generates audio with options.
     ///
     /// `model` - Optional model id override. When `None`, the configured
@@ -163,7 +163,7 @@ pub trait AudioLLM: Send + Sync {
         prompt: &str,
         options: AudioLLMOptions,
         model: Option<&str>,
-    ) -> Pin<Box<dyn Future<Output = Result<AudioLLMResult>> + Send + '_>>;
+    ) -> Pin<Box<dyn Future<Output = LangHubResult<AudioLLMResult>> + Send + '_>>;
     /// Submits an asynchronous generation task and returns a task handle.
     ///
     /// `model` - Optional model id override. When `None`, the configured
@@ -173,12 +173,12 @@ pub trait AudioLLM: Send + Sync {
         prompt: &str,
         options: AudioLLMOptions,
         model: Option<&str>,
-    ) -> Pin<Box<dyn Future<Output = Result<AudioTask>> + Send + '_>>;
+    ) -> Pin<Box<dyn Future<Output = LangHubResult<AudioTask>> + Send + '_>>;
     /// Polls an asynchronous task by its ID.
     fn poll_task(
         &self,
         task_id: &str,
-    ) -> Pin<Box<dyn Future<Output = Result<AudioTask>> + Send + '_>>;
+    ) -> Pin<Box<dyn Future<Output = LangHubResult<AudioTask>> + Send + '_>>;
     /// Returns the configured default model name.
     fn get_model_name(&self) -> String;
     /// Returns the provider name.
@@ -250,6 +250,23 @@ impl std::fmt::Display for AudioModelProvider {
     }
 }
 impl AudioModelProvider {
+    /// Parse a frontend provider string to `AudioModelProvider`.
+    pub fn parse_audio_provider(name: &str) -> LangHubResult<AudioModelProvider> {
+        match name.to_lowercase().as_str() {
+            "qwen_tts" | "qwentts" => Ok(AudioModelProvider::QwenTts),
+            "seed_audio" | "seedaudio" => Ok(AudioModelProvider::SeedAudio),
+            "step_audio" | "stepaudio" => Ok(AudioModelProvider::StepAudio),
+            "gemini_tts" | "geminitts" => Ok(AudioModelProvider::GeminiTts),
+            "elevenlabs" => Ok(AudioModelProvider::ElevenLabs),
+            "lyria" => Ok(AudioModelProvider::Lyria),
+            "suno" => Ok(AudioModelProvider::Suno),
+            "stable_audio" | "stableaudio" => Ok(AudioModelProvider::StableAudio),
+            other => Err(LangHubError::LLMError(format!(
+                "Unknown audio provider: {}",
+                other
+            ))),
+        }
+    }
     /// Returns all supported audio model providers.
     pub fn all() -> Vec<AudioModelProvider> {
         vec![
@@ -463,7 +480,7 @@ impl AudioModelProvider {
         }
     }
     /// Probes this provider with a real authenticated read-only request.
-    pub async fn probe(&self, api_key: &str, base_url: Option<&str>) -> Result<()> {
+    pub async fn probe(&self, api_key: &str, base_url: Option<&str>) -> LangHubResult<()> {
         let key = api_key.to_string();
         if key.is_empty() {
             return Err(crate::types::LangHubError::LLMError(

@@ -9,7 +9,8 @@ use crate::audio::*;
 use crate::chat::*;
 use crate::image::*;
 use crate::types::ImageVendor;
-use crate::types::{ChatMessage, LangHubError, Result};
+use crate::types::LangHubResult;
+use crate::types::{ChatMessage, LangHubError};
 use crate::video::*;
 /// Configuration for LLM client initialization
 ///
@@ -284,7 +285,7 @@ impl ChatLLMConfig {
 /// ```
 /// use langhub::{LLMClient, LLMConfig, ModelProvider};
 ///
-/// # async fn example() -> Result<(), Box<dyn std::error::Error>> {
+/// # async fn example() -> LangHubResult<(), Box<dyn std::error::Error>> {
 /// let config = LLMConfig::new().openai("sk-xxx".to_string());
 /// let client = LLMClient::new_with_config(ModelProvider::OpenAI, &config)?;
 /// let response = client.generate("Hello, world!").await?;
@@ -345,7 +346,7 @@ impl ChatLLMClient {
         provider: ChatModelProvider,
         api_key: Option<String>,
         extra_keys: Option<std::collections::HashMap<String, String>>,
-    ) -> Result<Self> {
+    ) -> LangHubResult<Self> {
         let mut config = ChatLLMConfig::new();
         let extra = extra_keys.unwrap_or_default();
         match provider {
@@ -525,7 +526,10 @@ impl ChatLLMClient {
     /// let openai_client = ChatLLMClient::new_with_config(ChatModelProvider::OpenAI, &config).unwrap();
     /// let anthropic_client = ChatLLMClient::new_with_config(ChatModelProvider::Anthropic, &config).unwrap();
     /// ```
-    pub fn new_with_config(provider: ChatModelProvider, config: &ChatLLMConfig) -> Result<Self> {
+    pub fn new_with_config(
+        provider: ChatModelProvider,
+        config: &ChatLLMConfig,
+    ) -> LangHubResult<Self> {
         match provider {
             ChatModelProvider::OpenAI => {
                 let api_key = config.openai_api_key.as_ref().ok_or_else(|| {
@@ -731,7 +735,7 @@ impl ChatLLMClient {
     ///
     /// # Example
     /// ```
-    /// # async fn example() -> Result<(), Box<dyn std::error::Error>> {
+    /// # async fn example() -> LangHubResult<(), Box<dyn std::error::Error>> {
     /// # let config = langhub::LLMConfig::new().openai("sk-xxx".to_string());
     /// # let client = langhub::ChatLLMClient::new_with_config(langhub::types::ModelProvider::OpenAI, &config)?;
     /// let response = client.generate("What is the capital of France?").await?;
@@ -739,7 +743,7 @@ impl ChatLLMClient {
     /// # Ok(())
     /// # }
     /// ```
-    pub async fn generate(&self, prompt: &str) -> Result<LLMResult> {
+    pub async fn generate(&self, prompt: &str) -> LangHubResult<LLMResult> {
         match self {
             ChatLLMClient::OpenAI(m) => m.generate(prompt).await,
             ChatLLMClient::Anthropic(m) => m.generate(prompt).await,
@@ -779,7 +783,7 @@ impl ChatLLMClient {
     /// ```
     /// use langhub::types::ChatMessage;
     ///
-    /// # async fn example() -> Result<(), Box<dyn std::error::Error>> {
+    /// # async fn example() -> LangHubResult<(), Box<dyn std::error::Error>> {
     /// # let config = langhub::LLMConfig::new().openai("sk-xxx".to_string());
     /// # let client = langhub::LLMClient::new_with_config(langhub::types::ModelProvider::OpenAI, &config)?;
     /// let messages = vec![
@@ -795,7 +799,11 @@ impl ChatLLMClient {
     /// # Ok(())
     /// # }
     /// ```
-    pub async fn chat(&self, messages: Vec<ChatMessage>, model: Option<&str>) -> Result<LLMResult> {
+    pub async fn chat(
+        &self,
+        messages: Vec<ChatMessage>,
+        model: Option<&str>,
+    ) -> LangHubResult<LLMResult> {
         match self {
             ChatLLMClient::OpenAI(m) => m.chat(messages, model).await,
             ChatLLMClient::Anthropic(m) => m.chat(messages, model).await,
@@ -995,7 +1003,7 @@ impl VideoLLMConfig {
 /// ```
 /// use langhub::{VideoLLMClient, VideoLLMConfig, VideoModelProvider};
 ///
-/// # async fn example() -> Result<(), Box<dyn std::error::Error>> {
+/// # async fn example() -> LangHubResult<(), Box<dyn std::error::Error>> {
 /// let config = VideoLLMConfig::new().seedance("your-api-key".to_string());
 /// let client = VideoLLMClient::new_with_config(VideoModelProvider::Seedance, &config)?;
 /// let result = client.generate("A cat walking on the beach").await?;
@@ -1041,7 +1049,7 @@ impl VideoLLMClient {
         provider: VideoModelProvider,
         api_key: Option<String>,
         extra_keys: Option<std::collections::HashMap<String, String>>,
-    ) -> Result<Self> {
+    ) -> LangHubResult<Self> {
         let extra = extra_keys.unwrap_or_default();
         match provider {
             VideoModelProvider::Seedance => {
@@ -1185,7 +1193,10 @@ impl VideoLLMClient {
     /// let seedance_client = VideoLLMClient::new_with_config(VideoModelProvider::Seedance, &config).unwrap();
     /// let wan_client = VideoLLMClient::new_with_config(VideoModelProvider::Wan, &config).unwrap();
     /// ```
-    pub fn new_with_config(provider: VideoModelProvider, config: &VideoLLMConfig) -> Result<Self> {
+    pub fn new_with_config(
+        provider: VideoModelProvider,
+        config: &VideoLLMConfig,
+    ) -> LangHubResult<Self> {
         match provider {
             VideoModelProvider::Seedance => {
                 let key = config.seedance_api_key.as_ref().ok_or_else(|| {
@@ -1315,14 +1326,18 @@ impl VideoLLMClient {
     ///
     /// # Example
     /// ```
-    /// # async fn example() -> Result<(), Box<dyn std::error::Error>> {
+    /// # async fn example() -> LangHubResult<(), Box<dyn std::error::Error>> {
     /// # let config = langhub::VideoLLMConfig::new().seedance("your-api-key".to_string());
     /// # let client = langhub::VideoLLMClient::new_with_config(langhub::video::VideoModelProvider::Seedance, &config)?;
     /// let result = client.generate("A cat walking on the beach").await?;
     /// # Ok(())
     /// # }
     /// ```
-    pub async fn generate(&self, prompt: &str, model: Option<&str>) -> Result<VideoLLMResult> {
+    pub async fn generate(
+        &self,
+        prompt: &str,
+        model: Option<&str>,
+    ) -> LangHubResult<VideoLLMResult> {
         match self {
             VideoLLMClient::Seedance(m) => m.generate(prompt, model).await,
             VideoLLMClient::Wan(m) => m.generate(prompt, model).await,
@@ -1350,7 +1365,7 @@ impl VideoLLMClient {
         prompt: &str,
         options: VideoLLMOptions,
         model: Option<&str>,
-    ) -> Result<VideoLLMResult> {
+    ) -> LangHubResult<VideoLLMResult> {
         match self {
             VideoLLMClient::Seedance(m) => m.generate_with_options(prompt, options, model).await,
             VideoLLMClient::Wan(m) => m.generate_with_options(prompt, options, model).await,
@@ -1380,7 +1395,7 @@ impl VideoLLMClient {
         prompt: &str,
         options: VideoLLMOptions,
         model: Option<&str>,
-    ) -> Result<VideoTask> {
+    ) -> LangHubResult<VideoTask> {
         match self {
             VideoLLMClient::Seedance(m) => m.submit_task(prompt, options, model).await,
             VideoLLMClient::Wan(m) => m.submit_task(prompt, options, model).await,
@@ -1402,7 +1417,7 @@ impl VideoLLMClient {
     ///
     /// # Returns
     /// A `Result` containing the current `VideoTask` state
-    pub async fn poll_task(&self, task_id: &str) -> Result<VideoTask> {
+    pub async fn poll_task(&self, task_id: &str) -> LangHubResult<VideoTask> {
         match self {
             VideoLLMClient::Seedance(m) => m.poll_task(task_id).await,
             VideoLLMClient::Wan(m) => m.poll_task(task_id).await,
@@ -1546,7 +1561,7 @@ impl ImageLLMConfig {
 /// ```
 /// use langhub::{ImageLLMClient, ImageLLMConfig, ImageModelProvider};
 ///
-/// # async fn example() -> Result<(), Box<dyn std::error::Error>> {
+/// # async fn example() -> LangHubResult<(), Box<dyn std::error::Error>> {
 /// let config = ImageLLMConfig::new().seedream("your-api-key".to_string());
 /// let client = ImageLLMClient::new_with_config(ImageModelProvider::Seedream, &config)?;
 /// let result = client.generate("A cat sitting on a windowsill").await?;
@@ -1587,7 +1602,7 @@ impl ImageLLMClient {
         provider: ImageModelProvider,
         api_key: Option<String>,
         extra_keys: Option<std::collections::HashMap<String, String>>,
-    ) -> Result<Self> {
+    ) -> LangHubResult<Self> {
         let extra = extra_keys.unwrap_or_default();
         match provider {
             ImageModelProvider::Seedream => {
@@ -1675,7 +1690,10 @@ impl ImageLLMClient {
     /// let seedream_client = ImageLLMClient::new_with_config(ImageModelProvider::Seedream, &config).unwrap();
     /// let dalle_client = ImageLLMClient::new_with_config(ImageModelProvider::DallE, &config).unwrap();
     /// ```
-    pub fn new_with_config(provider: ImageModelProvider, config: &ImageLLMConfig) -> Result<Self> {
+    pub fn new_with_config(
+        provider: ImageModelProvider,
+        config: &ImageLLMConfig,
+    ) -> LangHubResult<Self> {
         match provider {
             ImageModelProvider::Seedream => {
                 let key = config.seedream_api_key.as_ref().ok_or_else(|| {
@@ -1751,7 +1769,7 @@ impl ImageLLMClient {
     ///
     /// # Example
     /// ```
-    /// # async fn example() -> Result<(), Box<dyn std::error::Error>> {
+    /// # async fn example() -> LangHubResult<(), Box<dyn std::error::Error>> {
     /// # let config = langhub::ImageLLMConfig::new().seedream("your-api-key".to_string());
     /// # let client = langhub::ImageLLMClient::new_with_config(langhub::image::ImageModelProvider::Seedream, &config)?;
     /// // Use the provider's default model:
@@ -1761,7 +1779,11 @@ impl ImageLLMClient {
     /// # Ok(())
     /// # }
     /// ```
-    pub async fn generate(&self, prompt: &str, model: Option<&str>) -> Result<ImageLLMResult> {
+    pub async fn generate(
+        &self,
+        prompt: &str,
+        model: Option<&str>,
+    ) -> LangHubResult<ImageLLMResult> {
         match self {
             ImageLLMClient::Seedream(m) => m.generate(prompt, model).await,
             ImageLLMClient::WanImage(m) => m.generate(prompt, model).await,
@@ -1786,7 +1808,7 @@ impl ImageLLMClient {
         prompt: &str,
         options: ImageLLMOptions,
         model: Option<&str>,
-    ) -> Result<ImageLLMResult> {
+    ) -> LangHubResult<ImageLLMResult> {
         match self {
             ImageLLMClient::Seedream(m) => m.generate_with_options(prompt, options, model).await,
             ImageLLMClient::WanImage(m) => m.generate_with_options(prompt, options, model).await,
@@ -1813,7 +1835,7 @@ impl ImageLLMClient {
         prompt: &str,
         options: ImageLLMOptions,
         model: Option<&str>,
-    ) -> Result<ImageTask> {
+    ) -> LangHubResult<ImageTask> {
         match self {
             ImageLLMClient::Seedream(m) => m.submit_task(prompt, options, model).await,
             ImageLLMClient::WanImage(m) => m.submit_task(prompt, options, model).await,
@@ -1830,7 +1852,7 @@ impl ImageLLMClient {
     ///
     /// # Returns
     /// A `Result` containing the current `ImageTask` state
-    pub async fn poll_task(&self, task_id: &str) -> Result<ImageTask> {
+    pub async fn poll_task(&self, task_id: &str) -> LangHubResult<ImageTask> {
         match self {
             ImageLLMClient::Seedream(m) => m.poll_task(task_id).await,
             ImageLLMClient::WanImage(m) => m.poll_task(task_id).await,
@@ -1991,7 +2013,7 @@ impl AudioLLMConfig {
 /// ```
 /// use langhub::{AudioLLMClient, AudioLLMConfig, AudioModelProvider};
 ///
-/// # async fn example() -> Result<(), Box<dyn std::error::Error>> {
+/// # async fn example() -> LangHubResult<(), Box<dyn std::error::Error>> {
 /// let config = AudioLLMConfig::new().qwen_tts("your-api-key".to_string());
 /// let client = AudioLLMClient::new_with_config(AudioModelProvider::QwenTts, &config)?;
 /// let result = client.generate("Hello, world!").await?;
@@ -2034,7 +2056,7 @@ impl AudioLLMClient {
         provider: AudioModelProvider,
         api_key: Option<String>,
         extra_keys: Option<std::collections::HashMap<String, String>>,
-    ) -> Result<Self> {
+    ) -> LangHubResult<Self> {
         let extra = extra_keys.unwrap_or_default();
         match provider {
             AudioModelProvider::QwenTts => {
@@ -2142,7 +2164,10 @@ impl AudioLLMClient {
     /// let qwen_client = AudioLLMClient::new_with_config(AudioModelProvider::QwenTts, &config).unwrap();
     /// let eleven_client = AudioLLMClient::new_with_config(AudioModelProvider::ElevenLabs, &config).unwrap();
     /// ```
-    pub fn new_with_config(provider: AudioModelProvider, config: &AudioLLMConfig) -> Result<Self> {
+    pub fn new_with_config(
+        provider: AudioModelProvider,
+        config: &AudioLLMConfig,
+    ) -> LangHubResult<Self> {
         match provider {
             AudioModelProvider::QwenTts => {
                 let key = config.qwen_tts_api_key.as_ref().ok_or_else(|| {
@@ -2236,14 +2261,18 @@ impl AudioLLMClient {
     ///
     /// # Example
     /// ```
-    /// # async fn example() -> Result<(), Box<dyn std::error::Error>> {
+    /// # async fn example() -> LangHubResult<(), Box<dyn std::error::Error>> {
     /// # let config = langhub::AudioLLMConfig::new().qwen_tts("your-api-key".to_string());
     /// # let client = langhub::AudioLLMClient::new_with_config(langhub::audio::AudioModelProvider::QwenTts, &config)?;
     /// let result = client.generate("Hello, world!").await?;
     /// # Ok(())
     /// # }
     /// ```
-    pub async fn generate(&self, prompt: &str, model: Option<&str>) -> Result<AudioLLMResult> {
+    pub async fn generate(
+        &self,
+        prompt: &str,
+        model: Option<&str>,
+    ) -> LangHubResult<AudioLLMResult> {
         match self {
             AudioLLMClient::QwenTts(m) => m.generate(prompt, model).await,
             AudioLLMClient::SeedAudio(m) => m.generate(prompt, model).await,
@@ -2268,7 +2297,7 @@ impl AudioLLMClient {
         prompt: &str,
         options: AudioLLMOptions,
         model: Option<&str>,
-    ) -> Result<AudioLLMResult> {
+    ) -> LangHubResult<AudioLLMResult> {
         match self {
             AudioLLMClient::QwenTts(m) => m.generate_with_options(prompt, options, model).await,
             AudioLLMClient::SeedAudio(m) => m.generate_with_options(prompt, options, model).await,
@@ -2293,7 +2322,7 @@ impl AudioLLMClient {
         prompt: &str,
         options: AudioLLMOptions,
         model: Option<&str>,
-    ) -> Result<AudioTask> {
+    ) -> LangHubResult<AudioTask> {
         match self {
             AudioLLMClient::QwenTts(m) => m.submit_task(prompt, options, model).await,
             AudioLLMClient::SeedAudio(m) => m.submit_task(prompt, options, model).await,
@@ -2312,7 +2341,7 @@ impl AudioLLMClient {
     ///
     /// # Returns
     /// A `Result` containing the current `AudioTask` state
-    pub async fn poll_task(&self, task_id: &str) -> Result<AudioTask> {
+    pub async fn poll_task(&self, task_id: &str) -> LangHubResult<AudioTask> {
         match self {
             AudioLLMClient::QwenTts(m) => m.poll_task(task_id).await,
             AudioLLMClient::SeedAudio(m) => m.poll_task(task_id).await,

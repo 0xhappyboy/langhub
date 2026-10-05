@@ -70,7 +70,7 @@ impl CustomLLM {
         messages: &[ChatMessage],
         options: &LLMOptions,
         model_override: Option<&str>,
-    ) -> Result<LLMResult> {
+    ) -> LangHubResult<LLMResult> {
         let model_name: String = match model_override {
             Some(m) => m.to_string(),
             None => self.model.clone().into(),
@@ -135,7 +135,7 @@ impl LLM for CustomLLM {
     fn generate(
         &self,
         prompt: &str,
-    ) -> Pin<Box<dyn Future<Output = Result<LLMResult>> + Send + '_>> {
+    ) -> Pin<Box<dyn Future<Output = LangHubResult<LLMResult>> + Send + '_>> {
         let prompt = prompt.to_string();
         let options = self.default_options.clone();
         Box::pin(async move {
@@ -147,7 +147,7 @@ impl LLM for CustomLLM {
         &self,
         prompt: &str,
         options: LLMOptions,
-    ) -> Pin<Box<dyn Future<Output = Result<LLMResult>> + Send + '_>> {
+    ) -> Pin<Box<dyn Future<Output = LangHubResult<LLMResult>> + Send + '_>> {
         let prompt = prompt.to_string();
         Box::pin(async move {
             let messages = vec![ChatMessage::user(&prompt)];
@@ -158,7 +158,7 @@ impl LLM for CustomLLM {
         &self,
         messages: Vec<ChatMessage>,
         model: Option<&str>,
-    ) -> Pin<Box<dyn Future<Output = Result<LLMResult>> + Send + '_>> {
+    ) -> Pin<Box<dyn Future<Output = LangHubResult<LLMResult>> + Send + '_>> {
         // Clone the caller-provided override into an owned String so it can
         // be moved into the async block.
         let model_owned: Option<String> = model.map(|m| m.to_string());

@@ -1,4 +1,4 @@
-use crate::types::{LangHubError, Result};
+use crate::types::{LangHubError, LangHubResult};
 use crate::video::{VideoLLM, VideoLLMOptions, VideoLLMResult, VideoTask, VideoTaskStatus};
 use serde_json::json;
 use std::future::Future;
@@ -200,7 +200,7 @@ impl Seedance {
         prompt: &str,
         options: &VideoLLMOptions,
         model_override: Option<&str>,
-    ) -> Result<serde_json::Value> {
+    ) -> LangHubResult<serde_json::Value> {
         let body = self.build_request_body(prompt, options, model_override);
         let response = self
             .client
@@ -255,7 +255,7 @@ impl Seedance {
             .map(|s| s.to_string())
     }
     /// Poll task status until finished, parse video result
-    async fn poll_until_done(&self, task_id: &str) -> Result<VideoLLMResult> {
+    async fn poll_until_done(&self, task_id: &str) -> LangHubResult<VideoLLMResult> {
         let url = format!("{}/contents/generations/tasks/{}", self.base_url, task_id);
         // Max poll 120 times, sleep 2s each
         for _ in 0..120 {
@@ -320,7 +320,7 @@ impl VideoLLM for Seedance {
         &self,
         prompt: &str,
         model: Option<&str>,
-    ) -> Pin<Box<dyn Future<Output = Result<VideoLLMResult>> + Send + '_>> {
+    ) -> Pin<Box<dyn Future<Output = LangHubResult<VideoLLMResult>> + Send + '_>> {
         let prompt = prompt.to_string();
         let options = self.default_options.clone();
         let model_override = model.map(|s| s.to_string());
@@ -340,7 +340,7 @@ impl VideoLLM for Seedance {
         prompt: &str,
         options: VideoLLMOptions,
         model: Option<&str>,
-    ) -> Pin<Box<dyn Future<Output = Result<VideoLLMResult>> + Send + '_>> {
+    ) -> Pin<Box<dyn Future<Output = LangHubResult<VideoLLMResult>> + Send + '_>> {
         let prompt = prompt.to_string();
         let model_override = model.map(|s| s.to_string());
         Box::pin(async move {
@@ -359,7 +359,7 @@ impl VideoLLM for Seedance {
         prompt: &str,
         options: VideoLLMOptions,
         model: Option<&str>,
-    ) -> Pin<Box<dyn Future<Output = Result<VideoTask>> + Send + '_>> {
+    ) -> Pin<Box<dyn Future<Output = LangHubResult<VideoTask>> + Send + '_>> {
         let prompt = prompt.to_string();
         let model_override = model.map(|s| s.to_string());
         Box::pin(async move {
@@ -382,7 +382,7 @@ impl VideoLLM for Seedance {
     fn poll_task(
         &self,
         task_id: &str,
-    ) -> Pin<Box<dyn Future<Output = Result<VideoTask>> + Send + '_>> {
+    ) -> Pin<Box<dyn Future<Output = LangHubResult<VideoTask>> + Send + '_>> {
         let tid = task_id.to_string();
         Box::pin(async move {
             let url = format!("{}/contents/generations/tasks/{}", self.base_url, tid);

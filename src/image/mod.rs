@@ -5,7 +5,7 @@ mod imagen;
 mod seedream;
 mod stability;
 mod wan_image;
-use crate::types::Result;
+use crate::types::{LangHubError, LangHubResult};
 pub use dalle::{DallE, DallEModel};
 pub use flux::{FluxImage, FluxImageModel};
 pub use imagen::{Imagen, ImagenModel};
@@ -112,7 +112,7 @@ pub trait ImageLLM: Send + Sync {
         &self,
         prompt: &str,
         model: Option<&str>,
-    ) -> Pin<Box<dyn Future<Output = Result<ImageLLMResult>> + Send + '_>>;
+    ) -> Pin<Box<dyn Future<Output = LangHubResult<ImageLLMResult>> + Send + '_>>;
     /// Generate images with explicit options.
     ///
     /// `model` - Optional model id override. When `None`, the configured
@@ -122,7 +122,7 @@ pub trait ImageLLM: Send + Sync {
         prompt: &str,
         options: ImageLLMOptions,
         model: Option<&str>,
-    ) -> Pin<Box<dyn Future<Output = Result<ImageLLMResult>> + Send + '_>>;
+    ) -> Pin<Box<dyn Future<Output = LangHubResult<ImageLLMResult>> + Send + '_>>;
     /// Submit an asynchronous generation task.
     ///
     /// `model` - Optional model id override. When `None`, the configured
@@ -132,12 +132,12 @@ pub trait ImageLLM: Send + Sync {
         prompt: &str,
         options: ImageLLMOptions,
         model: Option<&str>,
-    ) -> Pin<Box<dyn Future<Output = Result<ImageTask>> + Send + '_>>;
+    ) -> Pin<Box<dyn Future<Output = LangHubResult<ImageTask>> + Send + '_>>;
     /// Poll an asynchronous generation task by id.
     fn poll_task(
         &self,
         task_id: &str,
-    ) -> Pin<Box<dyn Future<Output = Result<ImageTask>> + Send + '_>>;
+    ) -> Pin<Box<dyn Future<Output = LangHubResult<ImageTask>> + Send + '_>>;
     /// Get the configured default model name.
     fn get_model_name(&self) -> String;
     /// Get provider name.
@@ -171,6 +171,21 @@ impl std::fmt::Display for ImageModelProvider {
     }
 }
 impl ImageModelProvider {
+    /// Parse a frontend provider string to `ImageModelProvider`.
+    pub fn parse_image_provider(name: &str) -> LangHubResult<ImageModelProvider> {
+        match name.to_lowercase().as_str() {
+            "seedream" => Ok(ImageModelProvider::Seedream),
+            "wan_image" | "wanimage" | "wan" => Ok(ImageModelProvider::WanImage),
+            "stability" | "stability_image" => Ok(ImageModelProvider::StabilityImage),
+            "flux" => Ok(ImageModelProvider::Flux),
+            "imagen" => Ok(ImageModelProvider::Imagen),
+            "dalle" | "dall_e" | "dall-e" => Ok(ImageModelProvider::DallE),
+            other => Err(LangHubError::LLMError(format!(
+                "Unknown image provider: {}",
+                other
+            ))),
+        }
+    }
     pub fn all() -> Vec<ImageModelProvider> {
         vec![
             ImageModelProvider::Seedream,
@@ -356,7 +371,7 @@ impl ImageModelProvider {
         }
     }
     /// Probes this provider with a real authenticated read-only request.
-    pub async fn probe(&self, api_key: &str, base_url: Option<&str>) -> Result<()> {
+    pub async fn probe(&self, api_key: &str, base_url: Option<&str>) -> LangHubResult<()> {
         let key = api_key.to_string();
         if key.is_empty() {
             return Err(crate::types::LangHubError::LLMError(
