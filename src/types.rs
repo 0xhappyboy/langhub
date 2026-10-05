@@ -42,6 +42,11 @@ pub enum LangHubError {
     IoError(std::io::Error),
     JsonError(serde_json::Error),
 }
+impl From<LangHubError> for String {
+    fn from(err: LangHubError) -> Self {
+        err.to_string()
+    }
+}
 impl fmt::Display for LangHubError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
