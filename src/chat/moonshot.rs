@@ -175,6 +175,18 @@ impl LLM for Moonshot {
                 .await
         })
     }
+    fn chat_with_options<'a>(
+        &'a self,
+        messages: Vec<ChatMessage>,
+        options: LLMOptions,
+        model: Option<&'a str>,
+    ) -> Pin<Box<dyn Future<Output = LangHubResult<LLMResult>> + Send + 'a>> {
+        let model_owned: Option<String> = model.map(|m| m.to_string());
+        Box::pin(async move {
+            self.chat_completion(&messages, &options, model_owned.as_deref())
+                .await
+        })
+    }
     fn get_model_name(&self) -> String {
         match self.model {
             MoonshotModel::Kimi8K => "moonshot-v1-8k".to_string(),

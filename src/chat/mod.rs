@@ -210,9 +210,7 @@ pub trait LLM: Send + Sync {
         messages: Vec<ChatMessage>,
         options: LLMOptions,
         model: Option<&'a str>,
-    ) -> Pin<Box<dyn Future<Output = LangHubResult<LLMResult>> + Send + 'a>> {
-        Box::pin(async move { self.chat(messages, model).await })
-    }
+    ) -> Pin<Box<dyn Future<Output = LangHubResult<LLMResult>> + Send + 'a>>;
     /// Get model name
     fn get_model_name(&self) -> String;
     /// Get provider name

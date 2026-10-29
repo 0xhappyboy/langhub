@@ -233,6 +233,20 @@ impl LLM for BaiduWenxin {
                 .await
         })
     }
+    fn chat_with_options<'a>(
+        &'a self,
+        messages: Vec<ChatMessage>,
+        options: LLMOptions,
+        model: Option<&'a str>,
+    ) -> Pin<Box<dyn Future<Output = LangHubResult<LLMResult>> + Send + 'a>> {
+        let model_owned: Option<String> = model.map(|m| m.to_string());
+        let mut self_clone = self.clone();
+        Box::pin(async move {
+            self_clone
+                .chat_completion(&messages, &options, model_owned.as_deref())
+                .await
+        })
+    }
     fn get_model_name(&self) -> String {
         match self.model {
             BaiduModel::Ernie4_0 => "ernie-4.0".to_string(),

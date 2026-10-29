@@ -829,6 +829,49 @@ impl ChatLLMClient {
             ChatLLMClient::Custom(m) => m.chat(messages, model).await,
         }
     }
+    /// Generates a chat completion with explicit generation options.
+    ///
+    /// # Arguments
+    /// * `messages` - A vector of chat messages representing the conversation.
+    /// * `options`  - Generation options (`max_tokens`, `temperature`,
+    ///   `top_p`, `stop_sequences`, `response_format`, ...). `None`
+    ///   fields fall back to the provider's own defaults.
+    /// * `model`    - Optional model id override. When `None`, the
+    ///   provider's configured default model is used.
+    ///
+    /// # Returns
+    /// A `Result` containing the llm's response or an error.
+    pub async fn chat_with_options(
+        &self,
+        messages: Vec<ChatMessage>,
+        options: LLMOptions,
+        model: Option<&str>,
+    ) -> LangHubResult<LLMResult> {
+        match self {
+            ChatLLMClient::OpenAI(m) => m.chat_with_options(messages, options, model).await,
+            ChatLLMClient::Anthropic(m) => m.chat_with_options(messages, options, model).await,
+            ChatLLMClient::DeepSeek(m) => m.chat_with_options(messages, options, model).await,
+            ChatLLMClient::Google(m) => m.chat_with_options(messages, options, model).await,
+            ChatLLMClient::Cohere(m) => m.chat_with_options(messages, options, model).await,
+            ChatLLMClient::HuggingFace(m) => m.chat_with_options(messages, options, model).await,
+            ChatLLMClient::Azure(m) => m.chat_with_options(messages, options, model).await,
+            ChatLLMClient::Mistral(m) => m.chat_with_options(messages, options, model).await,
+            ChatLLMClient::Groq(m) => m.chat_with_options(messages, options, model).await,
+            ChatLLMClient::Together(m) => m.chat_with_options(messages, options, model).await,
+            ChatLLMClient::Replicate(m) => m.chat_with_options(messages, options, model).await,
+            ChatLLMClient::Fireworks(m) => m.chat_with_options(messages, options, model).await,
+            ChatLLMClient::Perplexity(m) => m.chat_with_options(messages, options, model).await,
+            ChatLLMClient::Baidu(m) => m.chat_with_options(messages, options, model).await,
+            ChatLLMClient::Alibaba(m) => m.chat_with_options(messages, options, model).await,
+            ChatLLMClient::Tencent(m) => m.chat_with_options(messages, options, model).await,
+            ChatLLMClient::Zhipu(m) => m.chat_with_options(messages, options, model).await,
+            ChatLLMClient::MiniMax(m) => m.chat_with_options(messages, options, model).await,
+            ChatLLMClient::Moonshot(m) => m.chat_with_options(messages, options, model).await,
+            ChatLLMClient::Baichuan(m) => m.chat_with_options(messages, options, model).await,
+            ChatLLMClient::Yi(m) => m.chat_with_options(messages, options, model).await,
+            ChatLLMClient::Custom(m) => m.chat_with_options(messages, options, model).await,
+        }
+    }
 }
 /// Configuration for video LLM client initialization
 ///
