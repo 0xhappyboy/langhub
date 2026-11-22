@@ -561,3 +561,99 @@ impl VideoModelProvider {
         }
     }
 }
+/// Return the maximum number of reference images allowed for the given provider and model.
+pub fn get_model_max_reference_images(provider: VideoModelProvider, model: Option<&str>) -> usize {
+    match provider {
+        VideoModelProvider::Seedance => {
+            let model_id = model.unwrap_or("doubao-seedance-1-0-pro-fast-251015");
+            match model_id {
+                "doubao-seedance-1-0-pro-250528" => 1,
+                "doubao-seedance-1-0-pro-fast-251015" => 1,
+                "doubao-seedance-1-5-pro-251215" => 1,
+                "doubao-seedance-2-0-260128" => 9,
+                "doubao-seedance-2-0-fast-260128" => 9,
+                "doubao-seedance-2-0-mini-260615" => 9,
+                "doubao-seedance-2-5" => 30,
+                _ => 1,
+            }
+        }
+        VideoModelProvider::Wan => {
+            let model_id = model.unwrap_or("wan3.0-video");
+            match model_id {
+                "wan3.0-video" => 10,
+                "wan3.0-video-prime" => 10,
+                _ => 10,
+            }
+        }
+        VideoModelProvider::Kling => {
+            let model_id = model.unwrap_or("kling-v3");
+            match model_id {
+                "kling-v3" => 4,
+                "kling-v3-omni" => 4,
+                "kling-v4" => 4,
+                _ => 4,
+            }
+        }
+        VideoModelProvider::Veo => {
+            let model_id = model.unwrap_or("veo-3.1-generate-preview");
+            match model_id {
+                "veo-3.1-generate-preview" => 8,
+                "veo-3.1-fast-generate-preview" => 8,
+                "veo-3.1-lite-generate-preview" => 8,
+                _ => 8,
+            }
+        }
+        VideoModelProvider::Runway => {
+            let model_id = model.unwrap_or("gen4.5");
+            match model_id {
+                "gen4.5" => 5,
+                "aleph2.0" => 5,
+                _ => 5,
+            }
+        }
+        VideoModelProvider::MiniMaxH3 => {
+            let model_id = model.unwrap_or("MiniMax-Hailuo-H3");
+            match model_id {
+                "MiniMax-Hailuo-H3" => 9,
+                _ => 9,
+            }
+        }
+        VideoModelProvider::HappyHorse => {
+            let model_id = model.unwrap_or("happyhorse-1.0");
+            match model_id {
+                "happyhorse-1.0" => 9,
+                _ => 9,
+            }
+        }
+        VideoModelProvider::Ltx => {
+            let model_id = model.unwrap_or("ltx-2.3-fast");
+            match model_id {
+                "ltx-2.3-fast" => 4,
+                "ltx-2.3-pro" => 4,
+                _ => 4,
+            }
+        }
+        VideoModelProvider::GrokImagine => {
+            let model_id = model.unwrap_or("grok-imagine-video-1.5");
+            match model_id {
+                "grok-imagine-video-1.5" => 4,
+                "grok-imagine-video-1.0" => 4,
+                _ => 4,
+            }
+        }
+        VideoModelProvider::Pruna => {
+            let model_id = model.unwrap_or("p-video-2-pro");
+            match model_id {
+                "p-video-2-pro" => 2,
+                _ => 2,
+            }
+        }
+        VideoModelProvider::GeminiOmniFlash => {
+            let model_id = model.unwrap_or("gemini-omni-flash-1.1");
+            match model_id {
+                "gemini-omni-flash-1.1" => 8,
+                _ => 8,
+            }
+        }
+    }
+}
