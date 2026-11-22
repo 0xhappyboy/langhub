@@ -165,6 +165,8 @@ pub trait VideoLLM: Send + Sync {
     fn supports_reference_videos(&self) -> bool {
         false
     }
+    /// Return maximum allowed reference image count for current model.
+    fn max_reference_image_count(&self, model: Option<&str>) -> usize;
 }
 /// Video model provider enum.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]

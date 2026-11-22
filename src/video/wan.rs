@@ -353,4 +353,14 @@ impl VideoLLM for WanVideo {
     fn supports_reference_videos(&self) -> bool {
         true
     }
+    fn max_reference_image_count(&self, model: Option<&str>) -> usize {
+        let model_id = model
+            .map(|s| s.to_string())
+            .unwrap_or_else(|| self.get_model_name());
+        match model_id.as_str() {
+            "wan3.0-video" => 10,
+            "wan3.0-video-prime" => 10,
+            _ => 10,
+        }
+    }
 }

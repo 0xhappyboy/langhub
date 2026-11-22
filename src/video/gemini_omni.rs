@@ -314,4 +314,13 @@ impl VideoLLM for GeminiOmniFlash {
     fn supports_reference_videos(&self) -> bool {
         true
     }
+    fn max_reference_image_count(&self, model: Option<&str>) -> usize {
+        let model_id = model
+            .map(|s| s.to_string())
+            .unwrap_or_else(|| self.get_model_name());
+        match model_id.as_str() {
+            "gemini-omni-flash-1.1" => 8,
+            _ => 8,
+        }
+    }
 }

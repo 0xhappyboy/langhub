@@ -342,4 +342,16 @@ impl VideoLLM for Veo {
     fn supports_reference_videos(&self) -> bool {
         true
     }
+    /// Return maximum allowed reference image count for current model.
+    fn max_reference_image_count(&self, model: Option<&str>) -> usize {
+        let model_id = model
+            .map(|s| s.to_string())
+            .unwrap_or_else(|| self.get_model_name());
+        match model_id.as_str() {
+            "veo-3.1-generate-preview" => 8,
+            "veo-3.1-fast-generate-preview" => 8,
+            "veo-3.1-lite-generate-preview" => 8,
+            _ => 8,
+        }
+    }
 }

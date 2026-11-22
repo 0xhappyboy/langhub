@@ -463,4 +463,19 @@ impl VideoLLM for Seedance {
     fn supports_reference_videos(&self) -> bool {
         true
     }
+    fn max_reference_image_count(&self, model: Option<&str>) -> usize {
+        let model_id = model
+            .map(|s| s.to_string())
+            .unwrap_or_else(|| self.get_model_name());
+        match model_id.as_str() {
+            "doubao-seedance-1-0-pro-250528" => 1,
+            "doubao-seedance-1-0-pro-fast-251015" => 1,
+            "doubao-seedance-1-5-pro-251215" => 1,
+            "doubao-seedance-2-0-260128" => 9,
+            "doubao-seedance-2-0-fast-260128" => 9,
+            "doubao-seedance-2-0-mini-260615" => 9,
+            "doubao-seedance-2-5" => 30,
+            _ => 1,
+        }
+    }
 }

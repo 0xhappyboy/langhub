@@ -357,4 +357,15 @@ impl VideoLLM for KlingVideo {
     fn supports_reference_videos(&self) -> bool {
         true
     }
+    fn max_reference_image_count(&self, model: Option<&str>) -> usize {
+        let model_id = model
+            .map(|s| s.to_string())
+            .unwrap_or_else(|| self.get_model_name());
+        match model_id.as_str() {
+            "kling-v3" => 4,
+            "kling-v3-omni" => 4,
+            "kling-v4" => 4,
+            _ => 4,
+        }
+    }
 }
