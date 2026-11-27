@@ -325,7 +325,7 @@ impl Seedance {
         }
         body
     }
-    /// Build request body for v2 API (2.0 series) - flat structure, no parameters nesting
+    /// Build request body for v2 API (2.0 series) - content array with role
     fn build_v2_request_body(
         &self,
         prompt: &str,
@@ -334,9 +334,58 @@ impl Seedance {
     ) -> serde_json::Value {
         let mut body = json!({
             "model": model_name,
-            "prompt": prompt
+            "content": [
+                {
+                    "type": "text",
+                    "text": prompt
+                }
+            ]
         });
-        // Top-level optional parameters
+        // Add first_frame with role
+        if let Some(first_frame) = &options.first_frame {
+            if let Some(content_arr) = body["content"].as_array_mut() {
+                content_arr.push(json!({
+                    "type": "image_url",
+                    "image_url": {"url": first_frame},
+                    "role": "first_frame"
+                }));
+            }
+        }
+        // Add last_frame with role
+        if let Some(last_frame) = &options.last_frame {
+            if let Some(content_arr) = body["content"].as_array_mut() {
+                content_arr.push(json!({
+                    "type": "image_url",
+                    "image_url": {"url": last_frame},
+                    "role": "last_frame"
+                }));
+            }
+        }
+        // Add reference images with role
+        if let Some(images) = options.reference_images.as_ref() {
+            if let Some(content_arr) = body["content"].as_array_mut() {
+                for url in images {
+                    content_arr.push(json!({
+                        "type": "image_url",
+                        "image_url": {"url": url},
+                        "role": "reference_image"
+                    }));
+                }
+            }
+        }
+        // Add reference videos with role
+        if let Some(videos) = options.reference_videos.as_ref() {
+            if let Some(content_arr) = body["content"].as_array_mut() {
+                for url in videos {
+                    content_arr.push(json!({
+                        "type": "video_url",
+                        "video_url": {"url": url},
+                        "role": "reference_video"
+                    }));
+                }
+            }
+        }
+        // Top-level optional parameters (flat structure)
         if let Some(duration) = options.duration {
             body["duration"] = json!(duration as i32);
         }
@@ -361,80 +410,6 @@ impl Seedance {
         if let Some(service_tier) = &options.service_tier {
             body["service_tier"] = json!(service_tier);
         }
-        // Check if we have first/last frame mode or content array mode
-        let has_explicit_first_last = options.first_frame.is_some() || options.last_frame.is_some();
-        let has_reference_images = options
-            .reference_images
-            .as_ref()
-            .map(|v| !v.is_empty())
-            .unwrap_or(false);
-        let has_reference_videos = options
-            .reference_videos
-            .as_ref()
-            .map(|v| !v.is_empty())
-            .unwrap_or(false);
-        if has_explicit_first_last || has_reference_images {
-            // Mode A: first_frame / last_frame mode
-            // Use first_frame from options or first reference image
-            let first_frame_url = options.first_frame.clone().or_else(|| {
-                options
-                    .reference_images
-                    .as_ref()
-                    .and_then(|imgs| imgs.first().cloned())
-            });
-            if let Some(first) = first_frame_url {
-                body["first_frame"] = json!(first);
-            }
-            // Use last_frame from options or last reference image (if more than 1 image)
-            let last_frame_url = options.last_frame.clone().or_else(|| {
-                options.reference_images.as_ref().and_then(|imgs| {
-                    if imgs.len() > 1 {
-                        imgs.last().cloned()
-                    } else {
-                        None
-                    }
-                })
-            });
-            if let Some(last) = last_frame_url {
-                body["last_frame"] = json!(last);
-            }
-            if has_reference_videos && !has_reference_images && !has_explicit_first_last {
-                let mut content = vec![json!({
-                    "type": "text",
-                    "text": prompt
-                })];
-                if let Some(videos) = options.reference_videos.as_ref() {
-                    for url in videos.iter().take(3) {
-                        content.push(json!({
-                            "type": "video_url",
-                            "video_url": url
-                        }));
-                    }
-                }
-                // Remove first_frame/last_frame if we switch to content mode
-                body.as_object_mut().map(|obj| {
-                    obj.remove("first_frame");
-                    obj.remove("last_frame");
-                });
-                body["content"] = json!(content);
-            }
-        } else if has_reference_videos {
-            // Mode B: content array for multimodal input (videos only)
-            let mut content = vec![json!({
-                "type": "text",
-                "text": prompt
-            })];
-            // Add reference videos
-            if let Some(videos) = options.reference_videos.as_ref() {
-                for url in videos.iter().take(3) {
-                    content.push(json!({
-                        "type": "video_url",
-                        "video_url": url
-                    }));
-                }
-            }
-            body["content"] = json!(content);
-        }
         body
     }
     /// Build request body for v2.5 API (2.5 series) - content array with role markers
@@ -445,9 +420,59 @@ impl Seedance {
         model_name: &str,
     ) -> serde_json::Value {
         let mut body = json!({
-            "model": model_name
+            "model": model_name,
+            "content": [
+                {
+                    "type": "text",
+                    "text": prompt
+                }
+            ]
         });
-        // Top-level optional parameters
+        // Add first_frame with role
+        if let Some(first_frame) = &options.first_frame {
+            if let Some(content_arr) = body["content"].as_array_mut() {
+                content_arr.push(json!({
+                    "type": "image_url",
+                    "image_url": {"url": first_frame},
+                    "role": "first_frame"
+                }));
+            }
+        }
+        // Add last_frame with role
+        if let Some(last_frame) = &options.last_frame {
+            if let Some(content_arr) = body["content"].as_array_mut() {
+                content_arr.push(json!({
+                    "type": "image_url",
+                    "image_url": {"url": last_frame},
+                    "role": "last_frame"
+                }));
+            }
+        }
+        // Add reference images with role
+        if let Some(images) = options.reference_images.as_ref() {
+            if let Some(content_arr) = body["content"].as_array_mut() {
+                for url in images {
+                    content_arr.push(json!({
+                        "type": "image_url",
+                        "image_url": {"url": url},
+                        "role": "reference_image"
+                    }));
+                }
+            }
+        }
+        // Add reference videos with role
+        if let Some(videos) = options.reference_videos.as_ref() {
+            if let Some(content_arr) = body["content"].as_array_mut() {
+                for url in videos {
+                    content_arr.push(json!({
+                        "type": "video_url",
+                        "video_url": {"url": url},
+                        "role": "reference_video"
+                    }));
+                }
+            }
+        }
+        // Top-level optional parameters (flat structure)
         if let Some(duration) = options.duration {
             body["duration"] = json!(duration as i32);
         }
@@ -463,98 +488,13 @@ impl Seedance {
         if let Some(service_tier) = &options.service_tier {
             body["service_tier"] = json!(service_tier);
         }
-        // Check if first_frame/last_frame mode (must use adaptive aspect ratio)
-        let has_first_last_frame = options.first_frame.is_some()
-            || options.last_frame.is_some()
-            || (options
-                .reference_images
-                .as_ref()
-                .map(|v| !v.is_empty())
-                .unwrap_or(false));
+        // 2.5 specific: aspect_ratio handling
+        let has_first_last_frame = options.first_frame.is_some() || options.last_frame.is_some();
         if has_first_last_frame {
-            // First/last frame mode: force adaptive aspect ratio
             body["aspect_ratio"] = json!("adaptive");
-        } else {
-            // Normal mode: can use ratio or aspect_ratio
-            if let Some(ratio) = &options.aspect_ratio {
-                body["ratio"] = json!(ratio);
-            }
+        } else if let Some(ratio) = &options.aspect_ratio {
+            body["ratio"] = json!(ratio);
         }
-        // Build content array with role markers
-        let mut content = vec![];
-        // Add prompt as text content
-        content.push(json!({
-            "type": "text",
-            "text": prompt
-        }));
-        // Track which images are used as first/last frame
-        let mut used_first_frame = false;
-        let mut used_last_frame = false;
-        // Add first_frame if provided
-        if let Some(first_frame) = &options.first_frame {
-            content.push(json!({
-                "type": "image_url",
-                "image_url": {"url": first_frame},
-                "role": "first_frame"
-            }));
-            used_first_frame = true;
-        }
-        // Add last_frame if provided
-        if let Some(last_frame) = &options.last_frame {
-            content.push(json!({
-                "type": "image_url",
-                "image_url": {"url": last_frame},
-                "role": "last_frame"
-            }));
-            used_last_frame = true;
-        }
-        // Add reference images with proper role
-        if let Some(images) = options.reference_images.as_ref() {
-            let total = images.len();
-            for (idx, url) in images.iter().enumerate() {
-                // Skip first image if used as first_frame
-                if idx == 0 && used_first_frame {
-                    continue;
-                }
-                // Skip last image if used as last_frame and it's the last one
-                if idx == total - 1 && used_last_frame {
-                    continue;
-                }
-                // If we have first/last frame from images (not explicit), assign roles
-                if !used_first_frame && idx == 0 && total > 1 {
-                    content.push(json!({
-                        "type": "image_url",
-                        "image_url": {"url": url},
-                        "role": "first_frame"
-                    }));
-                    used_first_frame = true;
-                } else if !used_last_frame && idx == total - 1 && total > 1 {
-                    content.push(json!({
-                        "type": "image_url",
-                        "image_url": {"url": url},
-                        "role": "last_frame"
-                    }));
-                    used_last_frame = true;
-                } else {
-                    content.push(json!({
-                        "type": "image_url",
-                        "image_url": {"url": url},
-                        "role": "reference_image"
-                    }));
-                }
-            }
-        }
-        // Add reference videos
-        if let Some(videos) = options.reference_videos.as_ref() {
-            for url in videos.iter() {
-                content.push(json!({
-                    "type": "video_url",
-                    "video_url": {"url": url},
-                    "role": "reference_video"
-                }));
-            }
-        }
-        body["content"] = json!(content);
         body
     }
     /// Build request json payload, automatically select v1, v2 or v2.5 format
