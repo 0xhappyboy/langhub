@@ -1,5 +1,5 @@
 <h1 align="center">langhub</h1>
-<h4 align="center">一个基于Rust开发的LLM统一抽象层框架.</h4>
+<h4 align="center">一个基于 Rust 开发的多模态 AI 服务统一抽象层框架, 用统一接口接入多家厂商的文本、图像、视频、音频生成模型.</h4>
 
 <p align="center">
   <a href="https://github.com/0xhappyboy/langhub/blob/main/LICENSE"><img src="https://img.shields.io/badge/License-Apache2.0-d1d1f6.svg?style=flat&labelColor=1C2C2E&color=BEC5C9&logo=googledocs&label=license&logoColor=BEC5C9" alt="License"></a>
@@ -15,7 +15,7 @@
 
 ## 简介
 
-**langhub** 一个基于Rust开发的LLM统一抽象层框架, 用**统一的接口**接入多家 AI 厂商，覆盖四大模态：
+**langhub** 是一个基于 Rust 开发的多模态 AI 服务统一抽象层框架，用统一的接口接入多家厂商的文本、图像、视频、音频生成模型，覆盖四大模态：
 
 | 模态        | Trait      | 客户端           | 说明                         |
 | ----------- | ---------- | ---------------- | ---------------------------- |
@@ -28,7 +28,7 @@
 
 ## 安装
 
-```bash
+```rust
 cargo add langhub
 ```
 
@@ -76,19 +76,19 @@ cargo add langhub
 
 ### 三、视频生成模型（Video）
 
-| 厂商               | Provider                              | 代表模型                                                     |
-| ------------------ | ------------------------------------- | ------------------------------------------------------------ |
-| 字节跳动 Seedance  | `VideoModelProvider::Seedance`        | Seedance 1.0 Pro / Pro Fast、1.5 Pro、2.0 / Fast / Mini、2.5 |
-| 阿里云通义万相     | `VideoModelProvider::Wan`             | Wan 3.0、Wan 3.0 Prime                                       |
-| 快手可灵           | `VideoModelProvider::Kling`           | Kling 3.0、Kling 3.0 Omni、Kling 4.0                         |
-| Google Veo         | `VideoModelProvider::Veo`             | Veo 3.1、Veo 3.1 Fast、Veo 3.1 Lite                          |
-| Runway             | `VideoModelProvider::Runway`          | Runway Gen-4.5、Runway Aleph 2.0                             |
-| MiniMax 海螺       | `VideoModelProvider::MiniMaxH3`       | MiniMax Hailuo H3                                            |
-| 阿里云 HappyHorse  | `VideoModelProvider::HappyHorse`      | HappyHorse 1.0                                               |
-| Lightricks LTX     | `VideoModelProvider::Ltx`             | LTX-2.3 Fast、LTX-2.3 Pro                                    |
-| xAI Grok           | `VideoModelProvider::GrokImagine`     | Grok Imagine 1.5 / 1.0                                       |
-| Pruna              | `VideoModelProvider::Pruna`           | Pruna P-Video 2 Pro                                          |
-| Google Gemini Omni | `VideoModelProvider::GeminiOmniFlash` | Gemini Omni Flash 1.1                                        |
+| 厂商               | Provider                              | 代表模型                                                                 |
+| ------------------ | ------------------------------------- | ------------------------------------------------------------------------ |
+| 字节跳动 Seedance  | `VideoModelProvider::Seedance`        | Seedance 1.0 Pro / Pro Fast、1.5 Pro、2.0 / Fast / Mini、2.5 / 2.5 Flash |
+| 阿里云通义万相     | `VideoModelProvider::Wan`             | Wan 3.0、Wan 3.0 Prime                                                   |
+| 快手可灵           | `VideoModelProvider::Kling`           | Kling 3.0、Kling 3.0 Omni、Kling 4.0                                     |
+| Google Veo         | `VideoModelProvider::Veo`             | Veo 3.1、Veo 3.1 Fast、Veo 3.1 Lite                                      |
+| Runway             | `VideoModelProvider::Runway`          | Runway Gen-4.5、Runway Aleph 2.0                                         |
+| MiniMax 海螺       | `VideoModelProvider::MiniMaxH3`       | MiniMax Hailuo H3                                                        |
+| 阿里云 HappyHorse  | `VideoModelProvider::HappyHorse`      | HappyHorse 1.0                                                           |
+| Lightricks LTX     | `VideoModelProvider::Ltx`             | LTX-2.3 Fast、LTX-2.3 Pro                                                |
+| xAI Grok           | `VideoModelProvider::GrokImagine`     | Grok Imagine 1.5 / 1.0                                                   |
+| Pruna              | `VideoModelProvider::Pruna`           | Pruna P-Video 2 Pro                                                      |
+| Google Gemini Omni | `VideoModelProvider::GeminiOmniFlash` | Gemini Omni Flash 1.1                                                    |
 
 ### 四、音频生成模型（Audio）
 
@@ -107,17 +107,17 @@ cargo add langhub
 
 ## 快速开始
 
+### 对话示例
+
 ```rust
 use langhub::{ChatLLMClient, ChatLLMConfig, ChatModelProvider};
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let config = ChatLLMConfig::new().openai("sk-xxx".to_string());
-    let client = ChatLLMClient::new_with_config(ChatModelProvider::OpenAI, &config)?;
-
-    let response = client.generate("Hello, world!").await?;
+   let config = ChatLLMConfig::new().openai("sk-xxx".to_string());
+   let client = ChatLLMClient::new_with_config(ChatModelProvider::OpenAI, &config)?;
+    let response = client.generate("你好，世界！").await?;
     println!("{}", response.text);
-
     Ok(())
 }
 ```
@@ -137,7 +137,50 @@ use langhub::{VideoLLMClient, VideoLLMConfig, VideoModelProvider};
 
 let config = VideoLLMConfig::new().seedance("your-ark-api-key".to_string());
 let client = VideoLLMClient::new_with_config(VideoModelProvider::Seedance, &config)?;
-let result = client.generate("A cat walking on the beach", None).await?;
+let result = client.generate("一只猫在沙滩上散步", None).await?;
+```
+
+**Seedance 2.0 首尾帧模式：**
+
+```rust
+use langhub::{VideoLLMClient, VideoLLMConfig, VideoModelProvider, VideoLLMOptions};
+
+let config = VideoLLMConfig::new().seedance("your-ark-api-key".to_string());
+let client = VideoLLMClient::new_with_config(VideoModelProvider::Seedance, &config)?;
+
+let mut options = VideoLLMOptions::default();
+options.first_frame = Some("https://example.com/start.jpg".to_string());
+options.last_frame = Some("https://example.com/end.jpg".to_string());
+options.duration = Some(5.0);
+
+let result = client.generate_with_options(
+"从白天到夜晚的电影级转场",
+options,
+Some("doubao-seedance-2-0-260128")
+).await?;
+```
+
+**Seedance 2.5 多模态内容数组模式：**
+
+```rust
+use langhub::{VideoLLMClient, VideoLLMConfig, VideoModelProvider, VideoLLMOptions};
+
+let config = VideoLLMConfig::new().seedance("your-ark-api-key".to_string());
+let client = VideoLLMClient::new_with_config(VideoModelProvider::Seedance, &config)?;
+
+let mut options = VideoLLMOptions::default();
+options.reference_images = Some(vec![
+    "https://example.com/ref1.jpg".to_string(),
+    "https://example.com/ref2.jpg".to_string(),
+]);
+options.duration = Some(10.0);
+options.return_last_frame = Some(true);
+
+let result = client.generate_with_options(
+"一个角色走过场景",
+options,
+Some("doubao-seedance-2-5-260628")
+).await?;
 ```
 
 ### 图像生成示例
@@ -147,7 +190,27 @@ use langhub::{ImageLLMClient, ImageLLMConfig, ImageModelProvider};
 
 let config = ImageLLMConfig::new().seedream("your-ark-api-key".to_string());
 let client = ImageLLMClient::new_with_config(ImageModelProvider::Seedream, &config)?;
-let result = client.generate("A cat sitting on a windowsill", None).await?;
+let result = client.generate("一只猫坐在窗台上", None).await?;
+```
+
+**图像参考图与负面提示词：**
+
+```rust
+use langhub::{ImageLLMClient, ImageLLMConfig, ImageModelProvider, ImageLLMOptions};
+
+let config = ImageLLMConfig::new().flux("your-bfl-api-key".to_string());
+let client = ImageLLMClient::new_with_config(ImageModelProvider::Flux, &config)?;
+
+let mut options = ImageLLMOptions::default();
+options.reference_images = Some(vec!["https://example.com/style-ref.jpg".to_string()]);
+options.negative_prompt = Some("模糊，低质量".to_string());
+options.aspect_ratio = Some("16:9".to_string());
+
+let result = client.generate_with_options(
+"日落时分的未来城市景观",
+options,
+Some("flux-2-pro")
+).await?;
 ```
 
 ### 音频生成示例
@@ -157,7 +220,46 @@ use langhub::{AudioLLMClient, AudioLLMConfig, AudioModelProvider};
 
 let config = AudioLLMConfig::new().qwen_tts("your-dashscope-api-key".to_string());
 let client = AudioLLMClient::new_with_config(AudioModelProvider::QwenTts, &config)?;
-let result = client.generate("Hello, world!", None).await?;
+let result = client.generate("你好，世界！", None).await?;
+```
+
+**TTS 语音与情绪控制：**
+
+```rust
+use langhub::{AudioLLMClient, AudioLLMConfig, AudioModelProvider, AudioLLMOptions};
+
+let config = AudioLLMConfig::new().qwen_tts("your-dashscope-api-key".to_string());
+let client = AudioLLMClient::new_with_config(AudioModelProvider::QwenTts, &config)?;
+
+let mut options = AudioLLMOptions::default();
+options.voice = Some("Cherry".to_string());
+options.emotion = Some("happy".to_string());
+options.speed = Some(1.2);
+
+let result = client.generate_with_options(
+"你好，这是一个测试！",
+options,
+Some("qwen-audio-3.1-tts")
+).await?;
+```
+
+**音乐生成带歌词：**
+
+```rust
+use langhub::{AudioLLMClient, AudioLLMConfig, AudioModelProvider, AudioLLMOptions};
+
+let config = AudioLLMConfig::new().suno("your-suno-api-key".to_string());
+let client = AudioLLMClient::new_with_config(AudioModelProvider::Suno, &config)?;
+
+let mut options = AudioLLMOptions::default();
+options.lyrics = Some("第一段：...\n副歌：...".to_string());
+options.instrumental = Some(false);
+
+let result = client.generate_with_options(
+"一首关于夏天的流行歌曲",
+options,
+Some("suno-v6")
+).await?;
 ```
 
 ---

@@ -1,5 +1,5 @@
 <h1 align="center">langhub</h1>
-<h4 align="center">A unified LLM abstraction layer framework built in Rust.</h4>
+<h4 align="center">A Rust framework providing unified access to multimodal AI models (text, image, video, audio) across multiple vendors.</h4>
 
 <p align="center">
   <a href="https://github.com/0xhappyboy/langhub/blob/main/LICENSE"><img src="https://img.shields.io/badge/License-Apache2.0-d1d1f6.svg?style=flat&labelColor=1C2C2E&color=BEC5C9&logo=googledocs&label=license&logoColor=BEC5C9" alt="License"></a>
@@ -15,7 +15,7 @@
 
 ## Introduction
 
-**langhub** is a unified LLM abstraction layer framework built in Rust. It connects to multiple AI vendors through **a single unified interface**, covering four modalities:
+**langhub** is a Rust framework providing unified access to multimodal AI models (text, image, video, audio) across multiple vendors. It exposes a single unified interface covering four modalities:
 
 | Modality    | Trait      | Client           | Description                                       |
 | ----------- | ---------- | ---------------- | ------------------------------------------------- |
@@ -28,7 +28,7 @@ Every modality exposes a unified set of `generate` / `generate_with_options` / `
 
 ## Install
 
-```bash
+```rust
 cargo add langhub
 ```
 
@@ -76,19 +76,19 @@ cargo add langhub
 
 ### 3. Video Generation Models
 
-| Vendor             | Provider                              | Representative Models                                        |
-| ------------------ | ------------------------------------- | ------------------------------------------------------------ |
-| ByteDance Seedance | `VideoModelProvider::Seedance`        | Seedance 1.0 Pro / Pro Fast, 1.5 Pro, 2.0 / Fast / Mini, 2.5 |
-| Alibaba Wan        | `VideoModelProvider::Wan`             | Wan 3.0, Wan 3.0 Prime                                       |
-| Kuaishou Kling     | `VideoModelProvider::Kling`           | Kling 3.0, Kling 3.0 Omni, Kling 4.0                         |
-| Google Veo         | `VideoModelProvider::Veo`             | Veo 3.1, Veo 3.1 Fast, Veo 3.1 Lite                          |
-| Runway             | `VideoModelProvider::Runway`          | Runway Gen-4.5, Runway Aleph 2.0                             |
-| MiniMax Hailuo     | `VideoModelProvider::MiniMaxH3`       | MiniMax Hailuo H3                                            |
-| Alibaba HappyHorse | `VideoModelProvider::HappyHorse`      | HappyHorse 1.0                                               |
-| Lightricks LTX     | `VideoModelProvider::Ltx`             | LTX-2.3 Fast, LTX-2.3 Pro                                    |
-| xAI Grok           | `VideoModelProvider::GrokImagine`     | Grok Imagine 1.5 / 1.0                                       |
-| Pruna              | `VideoModelProvider::Pruna`           | Pruna P-Video 2 Pro                                          |
-| Google Gemini Omni | `VideoModelProvider::GeminiOmniFlash` | Gemini Omni Flash 1.1                                        |
+| Vendor             | Provider                              | Representative Models                                                    |
+| ------------------ | ------------------------------------- | ------------------------------------------------------------------------ |
+| ByteDance Seedance | `VideoModelProvider::Seedance`        | Seedance 1.0 Pro / Pro Fast, 1.5 Pro, 2.0 / Fast / Mini, 2.5 / 2.5 Flash |
+| Alibaba Wan        | `VideoModelProvider::Wan`             | Wan 3.0, Wan 3.0 Prime                                                   |
+| Kuaishou Kling     | `VideoModelProvider::Kling`           | Kling 3.0, Kling 3.0 Omni, Kling 4.0                                     |
+| Google Veo         | `VideoModelProvider::Veo`             | Veo 3.1, Veo 3.1 Fast, Veo 3.1 Lite                                      |
+| Runway             | `VideoModelProvider::Runway`          | Runway Gen-4.5, Runway Aleph 2.0                                         |
+| MiniMax Hailuo     | `VideoModelProvider::MiniMaxH3`       | MiniMax Hailuo H3                                                        |
+| Alibaba HappyHorse | `VideoModelProvider::HappyHorse`      | HappyHorse 1.0                                                           |
+| Lightricks LTX     | `VideoModelProvider::Ltx`             | LTX-2.3 Fast, LTX-2.3 Pro                                                |
+| xAI Grok           | `VideoModelProvider::GrokImagine`     | Grok Imagine 1.5 / 1.0                                                   |
+| Pruna              | `VideoModelProvider::Pruna`           | Pruna P-Video 2 Pro                                                      |
+| Google Gemini Omni | `VideoModelProvider::GeminiOmniFlash` | Gemini Omni Flash 1.1                                                    |
 
 ### 4. Audio Generation Models
 
@@ -106,6 +106,8 @@ cargo add langhub
 ---
 
 ## Quick Start
+
+### Chat Example
 
 ```rust
 use langhub::{ChatLLMClient, ChatLLMConfig, ChatModelProvider};
@@ -140,6 +142,49 @@ let client = VideoLLMClient::new_with_config(VideoModelProvider::Seedance, &conf
 let result = client.generate("A cat walking on the beach", None).await?;
 ```
 
+**Seedance 2.0 with first/last frame:**
+
+```rust
+use langhub::{VideoLLMClient, VideoLLMConfig, VideoModelProvider, VideoLLMOptions};
+
+let config = VideoLLMConfig::new().seedance("your-ark-api-key".to_string());
+let client = VideoLLMClient::new_with_config(VideoModelProvider::Seedance, &config)?;
+
+let mut options = VideoLLMOptions::default();
+options.first_frame = Some("https://example.com/start.jpg".to_string());
+options.last_frame = Some("https://example.com/end.jpg".to_string());
+options.duration = Some(5.0);
+
+let result = client.generate_with_options(
+    "A cinematic transition from day to night",
+    options,
+    Some("doubao-seedance-2-0-260128")
+).await?;
+```
+
+**Seedance 2.5 with content array and roles:**
+
+```rust
+use langhub::{VideoLLMClient, VideoLLMConfig, VideoModelProvider, VideoLLMOptions};
+
+let config = VideoLLMConfig::new().seedance("your-ark-api-key".to_string());
+let client = VideoLLMClient::new_with_config(VideoModelProvider::Seedance, &config)?;
+
+let mut options = VideoLLMOptions::default();
+options.reference_images = Some(vec![
+    "https://example.com/ref1.jpg".to_string(),
+    "https://example.com/ref2.jpg".to_string(),
+]);
+options.duration = Some(10.0);
+options.return_last_frame = Some(true);
+
+let result = client.generate_with_options(
+    "A character walking through a scene",
+    options,
+    Some("doubao-seedance-2-5-260628")
+).await?;
+```
+
 ### Image Generation Example
 
 ```rust
@@ -150,6 +195,26 @@ let client = ImageLLMClient::new_with_config(ImageModelProvider::Seedream, &conf
 let result = client.generate("A cat sitting on a windowsill", None).await?;
 ```
 
+**Image with reference and negative prompt:**
+
+```rust
+use langhub::{ImageLLMClient, ImageLLMConfig, ImageModelProvider, ImageLLMOptions};
+
+let config = ImageLLMConfig::new().flux("your-bfl-api-key".to_string());
+let client = ImageLLMClient::new_with_config(ImageModelProvider::Flux, &config)?;
+
+let mut options = ImageLLMOptions::default();
+options.reference_images = Some(vec!["https://example.com/style-ref.jpg".to_string()]);
+options.negative_prompt = Some("blurry, low quality".to_string());
+options.aspect_ratio = Some("16:9".to_string());
+
+let result = client.generate_with_options(
+    "A futuristic cityscape at sunset",
+    options,
+    Some("flux-2-pro")
+).await?;
+```
+
 ### Audio Generation Example
 
 ```rust
@@ -158,6 +223,45 @@ use langhub::{AudioLLMClient, AudioLLMConfig, AudioModelProvider};
 let config = AudioLLMConfig::new().qwen_tts("your-dashscope-api-key".to_string());
 let client = AudioLLMClient::new_with_config(AudioModelProvider::QwenTts, &config)?;
 let result = client.generate("Hello, world!", None).await?;
+```
+
+**TTS with voice and emotion:**
+
+```rust
+use langhub::{AudioLLMClient, AudioLLMConfig, AudioModelProvider, AudioLLMOptions};
+
+let config = AudioLLMConfig::new().qwen_tts("your-dashscope-api-key".to_string());
+let client = AudioLLMClient::new_with_config(AudioModelProvider::QwenTts, &config)?;
+
+let mut options = AudioLLMOptions::default();
+options.voice = Some("Cherry".to_string());
+options.emotion = Some("happy".to_string());
+options.speed = Some(1.2);
+
+let result = client.generate_with_options(
+    "Hello, this is a test!",
+    options,
+    Some("qwen-audio-3.1-tts")
+).await?;
+```
+
+**Music generation with lyrics:**
+
+```rust
+use langhub::{AudioLLMClient, AudioLLMConfig, AudioModelProvider, AudioLLMOptions};
+
+let config = AudioLLMConfig::new().suno("your-suno-api-key".to_string());
+let client = AudioLLMClient::new_with_config(AudioModelProvider::Suno, &config)?;
+
+let mut options = AudioLLMOptions::default();
+options.lyrics = Some("Verse 1: ...\nChorus: ...".to_string());
+options.instrumental = Some(false);
+
+let result = client.generate_with_options(
+    "A pop song about summer",
+    options,
+    Some("suno-v6")
+).await?;
 ```
 
 ---
