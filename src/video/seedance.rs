@@ -13,6 +13,7 @@ pub enum SeedanceModel {
     Seedance20Fast,
     Seedance20Mini,
     Seedance25,
+    Seedance25Flash,
     Custom(String),
 }
 impl SeedanceModel {
@@ -25,7 +26,8 @@ impl SeedanceModel {
             SeedanceModel::Seedance20 => "doubao-seedance-2-0-260128".to_string(),
             SeedanceModel::Seedance20Fast => "doubao-seedance-2-0-fast-260128".to_string(),
             SeedanceModel::Seedance20Mini => "doubao-seedance-2-0-mini-260615".to_string(),
-            SeedanceModel::Seedance25 => "doubao-seedance-2-5".to_string(),
+            SeedanceModel::Seedance25 => "doubao-seedance-2-5-260628".to_string(),
+            SeedanceModel::Seedance25Flash => "doubao-seedance-2-5-flash-261115".to_string(),
             SeedanceModel::Custom(name) => name.clone(),
         }
     }
@@ -37,7 +39,8 @@ impl SeedanceModel {
             | SeedanceModel::Seedance20
             | SeedanceModel::Seedance20Fast
             | SeedanceModel::Seedance20Mini
-            | SeedanceModel::Seedance25 => true,
+            | SeedanceModel::Seedance25
+            | SeedanceModel::Seedance25Flash => true,
             SeedanceModel::Custom(_) => true,
         }
     }
@@ -49,8 +52,26 @@ impl SeedanceModel {
             | SeedanceModel::Seedance20
             | SeedanceModel::Seedance20Fast
             | SeedanceModel::Seedance20Mini => 15.0,
-            SeedanceModel::Seedance25 => 30.0,
+            SeedanceModel::Seedance25 | SeedanceModel::Seedance25Flash => 30.0,
             SeedanceModel::Custom(_) => 15.0,
+        }
+    }
+    /// Check if this is a 2.0 series model that uses the flat API structure
+    fn is_v2_api(&self) -> bool {
+        match self {
+            SeedanceModel::Seedance20
+            | SeedanceModel::Seedance20Fast
+            | SeedanceModel::Seedance20Mini => true,
+            SeedanceModel::Custom(name) => name.starts_with("doubao-seedance-2-0"),
+            _ => false,
+        }
+    }
+    /// Check if this is a 2.5 series model that uses content array with role
+    fn is_v25_api(&self) -> bool {
+        match self {
+            SeedanceModel::Seedance25 | SeedanceModel::Seedance25Flash => true,
+            SeedanceModel::Custom(name) => name.starts_with("doubao-seedance-2-5"),
+            _ => false,
         }
     }
 }
@@ -111,6 +132,10 @@ impl Seedance {
     pub fn seedance25(self) -> Self {
         self.with_model(SeedanceModel::Seedance25)
     }
+    /// Builder shortcut: Seedance 2.5 Flash
+    pub fn seedance25_flash(self) -> Self {
+        self.with_model(SeedanceModel::Seedance25Flash)
+    }
     /// Override api base url
     pub fn with_base_url(mut self, base_url: &str) -> Self {
         self.base_url = base_url.to_string();
@@ -121,17 +146,113 @@ impl Seedance {
         self.default_options = options;
         self
     }
-    /// Build request json payload, automatically strip unsupported fields
-    fn build_request_body(
+    /// Resolve the effective model id: caller override wins over the configured default
+    fn resolve_model(&self, model_override: Option<&str>) -> String {
+        match model_override {
+            Some(m) => m.to_string(),
+            None => self.model.as_str(),
+        }
+    }
+    /// Check if the given model id uses v2 API structure (2.0 series)
+    fn is_v2_model_id(model_id: &str) -> bool {
+        model_id.starts_with("doubao-seedance-2-0")
+    }
+    /// Check if the given model id uses v2.5 API structure (2.5 series)
+    fn is_v25_model_id(model_id: &str) -> bool {
+        model_id.starts_with("doubao-seedance-2-5")
+    }
+    /// Check if a model id supports audio based on the id string
+    fn model_id_supports_audio(model_id: &str) -> bool {
+        // 1.0 series does not support audio
+        if model_id.starts_with("doubao-seedance-1-0") {
+            return false;
+        }
+        // All other models support audio (including custom models)
+        true
+    }
+    /// Get max duration for a model id string
+    fn model_id_max_duration(model_id: &str) -> f32 {
+        if model_id.starts_with("doubao-seedance-1-0") {
+            12.0
+        } else if model_id.starts_with("doubao-seedance-2-5") {
+            30.0
+        } else if model_id.starts_with("doubao-seedance-2-0")
+            || model_id.starts_with("doubao-seedance-1-5")
+        {
+            15.0
+        } else {
+            // Default for custom or unknown models
+            15.0
+        }
+    }
+    /// Validate options before building request
+    fn validate_options(&self, options: &VideoLLMOptions, model_id: &str) -> LangHubResult<()> {
+        // Validate prompt is not empty (handled by caller, but double check)
+        // Validate duration
+        if let Some(duration) = options.duration {
+            let max_dur = Self::model_id_max_duration(model_id);
+            if duration > max_dur {
+                return Err(LangHubError::LLMError(format!(
+                    "Duration {} exceeds maximum allowed {} for model {}",
+                    duration, max_dur, model_id
+                )));
+            }
+            if duration < 0.0 && !model_id.starts_with("doubao-seedance-2-5") {
+                return Err(LangHubError::LLMError(
+                    "Negative duration only supported for Seedance 2.5 series".to_string(),
+                ));
+            }
+        }
+        // Validate reference image count
+        let max_images = self.max_reference_image_count_for_id(model_id);
+        if let Some(images) = &options.reference_images {
+            if images.len() > max_images {
+                return Err(LangHubError::LLMError(format!(
+                    "Reference image count {} exceeds maximum allowed {} for model {}",
+                    images.len(),
+                    max_images,
+                    model_id
+                )));
+            }
+        }
+        // Validate seed is not used for 2.5 series
+        if options.seed.is_some() && Self::is_v25_model_id(model_id) {
+            return Err(LangHubError::LLMError(
+                "Seed parameter is not supported for Seedance 2.5 series".to_string(),
+            ));
+        }
+        Ok(())
+    }
+    /// Get max reference image count for a specific model id
+    fn max_reference_image_count_for_id(&self, model_id: &str) -> usize {
+        match model_id {
+            "doubao-seedance-1-0-pro-250528" => 1,
+            "doubao-seedance-1-0-pro-fast-251015" => 1,
+            "doubao-seedance-1-5-pro-251215" => 1,
+            "doubao-seedance-2-0-260128" => 9,
+            "doubao-seedance-2-0-fast-260128" => 9,
+            "doubao-seedance-2-0-mini-260615" => 9,
+            "doubao-seedance-2-5-260628" => 30,
+            "doubao-seedance-2-5-flash-261115" => 10,
+            _ => {
+                // For custom models, infer from prefix
+                if model_id.starts_with("doubao-seedance-2-5") {
+                    30
+                } else if model_id.starts_with("doubao-seedance-2-0") {
+                    9
+                } else {
+                    1
+                }
+            }
+        }
+    }
+    /// Build request body for v1 API (1.0/1.5 series)
+    fn build_v1_request_body(
         &self,
         prompt: &str,
         options: &VideoLLMOptions,
-        model_override: Option<&str>,
+        model_name: &str,
     ) -> serde_json::Value {
-        let model_name: String = match model_override {
-            Some(m) => m.to_string(),
-            None => self.model.as_str(),
-        };
         let mut body = json!({
             "model": model_name,
             "content": [
@@ -177,9 +298,9 @@ impl Seedance {
         if let Some(seed) = options.seed {
             params.insert("seed".to_string(), json!(seed));
         }
-        // Only add generate_audio if model supports audio
+        // Check audio support based on model_id, not self.model
         if let Some(audio) = options.generate_audio {
-            if self.model.support_audio() {
+            if Self::model_id_supports_audio(model_name) {
                 params.insert("generate_audio".to_string(), json!(audio));
             }
         }
@@ -189,10 +310,270 @@ impl Seedance {
         if let Some(neg_prompt) = &options.negative_prompt {
             params.insert("negative_prompt".to_string(), json!(neg_prompt));
         }
+        // v1 specific parameters (if supported by the API)
+        if let Some(watermark) = options.watermark {
+            params.insert("watermark".to_string(), json!(watermark));
+        }
+        if let Some(return_last_frame) = options.return_last_frame {
+            params.insert("return_last_frame".to_string(), json!(return_last_frame));
+        }
+        if let Some(service_tier) = &options.service_tier {
+            params.insert("service_tier".to_string(), json!(service_tier));
+        }
         if !params.is_empty() {
             body["parameters"] = serde_json::Value::Object(params);
         }
         body
+    }
+    /// Build request body for v2 API (2.0 series) - flat structure, no parameters nesting
+    fn build_v2_request_body(
+        &self,
+        prompt: &str,
+        options: &VideoLLMOptions,
+        model_name: &str,
+    ) -> serde_json::Value {
+        let mut body = json!({
+            "model": model_name,
+            "prompt": prompt
+        });
+        // Top-level optional parameters
+        if let Some(duration) = options.duration {
+            body["duration"] = json!(duration as i32);
+        }
+        if let Some(ratio) = &options.aspect_ratio {
+            body["ratio"] = json!(ratio);
+        }
+        if let Some(resolution) = &options.resolution {
+            body["resolution"] = json!(resolution);
+        }
+        if let Some(seed) = options.seed {
+            body["seed"] = json!(seed as i64);
+        }
+        if let Some(audio) = options.generate_audio {
+            body["generate_audio"] = json!(audio);
+        }
+        if let Some(watermark) = options.watermark {
+            body["watermark"] = json!(watermark);
+        }
+        if let Some(return_last_frame) = options.return_last_frame {
+            body["return_last_frame"] = json!(return_last_frame);
+        }
+        if let Some(service_tier) = &options.service_tier {
+            body["service_tier"] = json!(service_tier);
+        }
+        // Check if we have first/last frame mode or content array mode
+        let has_explicit_first_last = options.first_frame.is_some() || options.last_frame.is_some();
+        let has_reference_images = options
+            .reference_images
+            .as_ref()
+            .map(|v| !v.is_empty())
+            .unwrap_or(false);
+        let has_reference_videos = options
+            .reference_videos
+            .as_ref()
+            .map(|v| !v.is_empty())
+            .unwrap_or(false);
+        if has_explicit_first_last || has_reference_images {
+            // Mode A: first_frame / last_frame mode
+            // Use first_frame from options or first reference image
+            let first_frame_url = options.first_frame.clone().or_else(|| {
+                options
+                    .reference_images
+                    .as_ref()
+                    .and_then(|imgs| imgs.first().cloned())
+            });
+            if let Some(first) = first_frame_url {
+                body["first_frame"] = json!(first);
+            }
+            // Use last_frame from options or last reference image (if more than 1 image)
+            let last_frame_url = options.last_frame.clone().or_else(|| {
+                options.reference_images.as_ref().and_then(|imgs| {
+                    if imgs.len() > 1 {
+                        imgs.last().cloned()
+                    } else {
+                        None
+                    }
+                })
+            });
+            if let Some(last) = last_frame_url {
+                body["last_frame"] = json!(last);
+            }
+            if has_reference_videos && !has_reference_images && !has_explicit_first_last {
+                let mut content = vec![json!({
+                    "type": "text",
+                    "text": prompt
+                })];
+                if let Some(videos) = options.reference_videos.as_ref() {
+                    for url in videos.iter().take(3) {
+                        content.push(json!({
+                            "type": "video_url",
+                            "video_url": url
+                        }));
+                    }
+                }
+                // Remove first_frame/last_frame if we switch to content mode
+                body.as_object_mut().map(|obj| {
+                    obj.remove("first_frame");
+                    obj.remove("last_frame");
+                });
+                body["content"] = json!(content);
+            }
+        } else if has_reference_videos {
+            // Mode B: content array for multimodal input (videos only)
+            let mut content = vec![json!({
+                "type": "text",
+                "text": prompt
+            })];
+            // Add reference videos
+            if let Some(videos) = options.reference_videos.as_ref() {
+                for url in videos.iter().take(3) {
+                    content.push(json!({
+                        "type": "video_url",
+                        "video_url": url
+                    }));
+                }
+            }
+            body["content"] = json!(content);
+        }
+        body
+    }
+    /// Build request body for v2.5 API (2.5 series) - content array with role markers
+    fn build_v25_request_body(
+        &self,
+        prompt: &str,
+        options: &VideoLLMOptions,
+        model_name: &str,
+    ) -> serde_json::Value {
+        let mut body = json!({
+            "model": model_name
+        });
+        // Top-level optional parameters
+        if let Some(duration) = options.duration {
+            body["duration"] = json!(duration as i32);
+        }
+        if let Some(resolution) = &options.resolution {
+            body["resolution"] = json!(resolution);
+        }
+        if let Some(watermark) = options.watermark {
+            body["watermark"] = json!(watermark);
+        }
+        if let Some(return_last_frame) = options.return_last_frame {
+            body["return_last_frame"] = json!(return_last_frame);
+        }
+        if let Some(service_tier) = &options.service_tier {
+            body["service_tier"] = json!(service_tier);
+        }
+        // Check if first_frame/last_frame mode (must use adaptive aspect ratio)
+        let has_first_last_frame = options.first_frame.is_some()
+            || options.last_frame.is_some()
+            || (options
+                .reference_images
+                .as_ref()
+                .map(|v| !v.is_empty())
+                .unwrap_or(false));
+        if has_first_last_frame {
+            // First/last frame mode: force adaptive aspect ratio
+            body["aspect_ratio"] = json!("adaptive");
+        } else {
+            // Normal mode: can use ratio or aspect_ratio
+            if let Some(ratio) = &options.aspect_ratio {
+                body["ratio"] = json!(ratio);
+            }
+        }
+        // Build content array with role markers
+        let mut content = vec![];
+        // Add prompt as text content
+        content.push(json!({
+            "type": "text",
+            "text": prompt
+        }));
+        // Track which images are used as first/last frame
+        let mut used_first_frame = false;
+        let mut used_last_frame = false;
+        // Add first_frame if provided
+        if let Some(first_frame) = &options.first_frame {
+            content.push(json!({
+                "type": "image_url",
+                "image_url": {"url": first_frame},
+                "role": "first_frame"
+            }));
+            used_first_frame = true;
+        }
+        // Add last_frame if provided
+        if let Some(last_frame) = &options.last_frame {
+            content.push(json!({
+                "type": "image_url",
+                "image_url": {"url": last_frame},
+                "role": "last_frame"
+            }));
+            used_last_frame = true;
+        }
+        // Add reference images with proper role
+        if let Some(images) = options.reference_images.as_ref() {
+            let total = images.len();
+            for (idx, url) in images.iter().enumerate() {
+                // Skip first image if used as first_frame
+                if idx == 0 && used_first_frame {
+                    continue;
+                }
+                // Skip last image if used as last_frame and it's the last one
+                if idx == total - 1 && used_last_frame {
+                    continue;
+                }
+                // If we have first/last frame from images (not explicit), assign roles
+                if !used_first_frame && idx == 0 && total > 1 {
+                    content.push(json!({
+                        "type": "image_url",
+                        "image_url": {"url": url},
+                        "role": "first_frame"
+                    }));
+                    used_first_frame = true;
+                } else if !used_last_frame && idx == total - 1 && total > 1 {
+                    content.push(json!({
+                        "type": "image_url",
+                        "image_url": {"url": url},
+                        "role": "last_frame"
+                    }));
+                    used_last_frame = true;
+                } else {
+                    content.push(json!({
+                        "type": "image_url",
+                        "image_url": {"url": url},
+                        "role": "reference_image"
+                    }));
+                }
+            }
+        }
+        // Add reference videos
+        if let Some(videos) = options.reference_videos.as_ref() {
+            for url in videos.iter() {
+                content.push(json!({
+                    "type": "video_url",
+                    "video_url": {"url": url},
+                    "role": "reference_video"
+                }));
+            }
+        }
+        body["content"] = json!(content);
+        body
+    }
+    /// Build request json payload, automatically select v1, v2 or v2.5 format
+    fn build_request_body(
+        &self,
+        prompt: &str,
+        options: &VideoLLMOptions,
+        model_override: Option<&str>,
+    ) -> LangHubResult<serde_json::Value> {
+        let model_name = self.resolve_model(model_override);
+        // Validate options before building request
+        self.validate_options(options, &model_name)?;
+        if Self::is_v25_model_id(&model_name) {
+            Ok(self.build_v25_request_body(prompt, options, &model_name))
+        } else if Self::is_v2_model_id(&model_name) {
+            Ok(self.build_v2_request_body(prompt, options, &model_name))
+        } else {
+            Ok(self.build_v1_request_body(prompt, options, &model_name))
+        }
     }
     /// Submit generate request, return raw response json
     async fn submit_request(
@@ -201,7 +582,11 @@ impl Seedance {
         options: &VideoLLMOptions,
         model_override: Option<&str>,
     ) -> LangHubResult<serde_json::Value> {
-        let body = self.build_request_body(prompt, options, model_override);
+        // Validate prompt is not empty
+        if prompt.trim().is_empty() {
+            return Err(LangHubError::LLMError("Prompt cannot be empty".to_string()));
+        }
+        let body = self.build_request_body(prompt, options, model_override)?;
         let response = self
             .client
             .post(format!("{}/contents/generations/tasks", self.base_url))
@@ -225,7 +610,7 @@ impl Seedance {
             .map_err(|e| LangHubError::LLMError(format!("Seedance parse json error: {}", e)))?;
         Ok(json_val)
     }
-    /// Extract the produced video url from a raw Ark response.
+    /// Extract the produced video url from a raw Ark response
     fn extract_video_url(raw: &serde_json::Value) -> Option<String> {
         raw["content"]["video_url"]
             .as_str()
@@ -236,7 +621,7 @@ impl Seedance {
             .or_else(|| raw["data"]["content"]["video_url"].as_str())
             .map(|s| s.to_string())
     }
-    /// Extract duration (seconds) from a raw Ark response.
+    /// Extract duration (seconds) from a raw Ark response
     fn extract_duration(raw: &serde_json::Value) -> Option<f32> {
         raw["content"]["duration"]
             .as_f64()
@@ -245,13 +630,21 @@ impl Seedance {
             .or_else(|| raw["duration"].as_f64())
             .map(|v| v as f32)
     }
-    /// Extract resolution string from a raw Ark response.
+    /// Extract resolution string from a raw Ark response
     fn extract_resolution(raw: &serde_json::Value) -> Option<String> {
         raw["content"]["resolution"]
             .as_str()
             .or_else(|| raw["output"][0]["resolution"].as_str())
             .or_else(|| raw["output"]["resolution"].as_str())
             .or_else(|| raw["resolution"].as_str())
+            .map(|s| s.to_string())
+    }
+    /// Extract last frame url from a raw Ark response (v2/v2.5 API)
+    fn extract_last_frame_url(raw: &serde_json::Value) -> Option<String> {
+        raw["last_frame_url"]
+            .as_str()
+            .or_else(|| raw["output"]["last_frame_url"].as_str())
+            .or_else(|| raw["data"]["last_frame_url"].as_str())
             .map(|s| s.to_string())
     }
     /// Poll task status until finished, parse video result
@@ -284,12 +677,14 @@ impl Seedance {
                     let video_url = Self::extract_video_url(&raw);
                     let duration = Self::extract_duration(&raw);
                     let resolution = Self::extract_resolution(&raw);
+                    let last_frame_url = Self::extract_last_frame_url(&raw);
                     return Ok(VideoLLMResult {
                         video_url,
                         video_base64: None,
                         file_path: None,
                         duration_seconds: duration,
                         resolution,
+                        last_frame_url,
                         raw_response: raw,
                     });
                 }
@@ -406,7 +801,7 @@ impl VideoLLM for Seedance {
                 .await
                 .map_err(|e| LangHubError::LLMError(format!("Poll json parse error: {}", e)))?;
             let status_str = raw["status"].as_str().unwrap_or("");
-            // Map the provider status string to our unified task status.
+            // Map the provider status string to our unified task status
             let task_status = match status_str {
                 "success" | "succeeded" => VideoTaskStatus::Succeeded,
                 "failed" => VideoTaskStatus::Failed,
@@ -420,12 +815,14 @@ impl VideoLLM for Seedance {
                 let video_url = Seedance::extract_video_url(&raw);
                 let duration = Seedance::extract_duration(&raw);
                 let resolution = Seedance::extract_resolution(&raw);
+                let last_frame_url = Seedance::extract_last_frame_url(&raw);
                 result = Some(VideoLLMResult {
                     video_url,
                     video_base64: None,
                     file_path: None,
                     duration_seconds: duration,
                     resolution,
+                    last_frame_url,
                     raw_response: raw,
                 });
             } else if task_status == VideoTaskStatus::Failed {
@@ -467,15 +864,6 @@ impl VideoLLM for Seedance {
         let model_id = model
             .map(|s| s.to_string())
             .unwrap_or_else(|| self.get_model_name());
-        match model_id.as_str() {
-            "doubao-seedance-1-0-pro-250528" => 1,
-            "doubao-seedance-1-0-pro-fast-251015" => 1,
-            "doubao-seedance-1-5-pro-251215" => 1,
-            "doubao-seedance-2-0-260128" => 9,
-            "doubao-seedance-2-0-fast-260128" => 9,
-            "doubao-seedance-2-0-mini-260615" => 9,
-            "doubao-seedance-2-5" => 30,
-            _ => 1,
-        }
+        self.max_reference_image_count_for_id(&model_id)
     }
 }

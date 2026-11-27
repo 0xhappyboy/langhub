@@ -141,6 +141,7 @@ impl PrunaVideo {
             file_path: None,
             duration_seconds: duration,
             resolution,
+            last_frame_url: None,
             raw_response: raw.clone(),
         }
     }

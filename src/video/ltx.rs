@@ -166,6 +166,7 @@ impl LtxVideo {
                         file_path: None,
                         duration_seconds: None,
                         resolution: None,
+                        last_frame_url: None,
                         raw_response: raw,
                     });
                 }
@@ -279,6 +280,7 @@ impl VideoLLM for LtxVideo {
                             file_path: None,
                             duration_seconds: None,
                             resolution: None,
+                            last_frame_url: None,
                             raw_response: raw.clone(),
                         }),
                         None,

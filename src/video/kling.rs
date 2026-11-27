@@ -191,6 +191,7 @@ impl KlingVideo {
                         file_path: None,
                         duration_seconds: duration,
                         resolution: None,
+                        last_frame_url: None,
                         raw_response: raw,
                     });
                 }
@@ -309,6 +310,7 @@ impl VideoLLM for KlingVideo {
                             file_path: None,
                             duration_seconds: duration,
                             resolution: None,
+                            last_frame_url: None,
                             raw_response: raw.clone(),
                         }),
                         None,

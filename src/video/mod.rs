@@ -40,6 +40,7 @@ pub struct VideoLLMResult {
     pub file_path: Option<String>,
     pub duration_seconds: Option<f32>,
     pub resolution: Option<String>,
+    pub last_frame_url: Option<String>,
     pub raw_response: serde_json::Value,
 }
 impl VideoLLMResult {
@@ -95,6 +96,12 @@ pub struct VideoLLMOptions {
     pub reference_videos: Option<Vec<String>>,
     pub negative_prompt: Option<String>,
     pub fps: Option<u32>,
+    // Seedance 2.0/2.5 specific options
+    pub watermark: Option<bool>,
+    pub return_last_frame: Option<bool>,
+    pub service_tier: Option<String>,
+    pub first_frame: Option<String>,
+    pub last_frame: Option<String>,
 }
 /// Video generation task status.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -293,27 +300,27 @@ impl VideoModelProvider {
     pub fn description_zh(&self) -> &'static str {
         match self {
             VideoModelProvider::Seedance => {
-                "字节跳动 Seedance：电影级文生视频，动态强，原生音频，多镜头一致性好"
+                "字节跳动 Seedance: 电影级文生视频, 动态强, 原生音频, 多镜头一致性好"
             }
-            VideoModelProvider::Wan => "阿里云通义万相：文生视频，风格控制丰富，支持参考图生视频",
-            VideoModelProvider::Kling => "快手可灵：高保真文生视频，原生音频，支持图片和视频参考",
-            VideoModelProvider::Veo => "Google Veo：顶尖文生视频，原生音频，电影级画质，时长更长",
+            VideoModelProvider::Wan => "阿里云通义万相: 文生视频, 风格控制丰富, 支持参考图生视频",
+            VideoModelProvider::Kling => "快手可灵: 高保真文生视频, 原生音频, 支持图片和视频参考",
+            VideoModelProvider::Veo => "Google Veo: 顶尖文生视频, 原生音频, 电影级画质, 时长更长",
             VideoModelProvider::Runway => {
-                "Runway：Gen-4.5 与 Aleph 视频模型，适合创意影视制作和视频到视频编辑"
+                "Runway: Gen-4.5 与 Aleph 视频模型, 适合创意影视制作和视频到视频编辑"
             }
             VideoModelProvider::MiniMaxH3 => {
-                "MiniMax 海螺 H3：表现力强的文生视频，原生音频，支持图生视频"
+                "MiniMax 海螺 H3: 表现力强的文生视频, 原生音频, 支持图生视频"
             }
-            VideoModelProvider::HappyHorse => "阿里云 HappyHorse：文生视频，支持参考图，生成速度快",
+            VideoModelProvider::HappyHorse => "阿里云 HappyHorse: 文生视频, 支持参考图, 生成速度快",
             VideoModelProvider::Ltx => {
-                "Lightricks LTX：高效文生视频，支持音频，提供 Fast 和 Pro 两档画质"
+                "Lightricks LTX: 高效文生视频, 支持音频, 提供 Fast 和 Pro 两档画质"
             }
             VideoModelProvider::GrokImagine => {
-                "xAI Grok Imagine：创意文生视频，支持参考图和参考视频"
+                "xAI Grok Imagine: 创意文生视频, 支持参考图和参考视频"
             }
-            VideoModelProvider::Pruna => "Pruna P-Video：优化型文生视频，生成快、成本低",
+            VideoModelProvider::Pruna => "Pruna P-Video: 优化型文生视频, 生成快、成本低",
             VideoModelProvider::GeminiOmniFlash => {
-                "Google Gemini Omni Flash：多模态文生视频，原生音频，支持图片和视频参考"
+                "Google Gemini Omni Flash: 多模态文生视频, 原生音频, 支持图片和视频参考"
             }
         }
     }
@@ -374,7 +381,7 @@ impl VideoModelProvider {
                 (
                     "doubao-seedance-1-0-pro-fast-251015".to_string(),
                     "Seedance 1.0 Pro Fast".to_string(),
-                    true,
+                    false,
                 ),
                 (
                     "doubao-seedance-1-5-pro-251215".to_string(),
@@ -394,11 +401,16 @@ impl VideoModelProvider {
                 (
                     "doubao-seedance-2-0-mini-260615".to_string(),
                     "Seedance 2.0 Mini".to_string(),
+                    true,
+                ),
+                (
+                    "doubao-seedance-2-5-260628".to_string(),
+                    "Seedance 2.5".to_string(),
                     false,
                 ),
                 (
-                    "doubao-seedance-2-5".to_string(),
-                    "Seedance 2.5".to_string(),
+                    "doubao-seedance-2-5-flash-261115".to_string(),
+                    "Seedance 2.5 Flash".to_string(),
                     false,
                 ),
             ],
@@ -565,7 +577,7 @@ impl VideoModelProvider {
 pub fn get_model_max_reference_images(provider: VideoModelProvider, model: Option<&str>) -> usize {
     match provider {
         VideoModelProvider::Seedance => {
-            let model_id = model.unwrap_or("doubao-seedance-1-0-pro-fast-251015");
+            let model_id = model.unwrap_or("doubao-seedance-2-0-mini-260615");
             match model_id {
                 "doubao-seedance-1-0-pro-250528" => 1,
                 "doubao-seedance-1-0-pro-fast-251015" => 1,
@@ -573,7 +585,8 @@ pub fn get_model_max_reference_images(provider: VideoModelProvider, model: Optio
                 "doubao-seedance-2-0-260128" => 9,
                 "doubao-seedance-2-0-fast-260128" => 9,
                 "doubao-seedance-2-0-mini-260615" => 9,
-                "doubao-seedance-2-5" => 30,
+                "doubao-seedance-2-5-260628" => 30,
+                "doubao-seedance-2-5-flash-261115" => 10,
                 _ => 1,
             }
         }

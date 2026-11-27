@@ -170,6 +170,7 @@ impl GeminiOmniFlash {
                     file_path: None,
                     duration_seconds: None,
                     resolution: None,
+                    last_frame_url: None,
                     raw_response: raw,
                 });
             }
@@ -283,6 +284,7 @@ impl VideoLLM for GeminiOmniFlash {
                         file_path: None,
                         duration_seconds: None,
                         resolution: None,
+                        last_frame_url: None,
                         raw_response: raw,
                     }),
                     error: None,
